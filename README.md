@@ -1,4 +1,4 @@
-# Flowrs
+![1673858590987](image/README/1673858590987.png)
 
 Flowrs is a TUI application for Apache Airflow. It allows you to monitor, inspect and trigger Airflow DAGs from the comforts of your terminal. It is written with the Rust `tui` framework, using `crossterm` as the backend.
 
