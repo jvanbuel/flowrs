@@ -6,5 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono =  { version = "^0.4.1", features = ["serde", "rustc-serialize"] }
 crossterm = "0.25.0"
+serde = { version = "1.0.160", features = ["derive"]}
+time = "0.3.20"
+toml = "0.7.3"
 tui = "0.19.0"

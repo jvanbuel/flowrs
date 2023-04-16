@@ -12,6 +12,9 @@ use tui::{
     Frame, Terminal,
 };
 
+mod model;
+mod app;
+
 struct App<'a> {
     state: TableState,
     items: Vec<Vec<&'a str>>,
