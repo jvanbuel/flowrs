@@ -1,11 +1,13 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize)]
+use crate::CONFIG_FILE;
+
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     pub servers: Vec<AirflowConfig>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct AirflowConfig {
     pub name: String,
     pub endpoint: String,
@@ -15,8 +17,12 @@ pub struct AirflowConfig {
 }
 
 pub fn get_config() -> Config {
-    let file = std::fs::read_to_string(".flowrs").unwrap();
-    toml::from_str(&file).unwrap()
+    let toml_read = std::fs::read_to_string(CONFIG_FILE.as_path());
+    if let Ok(toml_config) = toml_read {
+        toml::from_str(&toml_config).unwrap()
+    } else {
+        Config { servers: vec![] }
+    }
 }
 
 #[cfg(test)]

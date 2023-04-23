@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, path::PathBuf};
 
 use clap::Parser;
 
@@ -8,6 +8,11 @@ mod model;
 mod view;
 
 use commands::{config::ConfigCommand, run::RunCommand};
+use dirs::home_dir;
+
+lazy_static::lazy_static! {
+    pub static ref CONFIG_FILE: PathBuf = home_dir().unwrap().join(".flowrs");
+}
 
 #[derive(Parser)]
 #[clap(name = "flowrs", author, version, about)]
