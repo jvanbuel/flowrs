@@ -11,6 +11,7 @@ crossterm = "0.25.0"
 dirs = "5.0.0"
 inquire = "0.6.1"
 lazy_static = "1.4.0"
+reqwest = "0.11.16"
 serde = { version = "1.0.160", features = ["derive"]}
 time = "0.3.20"
 toml = "0.7.3"

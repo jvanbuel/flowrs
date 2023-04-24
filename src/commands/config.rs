@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::path::Path;
 
 use clap::Parser;
 use inquire::validator::Validation;
@@ -31,16 +32,23 @@ impl ConfigCommand {
 }
 
 #[derive(Parser, Debug)]
-pub struct AddCommand {}
+pub struct AddCommand {
+    #[clap(short, long)]
+    file: Option<String>,
+}
 
 #[derive(Parser, Debug)]
 pub struct RemoveCommand {
     name: Option<String>,
+    #[clap(short, long)]
+    file: Option<String>,
 }
 
 #[derive(Parser, Debug)]
 pub struct UpdateCommand {
     name: Option<String>,
+    #[clap(short, long)]
+    file: Option<String>,
 }
 
 impl AddCommand {
@@ -72,14 +80,18 @@ impl AddCommand {
             token,
         };
 
-        let mut config = crate::app::auth::get_config();
+        let path = match &self.file {
+            Some(file) => Some(Path::new(file)),
+            None => None,
+        };
+        let mut config = crate::app::auth::get_config(path);
         config
             .servers
             .retain(|server| server.name != airflow_config.name);
 
         config.servers.push(airflow_config);
 
-        write_config(&config)?;
+        write_config(&config, path)?;
 
         println!("✅ Config added successfully!");
         Ok(())
@@ -88,7 +100,11 @@ impl AddCommand {
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
-        let mut config = crate::app::auth::get_config();
+        let path = match &self.file {
+            Some(file) => Some(Path::new(file)),
+            None => None,
+        };
+        let mut config = crate::app::auth::get_config(path);
 
         let name: String;
         name = if self.name == None {
@@ -106,7 +122,7 @@ impl RemoveCommand {
         };
         config.servers.retain(|server| server.name != name);
 
-        write_config(&config)?;
+        write_config(&config, path)?;
 
         println!("✅ Config '{}' removed successfully!", name);
         Ok(())
@@ -115,7 +131,11 @@ impl RemoveCommand {
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
-        let mut config = crate::app::auth::get_config();
+        let path = match &self.file {
+            Some(file) => Some(Path::new(file)),
+            None => None,
+        };
+        let mut config = crate::app::auth::get_config(path);
 
         let name: String;
         name = if self.name == None {
@@ -165,7 +185,7 @@ impl UpdateCommand {
         airflow_config.password = password;
         airflow_config.token = token;
 
-        write_config(&config)?;
+        write_config(&config, path)?;
 
         println!("✅ Config updated successfully!");
         Ok(())
@@ -179,13 +199,17 @@ fn validate_endpoint(endpoint: &str) -> Result<Validation, Box<dyn Error + Send 
     }
 }
 
-fn write_config(config: &Config) -> Result<(), Box<dyn Error>> {
+fn write_config(config: &Config, path: Option<&Path>) -> Result<(), Box<dyn Error>> {
+    let path = match path {
+        Some(path) => path,
+        None => CONFIG_FILE.as_path(),
+    };
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
         .truncate(true)
         .create(true)
-        .open(CONFIG_FILE.as_path())?;
+        .open(path)?;
 
     file.write_all(toml::to_string(config)?.as_bytes())?;
     Ok(())
