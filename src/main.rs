@@ -23,14 +23,18 @@ enum FlowrsApp {
 }
 
 impl FlowrsApp {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&self) -> Result<(), Box<dyn Error>> {
         match self {
-            FlowrsApp::Run(cmd) => cmd.run(),
+            FlowrsApp::Run(cmd) => cmd.run().await,
             FlowrsApp::Config(cmd) => cmd.run(),
         }
     }
 }
-fn main() -> Result<(), Box<dyn Error>> {
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let app = FlowrsApp::parse();
-    app.run()
+    println!("Starting up the App...");
+    app.run().await?;
+    Ok(())
 }

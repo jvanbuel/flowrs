@@ -1,4 +1,4 @@
-use std::{error::Error, io};
+use std::{error::Error, io, path::Path};
 
 use clap::Parser;
 use crossterm::{
@@ -15,10 +15,13 @@ use crate::app::state::App;
 use crate::view::ui::ui;
 
 #[derive(Parser, Debug)]
-pub struct RunCommand {}
+pub struct RunCommand {
+    #[clap(short, long)]
+    pub file: Option<String>,
+}
 
 impl RunCommand {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&self) -> Result<(), Box<dyn Error>> {
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -27,7 +30,12 @@ impl RunCommand {
         let mut terminal = Terminal::new(backend)?;
 
         // create app and run it
-        let app = App::new();
+        let path = match &self.file {
+            Some(file) => Some(Path::new(file)),
+            None => None,
+        };
+        let config = crate::app::auth::get_config(path);
+        let app = App::new(&config).await;
         let res = run_app(&mut terminal, app);
 
         // restore terminal
@@ -47,7 +55,7 @@ impl RunCommand {
     }
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
 
