@@ -2,6 +2,7 @@ use tui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
+    text::{Span, Spans},
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
@@ -17,7 +18,7 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
 
-    let headers = ["dag_id"];
+    let headers = ["Name", "Active"];
     let header_cells = headers
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
@@ -26,14 +27,20 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .height(1)
         .bottom_margin(1);
     let rows = app.dags.iter().map(|item| {
-        let height = 1;
-        Row::new(vec![item.dag_id.as_str()])
-            .height(height as u16)
-            .bottom_margin(1)
+        Row::new(vec![
+            Spans::from(item.dag_id.as_str()),
+            if item.is_paused {
+                Spans::from(Span::styled("Off", Style::default().fg(Color::Red)))
+            } else {
+                Spans::from(Span::styled("On", Style::default().fg(Color::Blue)))
+            },
+        ])
+        // .height(height as u16)
+        .bottom_margin(1)
     });
     let t = Table::new(rows)
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title("Table"))
+        .block(Block::default().borders(Borders::ALL).title("DAGs"))
         .highlight_style(selected_style)
         .highlight_symbol(">> ")
         .widths(&[
