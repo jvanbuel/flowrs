@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Root {
+pub struct Dag {
     #[serde(rename = "dag_id")]
     pub dag_id: String,
     #[serde(rename = "default_view")]
@@ -46,10 +46,23 @@ pub struct Root {
     #[serde(rename = "root_dag_id")]
     pub root_dag_id: Option<String>,
     #[serde(rename = "schedule_interval")]
-    pub schedule_interval: Option<String>,
+    pub schedule_interval: Option<ScheduleInterval>,
     #[serde(rename = "scheduler_lock")]
-    pub scheduler_lock: bool,
-    pub tags: Vec<String>,
+    pub scheduler_lock: Option<bool>,
+    pub tags: Vec<Tag>,
     #[serde(rename = "timetable_description")]
     pub timetable_description: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ScheduleInterval {
+    #[serde(rename = "schedule_interval")]
+    pub value: Option<String>,
+    __type: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Tag {
+    #[serde(rename = "name")]
+    pub name: String,
 }

@@ -9,7 +9,7 @@ pub struct Config {
     pub servers: Vec<AirflowConfig>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct AirflowConfig {
     pub name: String,
     pub endpoint: String,

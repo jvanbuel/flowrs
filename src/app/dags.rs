@@ -1,20 +1,22 @@
-use super::client::AirFlowClient;
+use std::error::Error;
 
+use reqwest::Response;
+use serde::{Deserialize, Serialize};
+
+use super::client::AirFlowClient;
+use crate::model::dag::Dag;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DagList {
     pub dags: Vec<Dag>,
-}
-
-pub struct Dag {
-    name: String,
+    pub total_entries: i64,
 }
 
 impl AirFlowClient<'_> {
-    pub fn list_dags(&self) -> DagList {
-        DagList {
-            dags: vec![Dag {
-                name: "test".to_string(),
-            }],
-        }
+    pub async fn list_dags(&self) -> Result<DagList, Box<dyn Error>> {
+        let response: Response = self.get_api("dags")?.send().await?;
+        let daglist: DagList = response.json::<DagList>().await?;
+        Ok(daglist)
     }
 }
 
@@ -24,13 +26,15 @@ mod tests {
 
     use crate::app::auth::get_config;
     use crate::app::client::AirFlowClient;
+    use crate::app::dags::DagList;
 
-    #[test]
-    fn test_list_dags() {
+    #[tokio::test]
+    async fn test_list_dags() {
         let binding = get_config(Some(&Path::new(".flowrs")));
         let client = AirFlowClient::new(&binding.servers[1]);
 
-        let daglist = client.list_dags();
-        assert_eq!(daglist.dags[0].name, "test");
+        println!("{:?}", client.config);
+        let daglist: DagList = client.list_dags().await.unwrap();
+        assert_eq!(daglist.dags[0].dag_id, "dataset_consumes_1");
     }
 }

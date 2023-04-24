@@ -67,7 +67,11 @@ impl AddCommand {
 
         if let "username/password" = auth_type {
             username = Some(inquire::Text::new("username").prompt()?);
-            password = Some(inquire::Text::new("password").prompt()?);
+            password = Some(
+                inquire::Password::new("password")
+                    .with_display_toggle_enabled()
+                    .prompt()?,
+            );
         } else {
             token = Some(Text::new("token").prompt()?);
         }
