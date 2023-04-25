@@ -36,7 +36,8 @@ impl RunCommand {
         };
         let config = crate::app::auth::get_config(path);
         let app = App::new(&config).await;
-        let res = run_app(&mut terminal, app);
+
+        let res = run_app(&mut terminal, app).await;
 
         // restore terminal
         disable_raw_mode()?;
@@ -55,15 +56,18 @@ impl RunCommand {
     }
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io::Result<()> {
+async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui(f, &mut app))?;
+
+        app.update_dags().await;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Down => app.next(),
                 KeyCode::Up => app.previous(),
+                KeyCode::Char('p') => app.toggle_current_dag().await,
                 _ => {}
             }
         }

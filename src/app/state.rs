@@ -21,6 +21,22 @@ impl<'a> App<'a> {
         }
     }
 
+    pub async fn update_dags(&mut self) {
+        let daglist = self.client.list_dags().await.unwrap();
+        self.dags = daglist.dags;
+    }
+
+    pub async fn toggle_current_dag(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => i,
+            None => 0,
+        };
+        let dag_id = &self.dags[i].dag_id;
+        let is_paused = self.dags[i].is_paused;
+
+        self.client.toggle_dag(dag_id, is_paused).await.unwrap();
+    }
+
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {

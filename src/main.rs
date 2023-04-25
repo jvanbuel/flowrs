@@ -36,7 +36,6 @@ impl FlowrsApp {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let app = FlowrsApp::parse();
-    println!("Starting up the App...");
     app.run().await?;
     Ok(())
 }
