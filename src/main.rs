@@ -1,8 +1,10 @@
 use std::{error::Error, path::PathBuf};
 
+use ascii_flowrs::ASCII_FLOWRS;
 use clap::Parser;
 
 mod app;
+mod ascii_flowrs;
 mod commands;
 mod model;
 mod view;
@@ -15,7 +17,7 @@ lazy_static::lazy_static! {
 }
 
 #[derive(Parser)]
-#[clap(name = "flowrs", author, version, about)]
+#[clap(name = "flowrs", version, about, before_help=ASCII_FLOWRS)]
 enum FlowrsApp {
     Run(RunCommand),
     #[clap(subcommand)]
