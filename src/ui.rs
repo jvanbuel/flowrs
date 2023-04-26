@@ -1,4 +1,4 @@
-use tui::{
+use ratatui::{
     backend::Backend,
     widgets::{Block, Borders},
     Frame,

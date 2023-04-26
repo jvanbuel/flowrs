@@ -1,4 +1,4 @@
-use tui::widgets::TableState;
+use ratatui::widgets::TableState;
 
 use crate::model::dag::Dag;
 

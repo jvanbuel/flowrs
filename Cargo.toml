@@ -11,12 +11,12 @@ crossterm = "0.25.0"
 dirs = "5.0.0"
 inquire = "0.6.1"
 lazy_static = "1.4.0"
+ratatui = "0.20.1"
 reqwest = { version = "0.11.16", features = ["json"]}
 serde = { version = "1.0.160", features = ["derive"]}
 serde_json = "1.0.96"
 time = "0.3.20"
 tokio = { version = "1.27.0", features = ["full"] }
 toml = "0.7.3"
-tui = "0.19.0"
 url = "2.3.1"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
