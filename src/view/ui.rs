@@ -12,9 +12,7 @@ use crate::app::state::{App, Panel};
 pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.active_panel {
         Panel::Config => {
-            let size = f.size();
-            let block = Block::default().title("Config").borders(Borders::ALL);
-            f.render_widget(block, size);
+            render_config_panel(f, app);
         }
         Panel::DAG => render_dag_panel(f, app),
         Panel::DAGRun => {
@@ -33,7 +31,7 @@ pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
-        .margin(5)
+        .margin(0)
         .split(f.size());
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
@@ -69,5 +67,45 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Length(30),
             Constraint::Min(10),
         ]);
-    f.render_stateful_widget(t, rects[0], &mut app.state);
+    f.render_stateful_widget(t, rects[0], &mut app.dag_state);
+}
+
+pub fn render_config_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let rects = Layout::default()
+        .constraints([Constraint::Percentage(100)].as_ref())
+        .margin(0)
+        .split(f.size());
+
+    let selected_style = Style::default().add_modifier(Modifier::REVERSED);
+    let normal_style = Style::default().bg(Color::Blue);
+
+    let headers = ["Name", "Endpoint"];
+    let header_cells = headers
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
+
+    let header = Row::new(header_cells)
+        .style(normal_style)
+        .height(1)
+        .bottom_margin(1);
+    let rows = app.config.servers.iter().map(|item| {
+        Row::new(vec![
+            Spans::from(item.name.as_str()),
+            Spans::from(item.endpoint.as_str()),
+        ])
+        // .height(height as u16)
+        .bottom_margin(1)
+    });
+
+    let t = Table::new(rows)
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title("Config"))
+        .highlight_style(selected_style)
+        .highlight_symbol(">> ")
+        .widths(&[
+            Constraint::Percentage(50),
+            Constraint::Length(30),
+            Constraint::Min(10),
+        ]);
+    f.render_stateful_widget(t, rects[0], &mut app.config_state);
 }

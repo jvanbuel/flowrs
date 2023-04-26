@@ -71,7 +71,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io
                 KeyCode::Char('k') => app.previous(),
                 KeyCode::Enter => app.next_panel(),
                 KeyCode::Esc => app.previous_panel(),
-                KeyCode::Char('p') => app.toggle_current_dag().await,
+                KeyCode::Char('t') => app.toggle_current_dag().await,
                 _ => {}
             }
         }

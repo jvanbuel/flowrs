@@ -5,8 +5,10 @@ use crate::model::dag::Dag;
 use super::{auth::Config, client::AirFlowClient};
 
 pub struct App<'a> {
-    pub state: TableState,
+    pub dag_state: TableState,
+    pub config_state: TableState,
     pub dags: Vec<Dag>,
+    pub config: &'a Config,
     pub client: AirFlowClient<'a>,
     pub active_panel: Panel,
 }
@@ -23,8 +25,10 @@ impl<'a> App<'a> {
         let client = AirFlowClient::new(&config.servers[1]);
         let daglist = client.list_dags().await.unwrap();
         App {
-            state: TableState::default(),
+            dag_state: TableState::default(),
+            config_state: TableState::default(),
             dags: daglist.dags,
+            config: config,
             client,
             active_panel: Panel::DAG,
         }
@@ -36,7 +40,7 @@ impl<'a> App<'a> {
     }
 
     pub async fn toggle_current_dag(&mut self) {
-        let i = match self.state.selected() {
+        let i = match self.dag_state.selected() {
             Some(i) => i,
             None => 0,
         };
@@ -65,7 +69,7 @@ impl<'a> App<'a> {
     }
 
     pub fn next(&mut self) {
-        let i = match self.state.selected() {
+        let i = match self.dag_state.selected() {
             Some(i) => {
                 if i >= self.dags.len() - 1 {
                     0
@@ -75,11 +79,11 @@ impl<'a> App<'a> {
             }
             None => 0,
         };
-        self.state.select(Some(i));
+        self.dag_state.select(Some(i));
     }
 
     pub fn previous(&mut self) {
-        let i = match self.state.selected() {
+        let i = match self.dag_state.selected() {
             Some(i) => {
                 if i == 0 {
                     self.dags.len() - 1
@@ -89,6 +93,6 @@ impl<'a> App<'a> {
             }
             None => 0,
         };
-        self.state.select(Some(i));
+        self.dag_state.select(Some(i));
     }
 }

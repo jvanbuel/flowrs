@@ -2,4 +2,4 @@
 
 
 build:
-	cargo build && cp target/debug/flowrs .
+	cargo build --release && cp target/debug/flowrs .
