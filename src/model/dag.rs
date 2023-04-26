@@ -56,7 +56,6 @@ pub struct Dag {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ScheduleInterval {
-    #[serde(rename = "schedule_interval")]
     pub value: Option<String>,
     __type: String,
 }

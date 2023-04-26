@@ -18,7 +18,7 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
 
-    let headers = ["Active", "Name", "Owners"];
+    let headers = ["Active", "Name", "Owners", "Schedule"];
     let header_cells = headers
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
@@ -38,6 +38,17 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 Style::default().add_modifier(Modifier::BOLD),
             )),
             Spans::from(item.owners.join(", ")),
+            if let Some(schedule) = &item.schedule_interval {
+                Spans::from(Span::styled(
+                    schedule.value.clone().unwrap_or_else(|| "None".to_string()),
+                    Style::default().fg(Color::LightYellow),
+                ))
+            } else {
+                Spans::from(Span::styled(
+                    "None",
+                    Style::default().fg(Color::LightYellow),
+                ))
+            },
         ])
         // .height(height as u16)
         .bottom_margin(1)
@@ -51,6 +62,7 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Length(7),
             Constraint::Percentage(20),
             Constraint::Min(15),
+            Constraint::Length(10),
         ]);
     f.render_stateful_widget(t, rects[0], &mut app.dag_state);
 }
