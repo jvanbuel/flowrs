@@ -18,7 +18,7 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
 
-    let headers = ["Name", "Active"];
+    let headers = ["Active", "Name", "Owners"];
     let header_cells = headers
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
@@ -28,12 +28,16 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .bottom_margin(1);
     let rows = app.dags.iter().map(|item| {
         Row::new(vec![
-            Spans::from(item.dag_id.as_str()),
             if item.is_paused {
-                Spans::from(Span::styled("Off", Style::default().fg(Color::Red)))
+                Spans::from(Span::styled("🔘", Style::default().fg(Color::Gray)))
             } else {
-                Spans::from(Span::styled("On", Style::default().fg(Color::Blue)))
+                Spans::from(Span::styled("🔵", Style::default().fg(Color::Gray)))
             },
+            Spans::from(Span::styled(
+                item.dag_id.as_str(),
+                Style::default().add_modifier(Modifier::BOLD),
+            )),
+            Spans::from(item.owners.join(", ")),
         ])
         // .height(height as u16)
         .bottom_margin(1)
@@ -44,9 +48,9 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .highlight_style(selected_style)
         .highlight_symbol(">> ")
         .widths(&[
-            Constraint::Percentage(50),
-            Constraint::Length(30),
-            Constraint::Min(10),
+            Constraint::Length(7),
+            Constraint::Percentage(20),
+            Constraint::Min(15),
         ]);
     f.render_stateful_widget(t, rects[0], &mut app.dag_state);
 }
