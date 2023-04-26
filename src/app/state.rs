@@ -8,6 +8,14 @@ pub struct App<'a> {
     pub state: TableState,
     pub dags: Vec<Dag>,
     pub client: AirFlowClient<'a>,
+    pub active_panel: Panel,
+}
+
+pub enum Panel {
+    Config,
+    DAG,
+    DAGRun,
+    Task,
 }
 
 impl<'a> App<'a> {
@@ -18,6 +26,7 @@ impl<'a> App<'a> {
             state: TableState::default(),
             dags: daglist.dags,
             client,
+            active_panel: Panel::DAG,
         }
     }
 
@@ -35,6 +44,24 @@ impl<'a> App<'a> {
         let is_paused = self.dags[i].is_paused;
 
         self.client.toggle_dag(dag_id, is_paused).await.unwrap();
+    }
+
+    pub fn next_panel(&mut self) {
+        match self.active_panel {
+            Panel::Config => self.active_panel = Panel::DAG,
+            Panel::DAG => self.active_panel = Panel::DAGRun,
+            Panel::DAGRun => self.active_panel = Panel::Task,
+            Panel::Task => (),
+        }
+    }
+
+    pub fn previous_panel(&mut self) {
+        match self.active_panel {
+            Panel::Config => (),
+            Panel::DAG => self.active_panel = Panel::Config,
+            Panel::DAGRun => self.active_panel = Panel::DAG,
+            Panel::Task => self.active_panel = Panel::DAGRun,
+        }
     }
 
     pub fn next(&mut self) {

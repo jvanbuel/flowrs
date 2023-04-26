@@ -58,15 +58,19 @@ impl RunCommand {
 
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io::Result<()> {
     loop {
-        terminal.draw(|f| ui(f, &mut app))?;
-
         app.update_dags().await;
+
+        terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Down => app.next(),
+                KeyCode::Char('j') => app.next(),
                 KeyCode::Up => app.previous(),
+                KeyCode::Char('k') => app.previous(),
+                KeyCode::Enter => app.next_panel(),
+                KeyCode::Esc => app.previous_panel(),
                 KeyCode::Char('p') => app.toggle_current_dag().await,
                 _ => {}
             }

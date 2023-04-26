@@ -7,9 +7,30 @@ use tui::{
     Frame,
 };
 
-use crate::app::state::App;
+use crate::app::state::{App, Panel};
 
 pub fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    match app.active_panel {
+        Panel::Config => {
+            let size = f.size();
+            let block = Block::default().title("Config").borders(Borders::ALL);
+            f.render_widget(block, size);
+        }
+        Panel::DAG => render_dag_panel(f, app),
+        Panel::DAGRun => {
+            let size = f.size();
+            let block = Block::default().title("DAG Runs").borders(Borders::ALL);
+            f.render_widget(block, size);
+        }
+        Panel::Task => {
+            let size = f.size();
+            let block = Block::default().title("Tasks").borders(Borders::ALL);
+            f.render_widget(block, size);
+        }
+    }
+}
+
+pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(5)
