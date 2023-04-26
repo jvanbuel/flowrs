@@ -7,7 +7,7 @@ mod app;
 mod ascii_flowrs;
 mod commands;
 mod model;
-mod view;
+mod ui;
 
 use commands::{config::ConfigCommand, run::RunCommand};
 use dirs::home_dir;

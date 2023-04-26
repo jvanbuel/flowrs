@@ -12,7 +12,7 @@ use tui::{
 };
 
 use crate::app::state::App;
-use crate::view::ui::ui;
+use crate::ui::ui;
 
 #[derive(Parser, Debug)]
 pub struct RunCommand {
