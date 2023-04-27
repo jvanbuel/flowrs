@@ -27,7 +27,7 @@ pub fn render_config_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(normal_style)
         .height(1)
         .bottom_margin(1);
-    let rows = app.config.servers.iter().map(|item| {
+    let rows = app.configs.items.iter().map(|item| {
         Row::new(vec![
             Spans::from(item.name.as_str()),
             Spans::from(item.endpoint.as_str()),
@@ -46,5 +46,5 @@ pub fn render_config_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Length(30),
             Constraint::Min(10),
         ]);
-    f.render_stateful_widget(t, rects[0], &mut app.config_state);
+    f.render_stateful_widget(t, rects[0], &mut app.configs.state);
 }

@@ -26,7 +26,7 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(normal_style)
         .height(1)
         .bottom_margin(1);
-    let rows = app.dags.iter().map(|item| {
+    let rows = app.dags.items.iter().map(|item| {
         Row::new(vec![
             if item.is_paused {
                 Spans::from(Span::styled("🔘", Style::default().fg(Color::Gray)))
@@ -64,5 +64,5 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Min(15),
             Constraint::Length(10),
         ]);
-    f.render_stateful_widget(t, rects[0], &mut app.dag_state);
+    f.render_stateful_widget(t, rects[0], &mut app.dags.state);
 }

@@ -11,7 +11,7 @@ use ratatui::{
     Terminal,
 };
 
-use crate::app::state::App;
+use crate::app::state::{App, Panel};
 use crate::ui::ui;
 
 #[derive(Parser, Debug)]
@@ -73,15 +73,48 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io
             }
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => app.next(),
-                KeyCode::Char('j') => app.next(),
-                KeyCode::Up => app.previous(),
-                KeyCode::Char('k') => app.previous(),
-                KeyCode::Enter => app.next_panel(),
-                KeyCode::Esc => app.previous_panel(),
-                KeyCode::Char('t') => app.toggle_current_dag().await,
-                _ => {}
+                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
+                KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
+                code => match app.active_panel {
+                    Panel::Config => handle_key_code_config(code, &mut app).await,
+                    Panel::DAG => handle_key_code_dag(code, &mut app).await,
+                    Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
+                    Panel::Task => handle_key_code_task(code, &mut app).await,
+                },
             }
         }
+    }
+}
+
+async fn handle_key_code_config(code: KeyCode, app: &mut App<'_>) {
+    match code {
+        KeyCode::Down | KeyCode::Char('j') => app.configs.next(),
+        KeyCode::Up | KeyCode::Char('k') => app.configs.previous(),
+        _ => {}
+    }
+}
+
+async fn handle_key_code_dag(code: KeyCode, app: &mut App<'_>) {
+    match code {
+        KeyCode::Down | KeyCode::Char('j') => app.dags.next(),
+        KeyCode::Up | KeyCode::Char('k') => app.dags.previous(),
+        KeyCode::Char('t') => app.toggle_current_dag().await,
+        _ => {}
+    }
+}
+
+async fn handle_key_code_dagrun(code: KeyCode, app: &mut App<'_>) {
+    match code {
+        // KeyCode::Char('n') => app.dagruns.next(),
+        // KeyCode::Char('p') => app.dagruns.previous(),
+        _ => {}
+    }
+}
+
+async fn handle_key_code_task(code: KeyCode, app: &mut App<'_>) {
+    match code {
+        // KeyCode::Char('n') => app.tasks.next(),
+        // KeyCode::Char('p') => app.tasks.previous(),
+        _ => {}
     }
 }

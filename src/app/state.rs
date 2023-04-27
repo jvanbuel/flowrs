@@ -2,15 +2,60 @@ use ratatui::widgets::TableState;
 
 use crate::model::dag::Dag;
 
-use super::{auth::Config, client::AirFlowClient};
+use super::{
+    auth::{AirflowConfig, Config},
+    client::AirFlowClient,
+};
 
 pub struct App<'a> {
-    pub dag_state: TableState,
-    pub config_state: TableState,
-    pub dags: Vec<Dag>,
-    pub config: &'a Config,
+    pub dags: StatefulTable<Dag>,
+    pub configs: StatefulTable<AirflowConfig>,
+    pub active_config: &'a Config,
     pub client: AirFlowClient<'a>,
     pub active_panel: Panel,
+}
+
+#[derive(Clone)]
+pub struct StatefulTable<T> {
+    pub state: TableState,
+    pub items: Vec<T>,
+}
+
+impl<T> StatefulTable<T> {
+    pub fn new(items: Vec<T>) -> StatefulTable<T> {
+        StatefulTable {
+            state: TableState::default(),
+            items,
+        }
+    }
+
+    pub fn next(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i >= self.items.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
+
+    pub fn previous(&mut self) {
+        let i = match self.state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.items.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.state.select(Some(i));
+    }
 }
 
 pub enum Panel {
@@ -25,10 +70,9 @@ impl<'a> App<'a> {
         let client = AirFlowClient::new(&config.servers[1]);
         let daglist = client.list_dags().await.unwrap();
         App {
-            dag_state: TableState::default(),
-            config_state: TableState::default(),
-            dags: daglist.dags,
-            config: config,
+            dags: StatefulTable::new(daglist.dags),
+            configs: StatefulTable::new(config.servers.clone()),
+            active_config: config,
             client,
             active_panel: Panel::DAG,
         }
@@ -36,16 +80,16 @@ impl<'a> App<'a> {
 
     pub async fn update_dags(&mut self) {
         let daglist = self.client.list_dags().await.unwrap();
-        self.dags = daglist.dags;
+        self.dags.items = daglist.dags;
     }
 
     pub async fn toggle_current_dag(&mut self) {
-        let i = match self.dag_state.selected() {
+        let i = match self.dags.state.selected() {
             Some(i) => i,
             None => 0,
         };
-        let dag_id = &self.dags[i].dag_id;
-        let is_paused = self.dags[i].is_paused;
+        let dag_id = &self.dags.items[i].dag_id;
+        let is_paused = self.dags.items[i].is_paused;
 
         self.client.toggle_dag(dag_id, is_paused).await.unwrap();
     }
@@ -66,33 +110,5 @@ impl<'a> App<'a> {
             Panel::DAGRun => self.active_panel = Panel::DAG,
             Panel::Task => self.active_panel = Panel::DAGRun,
         }
-    }
-
-    pub fn next(&mut self) {
-        let i = match self.dag_state.selected() {
-            Some(i) => {
-                if i >= self.dags.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.dag_state.select(Some(i));
-    }
-
-    pub fn previous(&mut self) {
-        let i = match self.dag_state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.dags.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.dag_state.select(Some(i));
     }
 }
