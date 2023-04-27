@@ -1,17 +1,24 @@
+use std::collections::HashMap;
+
 use ratatui::widgets::TableState;
 
-use crate::model::dag::Dag;
+use crate::model::{
+    dag::Dag,
+    dagrun::{DagRun, DagRunList},
+};
 
 use super::{
     auth::{AirflowConfig, Config},
     client::AirFlowClient,
 };
 
-pub struct App<'a> {
+pub struct App {
     pub dags: StatefulTable<Dag>,
     pub configs: StatefulTable<AirflowConfig>,
-    pub active_config: &'a Config,
-    pub client: AirFlowClient<'a>,
+    pub dagruns: StatefulTable<DagRun>,
+    pub all_dagruns: DagRunList,
+    pub active_config: Config,
+    pub client: AirFlowClient,
     pub active_panel: Panel,
 }
 
@@ -65,13 +72,17 @@ pub enum Panel {
     Task,
 }
 
-impl<'a> App<'a> {
-    pub async fn new(config: &'a Config) -> App<'a> {
-        let client = AirFlowClient::new(&config.servers[1]);
+impl App {
+    pub async fn new(config: Config) -> App {
+        let server = config.servers[1].clone();
+        let client = AirFlowClient::new(server);
         let daglist = client.list_dags().await.unwrap();
+        let dagruns = client.list_all_dagruns().await.unwrap();
         App {
             dags: StatefulTable::new(daglist.dags),
             configs: StatefulTable::new(config.servers.clone()),
+            dagruns: StatefulTable::new(vec![]),
+            all_dagruns: dagruns,
             active_config: config,
             client,
             active_panel: Panel::DAG,
@@ -92,6 +103,10 @@ impl<'a> App<'a> {
         let is_paused = self.dags.items[i].is_paused;
 
         self.client.toggle_dag(dag_id, is_paused).await.unwrap();
+    }
+
+    pub async fn update_dagruns(&mut self) {
+        self.all_dagruns = self.client.list_all_dagruns().await.unwrap();
     }
 
     pub fn next_panel(&mut self) {

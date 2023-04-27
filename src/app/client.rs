@@ -4,13 +4,13 @@ use reqwest::{Method, Url};
 
 use super::auth::AirflowConfig;
 
-pub struct AirFlowClient<'a> {
+pub struct AirFlowClient {
     pub client: reqwest::Client,
-    pub config: &'a AirflowConfig,
+    pub config: AirflowConfig,
 }
 
-impl<'a> AirFlowClient<'a> {
-    pub fn new(config: &'a AirflowConfig) -> Self {
+impl<'a> AirFlowClient {
+    pub fn new(config: AirflowConfig) -> Self {
         let client = reqwest::Client::builder()
             .http1_title_case_headers()
             .build()
@@ -22,7 +22,7 @@ impl<'a> AirFlowClient<'a> {
         &self,
         method: Method,
         endpoint: &str,
-    ) -> Result<reqwest::RequestBuilder, Box<dyn Error>> {
+    ) -> Result<reqwest::RequestBuilder, Box<dyn Error + Send + Sync>> {
         let base_url = Url::parse(&self.config.endpoint)?;
         let url = base_url.join(format!("api/v1/{endpoint}").as_str())?;
         match &self.config.token {

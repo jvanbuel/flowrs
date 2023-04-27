@@ -1,4 +1,6 @@
-use std::{error::Error, io, path::Path};
+use std::{error::Error, io, path::Path, sync::Arc, thread};
+
+use tokio::sync::Mutex;
 
 use clap::Parser;
 use crossterm::{
@@ -35,7 +37,7 @@ impl RunCommand {
             None => None,
         };
         let config = crate::app::auth::get_config(path);
-        let app = App::new(&config).await;
+        let app = Arc::new(Mutex::new(App::new(config).await));
 
         let res = run_app(&mut terminal, app).await;
 
@@ -56,11 +58,24 @@ impl RunCommand {
     }
 }
 
-async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io::Result<()> {
-    loop {
-        app.update_dags().await;
+async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> io::Result<()> {
+    let app_nw = app.clone();
 
-        terminal.draw(|f| ui(f, &mut app))?;
+    tokio::spawn(async move {
+        loop {
+            app_nw.lock().await.update_dags().await;
+            app_nw.lock().await.update_dagruns().await;
+
+            let ten_millis = std::time::Duration::from_millis(500);
+            thread::sleep(ten_millis);
+        }
+    });
+
+    loop {
+        let mut app = app.lock().await;
+        terminal.draw(|f| {
+            ui(f, &mut app);
+        })?;
 
         if let Event::Key(key) = event::read()? {
             match key.modifiers {
@@ -86,7 +101,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io
     }
 }
 
-async fn handle_key_code_config(code: KeyCode, app: &mut App<'_>) {
+async fn handle_key_code_config(code: KeyCode, app: &mut App) {
     match code {
         KeyCode::Down | KeyCode::Char('j') => app.configs.next(),
         KeyCode::Up | KeyCode::Char('k') => app.configs.previous(),
@@ -94,7 +109,7 @@ async fn handle_key_code_config(code: KeyCode, app: &mut App<'_>) {
     }
 }
 
-async fn handle_key_code_dag(code: KeyCode, app: &mut App<'_>) {
+async fn handle_key_code_dag(code: KeyCode, app: &mut App) {
     match code {
         KeyCode::Down | KeyCode::Char('j') => app.dags.next(),
         KeyCode::Up | KeyCode::Char('k') => app.dags.previous(),
@@ -103,15 +118,15 @@ async fn handle_key_code_dag(code: KeyCode, app: &mut App<'_>) {
     }
 }
 
-async fn handle_key_code_dagrun(code: KeyCode, app: &mut App<'_>) {
+async fn handle_key_code_dagrun(code: KeyCode, app: &mut App) {
     match code {
-        // KeyCode::Char('n') => app.dagruns.next(),
-        // KeyCode::Char('p') => app.dagruns.previous(),
+        KeyCode::Char('n') => app.dagruns.next(),
+        KeyCode::Char('p') => app.dagruns.previous(),
         _ => {}
     }
 }
 
-async fn handle_key_code_task(code: KeyCode, app: &mut App<'_>) {
+async fn handle_key_code_task(code: KeyCode, _: &mut App) {
     match code {
         // KeyCode::Char('n') => app.tasks.next(),
         // KeyCode::Char('p') => app.tasks.previous(),
