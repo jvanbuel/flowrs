@@ -18,7 +18,7 @@ pub fn render_dagrun_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
 
-    let headers = ["DAG Id", "DAGRun Id", "Logical Date", "Type"];
+    let headers = ["DAG Id", "DAGRun Id", "Logical Date", "Type", "State"];
     let header_cells = headers
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
@@ -39,6 +39,18 @@ pub fn render_dagrun_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 "None".to_string()
             }),
             Spans::from(item.run_type.as_str()),
+            Spans::from(match item.state.as_str() {
+                "success" => Span::styled(item.state.as_str(), Style::default().fg(Color::Green)),
+                "running" => {
+                    Span::styled(item.state.as_str(), Style::default().fg(Color::LightGreen))
+                }
+                "failed" => Span::styled(item.state.as_str(), Style::default().fg(Color::Red)),
+                "queued" => {
+                    Span::styled(item.state.as_str(), Style::default().fg(Color::LightBlue))
+                }
+
+                _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
+            }),
         ])
         .bottom_margin(1)
     });
@@ -52,6 +64,7 @@ pub fn render_dagrun_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Percentage(15),
             Constraint::Min(22),
             Constraint::Length(20),
+            Constraint::Length(10),
         ]);
     f.render_stateful_widget(t, rects[0], &mut app.dagruns.state);
 }
