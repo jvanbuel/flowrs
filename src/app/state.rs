@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use ratatui::widgets::TableState;
 
 use crate::model::{
@@ -106,6 +104,15 @@ impl App {
     }
 
     pub async fn update_dagruns(&mut self) {
+        let current_dag_id = &self.dags.items[self.dags.state.selected().unwrap()].dag_id;
+        self.dagruns.items = self
+            .client
+            .list_dagruns(current_dag_id)
+            .await
+            .unwrap()
+            .dag_runs;
+    }
+    pub async fn update_all_dagruns(&mut self) {
         self.all_dagruns = self.client.list_all_dagruns().await.unwrap();
     }
 

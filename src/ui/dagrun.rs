@@ -40,19 +40,18 @@ pub fn render_dagrun_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             }),
             Spans::from(item.run_type.as_str()),
         ])
-        // .height(height as u16)
         .bottom_margin(1)
     });
     let t = Table::new(rows)
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title("DAGs"))
+        .block(Block::default().borders(Borders::ALL).title("DAGRuns"))
         .highlight_style(selected_style)
         .highlight_symbol(">> ")
         .widths(&[
-            Constraint::Length(7),
-            Constraint::Percentage(20),
-            Constraint::Min(15),
-            Constraint::Length(10),
+            Constraint::Percentage(15),
+            Constraint::Percentage(15),
+            Constraint::Min(22),
+            Constraint::Length(20),
         ]);
-    f.render_stateful_widget(t, rects[0], &mut app.dags.state);
+    f.render_stateful_widget(t, rects[0], &mut app.dagruns.state);
 }

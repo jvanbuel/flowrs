@@ -22,7 +22,7 @@ impl AirFlowClient {
     pub async fn list_all_dagruns(&self) -> Result<DagRunList, Box<dyn Error + Send + Sync>> {
         let response: Response = self
             .base_api(Method::POST, "dags/~/dagRuns/list")?
-            .json(&serde_json::json!({"page_limit": 100}))
+            .json(&serde_json::json!({"page_limit": 200}))
             .send()
             .await?;
         let dagruns: DagRunList = response.json::<DagRunList>().await?;

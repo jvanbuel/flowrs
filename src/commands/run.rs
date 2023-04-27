@@ -63,10 +63,17 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
 
     tokio::spawn(async move {
         loop {
-            app_nw.lock().await.update_dags().await;
-            app_nw.lock().await.update_dagruns().await;
+            let mut app = app_nw.lock().await;
+            match app.active_panel {
+                Panel::DAG => {
+                    app.update_dags().await;
+                    app.update_all_dagruns().await;
+                }
+                Panel::DAGRun => app.update_dagruns().await,
+                _ => {}
+            }
 
-            let ten_millis = std::time::Duration::from_millis(500);
+            let ten_millis = std::time::Duration::from_millis(200);
             thread::sleep(ten_millis);
         }
     });
@@ -120,8 +127,8 @@ async fn handle_key_code_dag(code: KeyCode, app: &mut App) {
 
 async fn handle_key_code_dagrun(code: KeyCode, app: &mut App) {
     match code {
-        KeyCode::Char('n') => app.dagruns.next(),
-        KeyCode::Char('p') => app.dagruns.previous(),
+        KeyCode::Down | KeyCode::Char('j') => app.dagruns.next(),
+        KeyCode::Up | KeyCode::Char('k') => app.dagruns.previous(),
         _ => {}
     }
 }
