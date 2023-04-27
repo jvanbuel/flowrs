@@ -2,7 +2,7 @@ use std::{error::Error, io, path::Path};
 
 use clap::Parser;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -63,6 +63,14 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App<'_>) -> io
         terminal.draw(|f| ui(f, &mut app))?;
 
         if let Event::Key(key) = event::read()? {
+            match key.modifiers {
+                KeyModifiers::CONTROL => match key.code {
+                    KeyCode::Char('c') => return Ok(()),
+                    KeyCode::Char('d') => return Ok(()),
+                    _ => {}
+                },
+                _ => {}
+            }
             match key.code {
                 KeyCode::Char('q') => return Ok(()),
                 KeyCode::Down => app.next(),
