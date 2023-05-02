@@ -18,7 +18,13 @@ lazy_static::lazy_static! {
 
 #[derive(Parser)]
 #[clap(name = "flowrs", version, about, before_help=ASCII_FLOWRS)]
-enum FlowrsApp {
+struct FlowrsApp {
+    #[clap(subcommand)]
+    command: Option<FlowrsCommand>,
+}
+
+#[derive(Parser)]
+enum FlowrsCommand {
     Run(RunCommand),
     #[clap(subcommand)]
     Config(ConfigCommand),
@@ -26,9 +32,10 @@ enum FlowrsApp {
 
 impl FlowrsApp {
     pub async fn run(&self) -> Result<(), Box<dyn Error>> {
-        match self {
-            FlowrsApp::Run(cmd) => cmd.run().await,
-            FlowrsApp::Config(cmd) => cmd.run(),
+        match &self.command {
+            Some(FlowrsCommand::Run(cmd)) => cmd.run().await,
+            Some(FlowrsCommand::Config(cmd)) => cmd.run(),
+            None => RunCommand { file: None }.run().await,
         }
     }
 }

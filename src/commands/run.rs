@@ -67,13 +67,13 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             match app.active_panel {
                 Panel::DAG => {
                     app.update_dags().await;
-                    app.update_all_dagruns().await;
+                    // app.update_all_dagruns().await;
                 }
                 Panel::DAGRun => app.update_dagruns().await,
                 _ => {}
             }
 
-            let ten_millis = std::time::Duration::from_millis(200);
+            let ten_millis = std::time::Duration::from_millis(100);
             thread::sleep(ten_millis);
         }
     });
