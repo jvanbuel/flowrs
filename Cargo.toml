@@ -6,7 +6,7 @@ authors = ["janvanbuel@hotmail.com"]
 
 [dependencies]
 chrono =  { version = "^0.4.1", features = ["serde", "rustc-serialize"] }
-clap = { version = "^3.1", features = ["derive", "env"] }
+clap = { version = "^4.2", features = ["derive", "env"] }
 crossterm = "0.25.0"
 dirs = "5.0.0"
 inquire = "0.6.1"
