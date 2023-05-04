@@ -8,7 +8,7 @@ authors = ["janvanbuel@hotmail.com"]
 chrono =  { version = "^0.4.1", features = ["serde", "rustc-serialize"] }
 clap = { version = "^4.2", features = ["derive", "env"] }
 crossterm = "0.26.1"
-dirs = "5.0.0"
+dirs = "5.0.1"
 inquire = "0.6.1"
 lazy_static = "1.4.0"
 ratatui = "0.20.1"
