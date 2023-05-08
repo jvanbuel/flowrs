@@ -10,7 +10,7 @@ use ratatui::{
 use crate::app::state::App;
 
 pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let (dags, rects) = if app.filter.is_enabled() {
+    let rects = if app.filter.is_enabled() {
         let rects = Layout::default()
             .constraints(if app.filter.is_enabled() {
                 [Constraint::Percentage(90), Constraint::Percentage(10)].as_ref()
@@ -26,34 +26,32 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             .block(Block::default().borders(Borders::ALL).title("filter"));
         f.render_widget(paragraph, rects[1]);
 
-        let dags = app
-            .dags
-            .items
-            .iter()
-            .filter(|dag| {
-                dag.dag_id.to_lowercase().contains(
-                    &app.filter
-                        .prefix()
-                        .as_ref()
-                        .unwrap_or(&"".to_string())
-                        .to_lowercase(),
-                )
-            })
-            .collect::<Vec<_>>();
-        (dags, rects)
+        rects
     } else {
-        let rects = Layout::default()
+        Layout::default()
             .constraints(if app.filter.is_enabled() {
                 [Constraint::Percentage(90), Constraint::Percentage(10)].as_ref()
             } else {
                 [Constraint::Percentage(100)].as_ref()
             })
             .margin(0)
-            .split(f.size());
-
-        let dags = app.dags.items.iter().collect::<Vec<_>>();
-        (dags, rects)
+            .split(f.size())
     };
+
+    let dags = app
+        .dags
+        .items
+        .iter()
+        .filter(|dag| {
+            dag.dag_id.to_lowercase().contains(
+                &app.filter
+                    .prefix()
+                    .as_ref()
+                    .unwrap_or(&"".to_string())
+                    .to_lowercase(),
+            )
+        })
+        .collect::<Vec<_>>();
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);

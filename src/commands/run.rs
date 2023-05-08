@@ -69,7 +69,8 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                 Panel::DAGRun => app.update_dagruns().await,
                 _ => {}
             }
-
+            
+            drop(app);
             let ten_millis = std::time::Duration::from_millis(200);
             thread::sleep(ten_millis);
         }
