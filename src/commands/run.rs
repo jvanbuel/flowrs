@@ -13,7 +13,7 @@ use ratatui::{
     Terminal,
 };
 
-use crate::app::state::{App, Panel};
+use crate::app::state::{App, Panel, StatefulTable};
 use crate::ui::ui;
 
 #[derive(Parser, Debug)]
@@ -69,7 +69,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                 Panel::DAGRun => app.update_dagruns().await,
                 _ => {}
             }
-            
+
             drop(app);
             let ten_millis = std::time::Duration::from_millis(200);
             thread::sleep(ten_millis);
@@ -113,6 +113,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                     },
                     _ => {}
                 }
+                app.filter_dags();
             } else {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
@@ -141,8 +142,8 @@ async fn handle_key_code_config(code: KeyCode, app: &mut App) {
 
 async fn handle_key_code_dag(code: KeyCode, app: &mut App) {
     match code {
-        KeyCode::Down | KeyCode::Char('j') => app.dags.next(),
-        KeyCode::Up | KeyCode::Char('k') => app.dags.previous(),
+        KeyCode::Down | KeyCode::Char('j') => app.filtered_dags.next(),
+        KeyCode::Up | KeyCode::Char('k') => app.filtered_dags.previous(),
         KeyCode::Char('t') => app.toggle_current_dag().await,
         _ => {}
     }

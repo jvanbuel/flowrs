@@ -23,7 +23,8 @@ impl Filter {
         &self.prefix
     }
 
-    pub fn set_prefix(&mut self, prefix: String) {
-        self.prefix = Some(prefix);
+    pub fn reset(&mut self) {
+        self.enabled = false;
+        self.prefix = None;
     }
 }

@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, time::Duration};
 
 use reqwest::{Method, Url};
 
@@ -13,6 +13,7 @@ impl<'a> AirFlowClient {
     pub fn new(config: AirflowConfig) -> Self {
         let client = reqwest::Client::builder()
             .http1_title_case_headers()
+            .timeout(Duration::from_secs(5))
             .build()
             .unwrap();
         Self { client, config }

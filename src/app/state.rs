@@ -8,11 +8,13 @@ use crate::model::{
 use super::{
     auth::{AirflowConfig, Config},
     client::AirFlowClient,
+    dags::DagList,
     filter::Filter,
 };
 
 pub struct App {
-    pub dags: StatefulTable<Dag>,
+    pub all_dags: DagList,
+    pub filtered_dags: StatefulTable<Dag>,
     pub configs: StatefulTable<AirflowConfig>,
     pub dagruns: StatefulTable<DagRun>,
     pub all_dagruns: DagRunList,
@@ -79,7 +81,8 @@ impl App {
         let daglist = client.list_dags().await.unwrap();
         let dagruns = client.list_all_dagruns().await.unwrap();
         App {
-            dags: StatefulTable::new(daglist.dags),
+            all_dags: daglist.clone(),
+            filtered_dags: StatefulTable::new(daglist.dags),
             configs: StatefulTable::new(config.servers.clone()),
             dagruns: StatefulTable::new(vec![]),
             all_dagruns: dagruns,
@@ -91,20 +94,20 @@ impl App {
     }
 
     pub async fn update_dags(&mut self) {
-        let daglist = self.client.list_dags().await.unwrap();
-        self.dags.items = daglist.dags;
+        self.all_dags = self.client.list_dags().await.unwrap();
     }
 
     pub async fn toggle_current_dag(&mut self) {
-        let i = self.dags.state.selected().unwrap_or(0);
-        let dag_id = &self.dags.items[i].dag_id;
-        let is_paused = self.dags.items[i].is_paused;
+        let i = self.filtered_dags.state.selected().unwrap_or(0);
+        let dag_id = &self.filtered_dags.items[i].dag_id;
+        let is_paused = self.filtered_dags.items[i].is_paused;
 
         self.client.toggle_dag(dag_id, is_paused).await.unwrap();
     }
 
     pub async fn update_dagruns(&mut self) {
-        let current_dag_id = &self.dags.items[self.dags.state.selected().unwrap()].dag_id;
+        let current_dag_id =
+            &self.filtered_dags.items[self.filtered_dags.state.selected().unwrap()].dag_id;
         self.dagruns.items = self
             .client
             .list_dagruns(current_dag_id)
@@ -117,6 +120,7 @@ impl App {
     }
 
     pub fn next_panel(&mut self) {
+        self.filter.reset();
         match self.active_panel {
             Panel::Config => self.active_panel = Panel::DAG,
             Panel::DAG => self.active_panel = Panel::DAGRun,
@@ -126,6 +130,7 @@ impl App {
     }
 
     pub fn previous_panel(&mut self) {
+        self.filter.reset();
         match self.active_panel {
             Panel::Config => (),
             Panel::DAG => self.active_panel = Panel::Config,
@@ -136,5 +141,19 @@ impl App {
 
     pub fn toggle_search(&mut self) {
         self.filter.toggle();
+    }
+
+    pub fn filter_dags(&mut self) {
+        let prefix = &self.filter.prefix;
+        let dags = &self.all_dags.dags;
+        let filtered_dags = match prefix {
+            Some(prefix) => dags
+                .iter()
+                .filter(|dag| dag.dag_id.contains(prefix))
+                .cloned()
+                .collect::<Vec<Dag>>(),
+            None => dags.clone(),
+        };
+        self.filtered_dags.items = filtered_dags;
     }
 }

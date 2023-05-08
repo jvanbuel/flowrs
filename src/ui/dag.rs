@@ -38,21 +38,6 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             .split(f.size())
     };
 
-    let dags = app
-        .dags
-        .items
-        .iter()
-        .filter(|dag| {
-            dag.dag_id.to_lowercase().contains(
-                &app.filter
-                    .prefix()
-                    .as_ref()
-                    .unwrap_or(&"".to_string())
-                    .to_lowercase(),
-            )
-        })
-        .collect::<Vec<_>>();
-
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
 
@@ -64,7 +49,7 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(normal_style)
         .height(1)
         .bottom_margin(1);
-    let rows = dags.iter().map(|item| {
+    let rows = app.filtered_dags.items.iter().map(|item| {
         Row::new(vec![
             if item.is_paused {
                 Spans::from(Span::styled("🔘", Style::default().fg(Color::Gray)))
@@ -102,5 +87,5 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Min(15),
             Constraint::Length(10),
         ]);
-    f.render_stateful_widget(t, rects[0], &mut app.dags.state);
+    f.render_stateful_widget(t, rects[0], &mut app.filtered_dags.state);
 }
