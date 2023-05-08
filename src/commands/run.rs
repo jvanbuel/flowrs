@@ -93,16 +93,41 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                 },
                 _ => {}
             }
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
-                KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
-                code => match app.active_panel {
-                    Panel::Config => handle_key_code_config(code, &mut app).await,
-                    Panel::DAG => handle_key_code_dag(code, &mut app).await,
-                    Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
-                    Panel::Task => handle_key_code_task(code, &mut app).await,
-                },
+
+            if app.filter.is_enabled() {
+                match key.code {
+                    KeyCode::Esc | KeyCode::Enter => {
+                        app.filter.toggle();
+                    }
+                    KeyCode::Backspace => match app.filter.prefix {
+                        Some(ref mut prefix) => {
+                            prefix.pop();
+                        }
+                        None => {}
+                    },
+                    KeyCode::Char(c) => match app.filter.prefix {
+                        Some(ref mut prefix) => {
+                            prefix.push(c);
+                        }
+                        None => {
+                            app.filter.prefix = Some(c.to_string());
+                        }
+                    },
+                    _ => {}
+                }
+            } else {
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('/') => app.toggle_search(),
+                    KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
+                    KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
+                    code => match app.active_panel {
+                        Panel::Config => handle_key_code_config(code, &mut app).await,
+                        Panel::DAG => handle_key_code_dag(code, &mut app).await,
+                        Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
+                        Panel::Task => handle_key_code_task(code, &mut app).await,
+                    },
+                }
             }
         }
     }

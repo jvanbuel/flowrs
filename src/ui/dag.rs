@@ -3,17 +3,57 @@ use ratatui::{
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, Cell, Row, Table},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
 };
 
 use crate::app::state::App;
 
 pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let rects = Layout::default()
-        .constraints([Constraint::Percentage(100)].as_ref())
-        .margin(0)
-        .split(f.size());
+    let (dags, rects) = if app.filter.is_enabled() {
+        let rects = Layout::default()
+            .constraints(if app.filter.is_enabled() {
+                [Constraint::Percentage(90), Constraint::Percentage(10)].as_ref()
+            } else {
+                [Constraint::Percentage(100)].as_ref()
+            })
+            .margin(0)
+            .split(f.size());
+
+        let filter = app.filter.prefix().clone();
+
+        let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
+            .block(Block::default().borders(Borders::ALL).title("filter"));
+        f.render_widget(paragraph, rects[1]);
+
+        let dags = app
+            .dags
+            .items
+            .iter()
+            .filter(|dag| {
+                dag.dag_id.to_lowercase().contains(
+                    &app.filter
+                        .prefix()
+                        .as_ref()
+                        .unwrap_or(&"".to_string())
+                        .to_lowercase(),
+                )
+            })
+            .collect::<Vec<_>>();
+        (dags, rects)
+    } else {
+        let rects = Layout::default()
+            .constraints(if app.filter.is_enabled() {
+                [Constraint::Percentage(90), Constraint::Percentage(10)].as_ref()
+            } else {
+                [Constraint::Percentage(100)].as_ref()
+            })
+            .margin(0)
+            .split(f.size());
+
+        let dags = app.dags.items.iter().collect::<Vec<_>>();
+        (dags, rects)
+    };
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
@@ -26,7 +66,7 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .style(normal_style)
         .height(1)
         .bottom_margin(1);
-    let rows = app.dags.items.iter().map(|item| {
+    let rows = dags.iter().map(|item| {
         Row::new(vec![
             if item.is_paused {
                 Spans::from(Span::styled("🔘", Style::default().fg(Color::Gray)))

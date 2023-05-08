@@ -8,6 +8,7 @@ use crate::model::{
 use super::{
     auth::{AirflowConfig, Config},
     client::AirFlowClient,
+    filter::Filter,
 };
 
 pub struct App {
@@ -18,6 +19,7 @@ pub struct App {
     pub active_config: Config,
     pub client: AirFlowClient,
     pub active_panel: Panel,
+    pub filter: Filter,
 }
 
 #[derive(Clone)]
@@ -84,6 +86,7 @@ impl App {
             active_config: config,
             client,
             active_panel: Panel::DAG,
+            filter: Filter::new(),
         }
     }
 
@@ -132,5 +135,9 @@ impl App {
             Panel::DAGRun => self.active_panel = Panel::DAG,
             Panel::Task => self.active_panel = Panel::DAGRun,
         }
+    }
+
+    pub fn toggle_search(&mut self) {
+        self.filter.toggle();
     }
 }
