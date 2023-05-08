@@ -32,10 +32,7 @@ impl RunCommand {
         let mut terminal = Terminal::new(backend)?;
 
         // create app and run it
-        let path = match &self.file {
-            Some(file) => Some(Path::new(file)),
-            None => None,
-        };
+        let path = self.file.as_ref().map(|file| Path::new(file));
         let config = crate::app::auth::get_config(path);
         let app = Arc::new(Mutex::new(App::new(config).await));
 
@@ -73,7 +70,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                 _ => {}
             }
 
-            let ten_millis = std::time::Duration::from_millis(100);
+            let ten_millis = std::time::Duration::from_millis(200);
             thread::sleep(ten_millis);
         }
     });
@@ -159,9 +156,5 @@ async fn handle_key_code_dagrun(code: KeyCode, app: &mut App) {
 }
 
 async fn handle_key_code_task(code: KeyCode, _: &mut App) {
-    match code {
-        // KeyCode::Char('n') => app.tasks.next(),
-        // KeyCode::Char('p') => app.tasks.previous(),
-        _ => {}
-    }
+    {}
 }

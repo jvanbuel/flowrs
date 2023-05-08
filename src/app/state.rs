@@ -96,10 +96,7 @@ impl App {
     }
 
     pub async fn toggle_current_dag(&mut self) {
-        let i = match self.dags.state.selected() {
-            Some(i) => i,
-            None => 0,
-        };
+        let i = self.dags.state.selected().unwrap_or(0);
         let dag_id = &self.dags.items[i].dag_id;
         let is_paused = self.dags.items[i].is_paused;
 

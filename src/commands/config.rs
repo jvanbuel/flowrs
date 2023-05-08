@@ -84,10 +84,7 @@ impl AddCommand {
             token,
         };
 
-        let path = match &self.file {
-            Some(file) => Some(Path::new(file)),
-            None => None,
-        };
+        let path = self.file.as_ref().map(|file| Path::new(file));
         let mut config = crate::app::auth::get_config(path);
         config
             .servers
@@ -104,14 +101,11 @@ impl AddCommand {
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
-        let path = match &self.file {
-            Some(file) => Some(Path::new(file)),
-            None => None,
-        };
+        let path = self.file.as_ref().map(|file| Path::new(file));
         let mut config = crate::app::auth::get_config(path);
 
-        let name: String;
-        name = if self.name == None {
+        
+        let name: String = if self.name.is_none() {
             Select::new(
                 "name",
                 config
@@ -135,14 +129,11 @@ impl RemoveCommand {
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
-        let path = match &self.file {
-            Some(file) => Some(Path::new(file)),
-            None => None,
-        };
+        let path = self.file.as_ref().map(|file| Path::new(file));
         let mut config = crate::app::auth::get_config(path);
 
-        let name: String;
-        name = if self.name == None {
+        
+        let name: String = if self.name.is_none() {
             Select::new(
                 "name",
                 config
