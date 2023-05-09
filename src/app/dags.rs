@@ -1,16 +1,9 @@
 use std::error::Error;
 
 use reqwest::{Method, Response};
-use serde::{Deserialize, Serialize};
 
 use super::client::AirFlowClient;
-use crate::model::dag::Dag;
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct DagList {
-    pub dags: Vec<Dag>,
-    pub total_entries: i64,
-}
+use crate::model::dag::DagList;
 
 impl AirFlowClient {
     pub async fn list_dags(&self) -> Result<DagList, Box<dyn Error + Send + Sync>> {

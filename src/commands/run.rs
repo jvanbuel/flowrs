@@ -13,7 +13,7 @@ use ratatui::{
     Terminal,
 };
 
-use crate::app::state::{App, Panel, StatefulTable};
+use crate::app::state::{App, Panel};
 use crate::ui::ui;
 
 #[derive(Parser, Debug)]
@@ -68,6 +68,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                     // app.update_all_dagruns().await;
                 }
                 Panel::DAGRun => app.update_dagruns().await,
+                Panel::TaskInstance => app.update_task_instances().await,
                 _ => {}
             }
 
@@ -125,7 +126,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                         Panel::Config => handle_key_code_config(code, &mut app).await,
                         Panel::DAG => handle_key_code_dag(code, &mut app).await,
                         Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
-                        Panel::Task => handle_key_code_task(code, &mut app).await,
+                        Panel::TaskInstance => handle_key_code_task(code, &mut app).await,
                     },
                 }
             }
@@ -154,10 +155,15 @@ async fn handle_key_code_dagrun(code: KeyCode, app: &mut App) {
     match code {
         KeyCode::Down | KeyCode::Char('j') => app.dagruns.next(),
         KeyCode::Up | KeyCode::Char('k') => app.dagruns.previous(),
+        KeyCode::Char('c') => app.clear_dagrun().await,
         _ => {}
     }
 }
 
-async fn handle_key_code_task(code: KeyCode, _: &mut App) {
-    {}
+async fn handle_key_code_task(code: KeyCode, app: &mut App) {
+    match code {
+        KeyCode::Down | KeyCode::Char('j') => app.taskinstances.next(),
+        KeyCode::Up | KeyCode::Char('k') => app.taskinstances.previous(),
+        _ => {}
+    }
 }

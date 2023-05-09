@@ -1,14 +1,14 @@
 use ratatui::widgets::TableState;
 
 use crate::model::{
-    dag::Dag,
+    dag::{Dag, DagList},
     dagrun::{DagRun, DagRunList},
+    taskinstance::{TaskInstance, TaskInstanceList},
 };
 
 use super::{
     auth::{AirflowConfig, Config},
     client::AirFlowClient,
-    dags::DagList,
     filter::Filter,
 };
 
@@ -22,6 +22,8 @@ pub struct App {
     pub client: AirFlowClient,
     pub active_panel: Panel,
     pub filter: Filter,
+    pub taskinstances: StatefulTable<TaskInstance>,
+    pub all_taskinstances: TaskInstanceList,
 }
 
 #[derive(Clone)]
@@ -71,7 +73,7 @@ pub enum Panel {
     Config,
     DAG,
     DAGRun,
-    Task,
+    TaskInstance,
 }
 
 impl App {
@@ -80,6 +82,7 @@ impl App {
         let client = AirFlowClient::new(server);
         let daglist = client.list_dags().await.unwrap();
         let dagruns = client.list_all_dagruns().await.unwrap();
+        let taskinstances = client.list_all_taskinstances().await.unwrap();
         App {
             all_dags: daglist.clone(),
             filtered_dags: StatefulTable::new(daglist.dags),
@@ -90,6 +93,8 @@ impl App {
             client,
             active_panel: Panel::DAG,
             filter: Filter::new(),
+            taskinstances: StatefulTable::new(vec![]),
+            all_taskinstances: taskinstances,
         }
     }
 
@@ -115,17 +120,17 @@ impl App {
             .unwrap()
             .dag_runs;
     }
-    pub async fn update_all_dagruns(&mut self) {
-        self.all_dagruns = self.client.list_all_dagruns().await.unwrap();
-    }
+    // pub async fn update_all_dagruns(&mut self) {
+    //     self.all_dagruns = self.client.list_all_dagruns().await.unwrap();
+    // }
 
     pub fn next_panel(&mut self) {
         self.filter.reset();
         match self.active_panel {
             Panel::Config => self.active_panel = Panel::DAG,
             Panel::DAG => self.active_panel = Panel::DAGRun,
-            Panel::DAGRun => self.active_panel = Panel::Task,
-            Panel::Task => (),
+            Panel::DAGRun => self.active_panel = Panel::TaskInstance,
+            Panel::TaskInstance => (),
         }
     }
 
@@ -135,7 +140,7 @@ impl App {
             Panel::Config => (),
             Panel::DAG => self.active_panel = Panel::Config,
             Panel::DAGRun => self.active_panel = Panel::DAG,
-            Panel::Task => self.active_panel = Panel::DAGRun,
+            Panel::TaskInstance => self.active_panel = Panel::DAGRun,
         }
     }
 
@@ -155,5 +160,40 @@ impl App {
             None => dags.clone(),
         };
         self.filtered_dags.items = filtered_dags;
+    }
+
+    pub async fn clear_dagrun(&mut self) {
+        let dag_id = &self.get_current_dag_id();
+        let dag_run_id = &self.get_current_dagrun_id();
+        self.client.clear_dagrun(dag_id, dag_run_id).await.unwrap();
+    }
+
+    pub async fn update_task_instances(&mut self) {
+        let dag_id = &self.get_current_dag_id();
+        let dag_run_id = &self.get_current_dagrun_id();
+        self.taskinstances.items = self
+            .client
+            .list_task_instances(dag_id, dag_run_id)
+            .await
+            .unwrap()
+            .task_instances;
+    }
+
+    fn get_current_dag_id(&self) -> String {
+        self.filtered_dags
+            .items
+            .get(self.filtered_dags.state.selected().unwrap())
+            .unwrap()
+            .dag_id
+            .clone()
+    }
+
+    fn get_current_dagrun_id(&self) -> String {
+        self.dagruns
+            .items
+            .get(self.dagruns.state.selected().unwrap())
+            .unwrap()
+            .dag_run_id
+            .clone()
     }
 }
