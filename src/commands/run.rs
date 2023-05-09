@@ -64,6 +64,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             match app.active_panel {
                 Panel::DAG => {
                     app.update_dags().await;
+                    app.filter_dags();
                     // app.update_all_dagruns().await;
                 }
                 Panel::DAGRun => app.update_dagruns().await,
