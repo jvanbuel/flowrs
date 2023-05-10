@@ -21,7 +21,7 @@ cargo install .
 
 ## Usage
 
-You can register an Airflow server instance with the `flowrs register` command:
+You can register an Airflow server instance with the `flowrs config add` command:
 
 TODO: Add example of prompt
 

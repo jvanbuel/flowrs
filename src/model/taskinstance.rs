@@ -1,6 +1,5 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
+use time::OffsetDateTime;
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskInstanceList {
@@ -19,12 +18,12 @@ pub struct TaskInstance {
     pub dag_id: String,
     #[serde(rename = "dag_run_id")]
     pub dag_run_id: String,
-    #[serde(rename = "execution_date")]
-    pub execution_date: DateTime<Utc>,
-    #[serde(rename = "start_date")]
-    pub start_date: DateTime<Utc>,
-    #[serde(rename = "end_date")]
-    pub end_date: DateTime<Utc>,
+    #[serde(rename = "execution_date", with = "time::serde::iso8601::option")]
+    pub execution_date: Option<OffsetDateTime>,
+    #[serde(rename = "start_date", with = "time::serde::iso8601::option")]
+    pub start_date: Option<OffsetDateTime>,
+    #[serde(rename = "end_date", with = "time::serde::iso8601::option")]
+    pub end_date: Option<OffsetDateTime>,
     pub duration: Option<f64>,
     pub state: String,
     #[serde(rename = "try_number")]
@@ -42,8 +41,8 @@ pub struct TaskInstance {
     #[serde(rename = "priority_weight")]
     pub priority_weight: i64,
     pub operator: String,
-    #[serde(rename = "queued_when")]
-    pub queued_when: Option<DateTime<Utc>>,
+    #[serde(rename = "queued_when", with = "time::serde::iso8601::option")]
+    pub queued_when: Option<OffsetDateTime>,
     pub pid: Option<i64>,
     #[serde(rename = "executor_config")]
     pub executor_config: String,
@@ -64,11 +63,12 @@ pub struct SlaMiss {
     pub task_id: String,
     #[serde(rename = "dag_id")]
     pub dag_id: String,
-    #[serde(rename = "execution_date")]
-    pub execution_date: DateTime<Utc>,
+    #[serde(rename = "execution_date", with = "time::serde::iso8601::option")]
+    pub execution_date: Option<OffsetDateTime>,
     #[serde(rename = "email_sent")]
     pub email_sent: bool,
-    pub timestamp: DateTime<Utc>,
+    #[serde(rename = "timestamp", with = "time::serde::iso8601::option")]
+    pub timestamp: Option<OffsetDateTime>,
     pub description: String,
     #[serde(rename = "notification_sent")]
     pub notification_sent: bool,
@@ -84,8 +84,8 @@ pub struct Trigger {
     pub id: i64,
     pub classpath: String,
     pub kwargs: String,
-    #[serde(rename = "created_date")]
-    pub created_date: DateTime<Utc>,
+    #[serde(rename = "created_date", with = "time::serde::iso8601::option")]
+    pub created_date: Option<OffsetDateTime>,
     #[serde(rename = "triggerer_id")]
     pub triggerer_id: i64,
 }
@@ -99,12 +99,12 @@ pub struct TriggererJob {
     pub state: String,
     #[serde(rename = "job_type")]
     pub job_type: String,
-    #[serde(rename = "start_date")]
-    pub start_date: DateTime<Utc>,
-    #[serde(rename = "end_date")]
-    pub end_date: DateTime<Utc>,
-    #[serde(rename = "latest_heartbeat")]
-    pub latest_heartbeat: DateTime<Utc>,
+    #[serde(rename = "start_date", with = "time::serde::iso8601::option")]
+    pub start_date: Option<OffsetDateTime>,
+    #[serde(rename = "end_date", with = "time::serde::iso8601::option")]
+    pub end_date: Option<OffsetDateTime>,
+    #[serde(rename = "latest_heartbeat", with = "time::serde::iso8601::option")]
+    pub latest_heartbeat: Option<OffsetDateTime>,
     #[serde(rename = "executor_class")]
     pub executor_class: String,
     pub hostname: String,

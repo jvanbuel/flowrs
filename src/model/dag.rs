@@ -1,13 +1,11 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
+use time::OffsetDateTime;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DagList {
     pub dags: Vec<Dag>,
     pub total_entries: i64,
 }
-
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,24 +28,33 @@ pub struct Dag {
     pub is_paused: bool,
     #[serde(rename = "is_subdag")]
     pub is_subdag: bool,
-    #[serde(rename = "last_expired")]
-    pub last_expired: Option<DateTime<Utc>>,
-    #[serde(rename = "last_parsed_time")]
-    pub last_parsed_time: Option<DateTime<Utc>>,
-    #[serde(rename = "last_pickled")]
-    pub last_pickled: Option<DateTime<Utc>>,
+    #[serde(rename = "last_expired", with = "time::serde::iso8601::option")]
+    pub last_expired: Option<OffsetDateTime>,
+    #[serde(rename = "last_parsed_time", with = "time::serde::iso8601::option")]
+    pub last_parsed_time: Option<OffsetDateTime>,
+    #[serde(rename = "last_pickled", with = "time::serde::iso8601::option")]
+    pub last_pickled: Option<OffsetDateTime>,
     #[serde(rename = "max_active_runs")]
     pub max_active_runs: i64,
     #[serde(rename = "max_active_tasks")]
     pub max_active_tasks: i64,
-    #[serde(rename = "next_dagrun")]
-    pub next_dagrun: Option<DateTime<Utc>>,
-    #[serde(rename = "next_dagrun_create_after")]
-    pub next_dagrun_create_after: Option<DateTime<Utc>>,
-    #[serde(rename = "next_dagrun_data_interval_end")]
-    pub next_dagrun_data_interval_end: Option<DateTime<Utc>>,
-    #[serde(rename = "next_dagrun_data_interval_start")]
-    pub next_dagrun_data_interval_start: Option<DateTime<Utc>>,
+    #[serde(rename = "next_dagrun", with = "time::serde::iso8601::option")]
+    pub next_dagrun: Option<OffsetDateTime>,
+    #[serde(
+        rename = "next_dagrun_create_after",
+        with = "time::serde::iso8601::option"
+    )]
+    pub next_dagrun_create_after: Option<OffsetDateTime>,
+    #[serde(
+        rename = "next_dagrun_data_interval_end",
+        with = "time::serde::iso8601::option"
+    )]
+    pub next_dagrun_data_interval_end: Option<OffsetDateTime>,
+    #[serde(
+        rename = "next_dagrun_data_interval_start",
+        with = "time::serde::iso8601::option"
+    )]
+    pub next_dagrun_data_interval_start: Option<OffsetDateTime>,
     pub owners: Vec<String>,
     #[serde(rename = "pickle_id")]
     pub pickle_id: Option<String>,

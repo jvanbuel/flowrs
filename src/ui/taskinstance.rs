@@ -18,7 +18,7 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(Color::Blue);
 
-    let headers = ["Task ID", "Execution Date", "Duration", "State"];
+    let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
     let header_cells = headers
         .iter()
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
@@ -29,7 +29,11 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rows = app.taskinstances.items.iter().map(|item| {
         Row::new(vec![
             Spans::from(item.task_id.as_str()),
-            Spans::from(item.execution_date.to_string()),
+            Spans::from(if let Some(date) = item.execution_date {
+                date.to_string()
+            } else {
+                "None".to_string()
+            }),
             Spans::from(if let Some(i) = item.duration {
                 format!("{i}")
             } else {
@@ -53,6 +57,7 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 ),
                 _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
             }),
+            Spans::from(format!("{:?}", item.try_number)),
         ])
         .bottom_margin(1)
     });
@@ -70,6 +75,7 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Percentage(15),
             Constraint::Length(20),
             Constraint::Length(15),
+            Constraint::Length(5),
         ]);
     f.render_stateful_widget(t, rects[0], &mut app.taskinstances.state);
 }
