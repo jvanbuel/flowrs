@@ -13,6 +13,7 @@ impl AirFlowClient {
     ) -> Result<DagRunList, Box<dyn Error + Send + Sync>> {
         let response: Response = self
             .base_api(Method::GET, format!("dags/{dag_id}/dagRuns").as_str())?
+            .query(&[("order_by", "-execution_date")])
             .send()
             .await?;
         let dagruns: DagRunList = response.json::<DagRunList>().await?;

@@ -44,7 +44,13 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 "queued" => {
                     Span::styled(item.state.as_str(), Style::default().fg(Color::LightBlue))
                 }
-
+                "up_for_retry" => {
+                    Span::styled(item.state.as_str(), Style::default().fg(Color::LightYellow))
+                }
+                "upstream_failed" => Span::styled(
+                    item.state.as_str(),
+                    Style::default().fg(Color::Rgb(255, 165, 0)), // orange
+                ),
                 _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
             }),
         ])
@@ -63,7 +69,7 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Percentage(15),
             Constraint::Percentage(15),
             Constraint::Length(20),
-            Constraint::Length(10),
+            Constraint::Length(15),
         ]);
     f.render_stateful_widget(t, rects[0], &mut app.taskinstances.state);
 }
