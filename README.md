@@ -4,7 +4,7 @@ Flowrs is a TUI application for Apache Airflow. It allows you to monitor, inspec
 
 ## Installation
 
-You can install `flowrs` via Homebrew if you're on macOs / Linux / WSL2:
+You can install `flowrs` via Homebrew if you're on macOS / Linux / WSL2:
 
 `brew install jvanbuel/flowrs`
 
