@@ -6,8 +6,11 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
+use time::format_description;
 
 use crate::app::state::App;
+
+use super::TIME_FORMAT;
 
 pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rects = Layout::default()
@@ -30,7 +33,9 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         Row::new(vec![
             Spans::from(item.task_id.as_str()),
             Spans::from(if let Some(date) = item.execution_date {
-                date.to_string()
+                date.format(&format_description::parse(TIME_FORMAT).unwrap())
+                    .unwrap()
+                    .to_string()
             } else {
                 "None".to_string()
             }),

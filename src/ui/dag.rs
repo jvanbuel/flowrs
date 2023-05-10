@@ -6,8 +6,10 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
 };
+use time::format_description;
 
 use crate::app::state::App;
+use crate::ui::TIME_FORMAT;
 
 pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rects = if app.filter.is_enabled() {
@@ -73,7 +75,9 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 ))
             },
             Spans::from(if let Some(date) = item.next_dagrun {
-                date.to_string()
+                date.format(&format_description::parse(TIME_FORMAT).unwrap())
+                    .unwrap()
+                    .to_string()
             } else {
                 "None".to_string()
             }),
