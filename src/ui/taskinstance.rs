@@ -28,10 +28,6 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .bottom_margin(1);
     let rows = app.taskinstances.items.iter().map(|item| {
         Row::new(vec![
-            Spans::from(Span::styled(
-                item.dag_id.as_str(),
-                Style::default().add_modifier(Modifier::BOLD),
-            )),
             Spans::from(item.task_id.as_str()),
             Spans::from(item.execution_date.to_string()),
             Spans::from(if let Some(i) = item.duration {
@@ -69,5 +65,5 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             Constraint::Length(20),
             Constraint::Length(10),
         ]);
-    f.render_stateful_widget(t, rects[0], &mut app.dagruns.state);
+    f.render_stateful_widget(t, rects[0], &mut app.taskinstances.state);
 }
