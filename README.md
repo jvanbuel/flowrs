@@ -15,7 +15,7 @@ or by downloading the binary directly from GitHub:
 Alternatively, you can build `flowrs` from source by cloning the repository and install the project with `cargo`:
 
 ```bash
-git clone ...
+git clone git@github.com:jvanbuel/flowrs.git
 cargo install . 
 ```
 
