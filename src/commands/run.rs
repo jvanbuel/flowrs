@@ -13,8 +13,13 @@ use ratatui::{
     Terminal,
 };
 
-use crate::app::state::{App, Panel};
+use crate::app::{
+    filter::Filter,
+    state::{App, Panel},
+};
 use crate::ui::ui;
+
+type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[derive(Parser, Debug)]
 pub struct RunCommand {
@@ -23,7 +28,15 @@ pub struct RunCommand {
 }
 
 impl RunCommand {
-    pub async fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&self) -> Result<()> {
+        // setup panic hook
+        let original_hook = std::panic::take_hook();
+
+        std::panic::set_hook(Box::new(move |panic| {
+            reset_terminal().unwrap();
+            original_hook(panic);
+        }));
+
         // setup terminal
         enable_raw_mode()?;
         let mut stdout = io::stdout();
@@ -53,6 +66,14 @@ impl RunCommand {
 
         Ok(())
     }
+}
+
+/// Resets the terminal.
+fn reset_terminal() -> Result<()> {
+    disable_raw_mode()?;
+    crossterm::execute!(io::stdout(), LeaveAlternateScreen)?;
+
+    Ok(())
 }
 
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> io::Result<()> {
@@ -95,27 +116,14 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             }
 
             if app.filter.is_enabled() {
+                mutate_filter(&mut app.filter, key.code);
+                app.filter_dags();
+            } else if app.active_popup {
                 match key.code {
-                    KeyCode::Esc | KeyCode::Enter => {
-                        app.filter.toggle();
-                    }
-                    KeyCode::Backspace => match app.filter.prefix {
-                        Some(ref mut prefix) => {
-                            prefix.pop();
-                        }
-                        None => {}
-                    },
-                    KeyCode::Char(c) => match app.filter.prefix {
-                        Some(ref mut prefix) => {
-                            prefix.push(c);
-                        }
-                        None => {
-                            app.filter.prefix = Some(c.to_string());
-                        }
-                    },
+                    KeyCode::Char('q') | KeyCode::Esc => app.active_popup = false,
+                    KeyCode::Enter => app.active_popup = false,
                     _ => {}
                 }
-                app.filter_dags();
             } else {
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
@@ -164,6 +172,29 @@ async fn handle_key_code_task(code: KeyCode, app: &mut App) {
     match code {
         KeyCode::Down | KeyCode::Char('j') => app.taskinstances.next(),
         KeyCode::Up | KeyCode::Char('k') => app.taskinstances.previous(),
+        _ => {}
+    }
+}
+
+fn mutate_filter(filter: &mut Filter, code: KeyCode) {
+    match code {
+        KeyCode::Esc | KeyCode::Enter => {
+            filter.toggle();
+        }
+        KeyCode::Backspace => match filter.prefix {
+            Some(ref mut prefix) => {
+                prefix.pop();
+            }
+            None => {}
+        },
+        KeyCode::Char(c) => match filter.prefix {
+            Some(ref mut prefix) => {
+                prefix.push(c);
+            }
+            None => {
+                filter.prefix = Some(c.to_string());
+            }
+        },
         _ => {}
     }
 }
