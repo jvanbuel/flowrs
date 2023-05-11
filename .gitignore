@@ -4,3 +4,4 @@ flowrs
 logs
 plugins
 dags
+.DS_Store
