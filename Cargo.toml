@@ -13,7 +13,7 @@ lazy_static = "1.4.0"
 ratatui = "0.21.0"
 reqwest = { version = "0.11.18", features = ["json"]}
 serde = { version = "1.0.163", features = ["derive"]}
-serde_json = "1.0.96"
+serde_json = "1.0.97"
 time = {version = "0.3.21", features = ["serde", "serde-human-readable", "parsing", "macros"]}
 tokio = { version = "1.28.2", features = ["full"] }
 toml = "0.7.4"
