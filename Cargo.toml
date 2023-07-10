@@ -12,7 +12,7 @@ inquire = "0.6.2"
 lazy_static = "1.4.0"
 ratatui = "0.21.0"
 reqwest = { version = "0.11.18", features = ["json"]}
-serde = { version = "1.0.164", features = ["derive"]}
+serde = { version = "1.0.171", features = ["derive"]}
 serde_json = "1.0.99"
 time = {version = "0.3.22", features = ["serde", "serde-human-readable", "parsing", "macros"]}
 tokio = { version = "1.28.2", features = ["full"] }
