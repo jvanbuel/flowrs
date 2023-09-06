@@ -2,7 +2,7 @@ use ratatui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
@@ -31,20 +31,20 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .bottom_margin(1);
     let rows = app.taskinstances.items.iter().map(|item| {
         Row::new(vec![
-            Spans::from(item.task_id.as_str()),
-            Spans::from(if let Some(date) = item.execution_date {
+            Line::from(item.task_id.as_str()),
+            Line::from(if let Some(date) = item.execution_date {
                 date.format(&format_description::parse(TIME_FORMAT).unwrap())
                     .unwrap()
                     .to_string()
             } else {
                 "None".to_string()
             }),
-            Spans::from(if let Some(i) = item.duration {
+            Line::from(if let Some(i) = item.duration {
                 format!("{i}")
             } else {
                 "None".to_string()
             }),
-            Spans::from(match item.state.as_str() {
+            Line::from(match item.state.as_str() {
                 "success" => Span::styled(item.state.as_str(), Style::default().fg(Color::Green)),
                 "running" => {
                     Span::styled(item.state.as_str(), Style::default().fg(Color::LightGreen))
@@ -62,7 +62,7 @@ pub fn render_taskinstance_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 ),
                 _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
             }),
-            Spans::from(format!("{:?}", item.try_number)),
+            Line::from(format!("{:?}", item.try_number)),
         ])
         .bottom_margin(1)
     });

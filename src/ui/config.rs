@@ -2,7 +2,7 @@ use ratatui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
-    text::Spans,
+    text::Line,
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
@@ -29,8 +29,8 @@ pub fn render_config_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .bottom_margin(1);
     let rows = app.configs.items.iter().map(|item| {
         Row::new(vec![
-            Spans::from(item.name.as_str()),
-            Spans::from(item.endpoint.as_str()),
+            Line::from(item.name.as_str()),
+            Line::from(item.endpoint.as_str()),
         ])
         // .height(height as u16)
         .bottom_margin(1)

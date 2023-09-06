@@ -2,7 +2,7 @@ use ratatui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
@@ -31,20 +31,20 @@ pub fn render_dagrun_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .bottom_margin(1);
     let rows = app.dagruns.items.iter().map(|item| {
         Row::new(vec![
-            Spans::from(Span::styled(
+            Line::from(Span::styled(
                 item.dag_id.as_str(),
                 Style::default().add_modifier(Modifier::BOLD),
             )),
-            Spans::from(item.dag_run_id.as_str()),
-            Spans::from(if let Some(date) = item.logical_date {
+            Line::from(item.dag_run_id.as_str()),
+            Line::from(if let Some(date) = item.logical_date {
                 date.format(&format_description::parse(TIME_FORMAT).unwrap())
                     .unwrap()
                     .to_string()
             } else {
                 "None".to_string()
             }),
-            Spans::from(item.run_type.as_str()),
-            Spans::from(match item.state.as_str() {
+            Line::from(item.run_type.as_str()),
+            Line::from(match item.state.as_str() {
                 "success" => Span::styled(item.state.as_str(), Style::default().fg(Color::Green)),
                 "running" => {
                     Span::styled(item.state.as_str(), Style::default().fg(Color::LightGreen))

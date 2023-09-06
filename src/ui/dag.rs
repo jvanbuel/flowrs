@@ -2,7 +2,7 @@ use ratatui::{
     backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
 };
@@ -54,27 +54,27 @@ pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let rows = app.filtered_dags.items.iter().map(|item| {
         Row::new(vec![
             if item.is_paused {
-                Spans::from(Span::styled("🔘", Style::default().fg(Color::Gray)))
+                Line::from(Span::styled("🔘", Style::default().fg(Color::Gray)))
             } else {
-                Spans::from(Span::styled("🔵", Style::default().fg(Color::Gray)))
+                Line::from(Span::styled("🔵", Style::default().fg(Color::Gray)))
             },
-            Spans::from(Span::styled(
+            Line::from(Span::styled(
                 item.dag_id.as_str(),
                 Style::default().add_modifier(Modifier::BOLD),
             )),
-            Spans::from(item.owners.join(", ")),
+            Line::from(item.owners.join(", ")),
             if let Some(schedule) = &item.schedule_interval {
-                Spans::from(Span::styled(
+                Line::from(Span::styled(
                     schedule.value.clone().unwrap_or_else(|| "None".to_string()),
                     Style::default().fg(Color::LightYellow),
                 ))
             } else {
-                Spans::from(Span::styled(
+                Line::from(Span::styled(
                     "None",
                     Style::default().fg(Color::LightYellow),
                 ))
             },
-            Spans::from(if let Some(date) = item.next_dagrun {
+            Line::from(if let Some(date) = item.next_dagrun {
                 date.format(&format_description::parse(TIME_FORMAT).unwrap())
                     .unwrap()
                     .to_string()
