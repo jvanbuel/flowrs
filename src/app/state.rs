@@ -24,6 +24,7 @@ pub struct App {
     pub filter: Filter,
     pub taskinstances: StatefulTable<TaskInstance>,
     pub all_taskinstances: TaskInstanceList,
+    pub active_popup: bool,
 }
 
 #[derive(Clone)]
@@ -95,6 +96,7 @@ impl App {
             filter: Filter::new(),
             taskinstances: StatefulTable::new(vec![]),
             all_taskinstances: taskinstances,
+            active_popup: false,
         }
     }
 
