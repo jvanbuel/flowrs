@@ -45,7 +45,7 @@ impl RunCommand {
         let mut terminal = Terminal::new(backend)?;
 
         // create app and run it
-        let path = self.file.as_ref().map(|file| Path::new(file));
+        let path = self.file.as_ref().map(Path::new);
         let config = crate::app::auth::get_config(path);
         let app = Arc::new(Mutex::new(App::new(config).await));
 
@@ -83,7 +83,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
         loop {
             let mut app = app_nw.lock().await;
             match app.active_panel {
-                Panel::DAG => {
+                Panel::Dag => {
                     app.update_dags().await;
                     app.filter_dags();
                     // app.update_all_dagruns().await;
@@ -106,13 +106,12 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
         })?;
 
         if let Event::Key(key) = event::read()? {
-            match key.modifiers {
-                KeyModifiers::CONTROL => match key.code {
+            if key.modifiers == KeyModifiers::CONTROL {
+                match key.code {
                     KeyCode::Char('c') => return Ok(()),
                     KeyCode::Char('d') => return Ok(()),
                     _ => {}
-                },
-                _ => {}
+                }
             }
 
             if app.filter.is_enabled() {
@@ -132,7 +131,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                     KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
                     code => match app.active_panel {
                         Panel::Config => handle_key_code_config(code, &mut app).await,
-                        Panel::DAG => handle_key_code_dag(code, &mut app).await,
+                        Panel::Dag => handle_key_code_dag(code, &mut app).await,
                         Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
                         Panel::TaskInstance => handle_key_code_task(code, &mut app).await,
                     },
@@ -181,12 +180,11 @@ fn mutate_filter(filter: &mut Filter, code: KeyCode) {
         KeyCode::Esc | KeyCode::Enter => {
             filter.toggle();
         }
-        KeyCode::Backspace => match filter.prefix {
-            Some(ref mut prefix) => {
+        KeyCode::Backspace => {
+            if let Some(ref mut prefix) = filter.prefix {
                 prefix.pop();
             }
-            None => {}
-        },
+        }
         KeyCode::Char(c) => match filter.prefix {
             Some(ref mut prefix) => {
                 prefix.push(c);

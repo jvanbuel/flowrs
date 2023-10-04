@@ -19,7 +19,7 @@ pub fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App) {
         Panel::Config => {
             render_config_panel(f, app);
         }
-        Panel::DAG => render_dag_panel(f, app),
+        Panel::Dag => render_dag_panel(f, app),
         Panel::DAGRun => render_dagrun_panel(f, app),
         Panel::TaskInstance => render_taskinstance_panel(f, app),
     }

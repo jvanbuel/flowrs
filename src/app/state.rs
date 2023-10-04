@@ -72,7 +72,7 @@ impl<T> StatefulTable<T> {
 
 pub enum Panel {
     Config,
-    DAG,
+    Dag,
     DAGRun,
     TaskInstance,
 }
@@ -92,7 +92,7 @@ impl App {
             all_dagruns: dagruns,
             active_config: config,
             client,
-            active_panel: Panel::DAG,
+            active_panel: Panel::Dag,
             filter: Filter::new(),
             taskinstances: StatefulTable::new(vec![]),
             all_taskinstances: taskinstances,
@@ -129,8 +129,8 @@ impl App {
     pub fn next_panel(&mut self) {
         self.filter.reset();
         match self.active_panel {
-            Panel::Config => self.active_panel = Panel::DAG,
-            Panel::DAG => self.active_panel = Panel::DAGRun,
+            Panel::Config => self.active_panel = Panel::Dag,
+            Panel::Dag => self.active_panel = Panel::DAGRun,
             Panel::DAGRun => self.active_panel = Panel::TaskInstance,
             Panel::TaskInstance => (),
         }
@@ -140,8 +140,8 @@ impl App {
         self.filter.reset();
         match self.active_panel {
             Panel::Config => (),
-            Panel::DAG => self.active_panel = Panel::Config,
-            Panel::DAGRun => self.active_panel = Panel::DAG,
+            Panel::Dag => self.active_panel = Panel::Config,
+            Panel::DAGRun => self.active_panel = Panel::Dag,
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
         }
     }

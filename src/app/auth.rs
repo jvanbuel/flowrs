@@ -40,7 +40,7 @@ mod tests {
 
     #[test]
     fn test_get_config() {
-        let result = get_config(Some(&Path::new(".flowrs")));
+        let result = get_config(Some(Path::new(".flowrs")));
         assert_eq!(result.servers.len(), 2);
         assert_eq!(result.servers[1].name, "test");
     }

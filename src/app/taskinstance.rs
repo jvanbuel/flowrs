@@ -27,7 +27,7 @@ impl AirFlowClient {
         &self,
     ) -> Result<TaskInstanceList, Box<dyn Error + Send + Sync>> {
         let response: Response = self
-            .base_api(Method::GET, &format!("dags/~/dagRuns/~/taskInstances"))?
+            .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")?
             .send()
             .await?;
         let daglist: TaskInstanceList = response.json::<TaskInstanceList>().await?;

@@ -9,7 +9,7 @@ pub struct AirFlowClient {
     pub config: AirflowConfig,
 }
 
-impl<'a> AirFlowClient {
+impl AirFlowClient {
     pub fn new(config: AirflowConfig) -> Self {
         let client = reqwest::Client::builder()
             .http1_title_case_headers()
