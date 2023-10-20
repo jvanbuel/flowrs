@@ -17,7 +17,7 @@ Alternatively, you can build `flowrs` from source by cloning the repository and 
 
 ```bash
 git clone git@github.com:jvanbuel/flowrs.git
-cargo install . 
+cargo install --path . 
 ```
 
 ## Usage
