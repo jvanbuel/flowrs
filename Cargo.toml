@@ -17,5 +17,5 @@ serde_json = "1.0.108"
 time = {version = "0.3.30", features = ["serde", "serde-human-readable", "parsing", "macros"]}
 tokio = { version = "1.33.0", features = ["full"] }
 toml = "0.8.8"
-url = "2.4.1"
+url = "2.5.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
