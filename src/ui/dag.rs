@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -11,7 +10,7 @@ use time::format_description;
 use crate::app::state::App;
 use crate::ui::TIME_FORMAT;
 
-pub fn render_dag_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
     let rects = if app.filter.is_enabled() {
         let rects = Layout::default()
             .constraints(if app.filter.is_enabled() {

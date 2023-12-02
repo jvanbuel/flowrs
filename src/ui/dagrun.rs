@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
     text::{Line, Span},
@@ -12,7 +11,7 @@ use crate::app::state::App;
 
 use super::TIME_FORMAT;
 
-pub fn render_dagrun_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)

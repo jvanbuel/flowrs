@@ -1,6 +1,6 @@
 use crate::app::state::{App, Panel};
 
-use ratatui::{backend::Backend, Frame};
+use ratatui::Frame;
 
 use self::{
     config::render_config_panel, dag::render_dag_panel, dagrun::render_dagrun_panel,
@@ -14,7 +14,7 @@ pub mod taskinstance;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
-pub fn ui<B: Backend>(f: &mut Frame<'_, B>, app: &mut App) {
+pub fn ui(f: &mut Frame, app: &mut App) {
     match app.active_panel {
         Panel::Config => {
             render_config_panel(f, app);

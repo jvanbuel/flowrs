@@ -1,5 +1,4 @@
 use ratatui::{
-    backend::Backend,
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style},
     text::Line,
@@ -9,7 +8,7 @@ use ratatui::{
 
 use crate::app::state::App;
 
-pub fn render_config_panel<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn render_config_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)
