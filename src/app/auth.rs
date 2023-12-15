@@ -2,6 +2,7 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::app::error::Result;
 use crate::CONFIG_FILE;
 
 #[derive(Deserialize, Serialize)]
@@ -18,7 +19,7 @@ pub struct AirflowConfig {
     pub password: Option<String>,
 }
 
-pub fn get_config(config_path: Option<&Path>) -> Config {
+pub fn get_config(config_path: Option<&Path>) -> Result<Config> {
     let path = match config_path {
         Some(path) => path,
         None => CONFIG_FILE.as_path(),
@@ -26,9 +27,9 @@ pub fn get_config(config_path: Option<&Path>) -> Config {
 
     let toml_read = std::fs::read_to_string(path);
     if let Ok(toml_config) = toml_read {
-        toml::from_str(&toml_config).unwrap()
+        toml::from_str(&toml_config).map_err(|e| e.into())
     } else {
-        Config { servers: vec![] }
+        Ok(Config { servers: vec![] })
     }
 }
 
@@ -40,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_get_config() {
-        let result = get_config(Some(Path::new(".flowrs")));
+        let result = get_config(Some(Path::new(".flowrs"))).unwrap();
         assert_eq!(result.servers.len(), 2);
         assert_eq!(result.servers[1].name, "test");
     }

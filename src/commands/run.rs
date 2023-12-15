@@ -1,4 +1,4 @@
-use std::{error::Error, io, path::Path, sync::Arc, thread};
+use std::{io, path::Path, sync::Arc, thread};
 
 use tokio::sync::Mutex;
 
@@ -14,12 +14,11 @@ use ratatui::{
 };
 
 use crate::app::{
+    error::Result,
     filter::Filter,
     state::{App, Panel},
 };
 use crate::ui::ui;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[derive(Parser, Debug)]
 pub struct RunCommand {
@@ -46,7 +45,7 @@ impl RunCommand {
 
         // create app and run it
         let path = self.file.as_ref().map(Path::new);
-        let config = crate::app::auth::get_config(path);
+        let config = crate::app::auth::get_config(path)?;
         let app = Arc::new(Mutex::new(App::new(config).await));
 
         let res = run_app(&mut terminal, app).await;

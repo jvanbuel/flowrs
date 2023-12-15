@@ -57,7 +57,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_dags() {
         let binding = get_config(Some(Path::new(".flowrs")));
-        let server = binding.servers[1].clone();
+        let server = binding.unwrap().servers[1].clone();
         let client = AirFlowClient::new(server);
         let first_dag = &client.list_dags().await.unwrap().dags[0];
 
@@ -72,7 +72,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_all_dags() {
         let binding = get_config(Some(Path::new(".flowrs")));
-        let server = binding.servers[1].clone();
+        let server = binding.unwrap().servers[1].clone();
         let client = AirFlowClient::new(server);
 
         let dagrun_list: DagRunList = client.list_all_dagruns().await.unwrap();

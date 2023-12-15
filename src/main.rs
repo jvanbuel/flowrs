@@ -1,4 +1,4 @@
-use std::{error::Error, path::PathBuf};
+use std::path::PathBuf;
 
 use ascii_flowrs::ASCII_FLOWRS;
 use clap::Parser;
@@ -16,6 +16,8 @@ lazy_static::lazy_static! {
     pub static ref CONFIG_FILE: PathBuf = home_dir().unwrap().join(".flowrs");
 }
 
+use app::error::Result;
+
 #[derive(Parser)]
 #[clap(name = "flowrs", version, about, before_help=ASCII_FLOWRS)]
 struct FlowrsApp {
@@ -31,7 +33,7 @@ enum FlowrsCommand {
 }
 
 impl FlowrsApp {
-    pub async fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run(&self) -> Result<()> {
         match &self.command {
             Some(FlowrsCommand::Run(cmd)) => cmd.run().await,
             Some(FlowrsCommand::Config(cmd)) => cmd.run(),
@@ -41,7 +43,7 @@ impl FlowrsApp {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
     let app = FlowrsApp::parse();
     app.run().await?;
     Ok(())

@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
@@ -11,6 +10,7 @@ use url::Url;
 
 use crate::app::auth::AirflowConfig;
 use crate::app::auth::Config;
+use crate::app::error::Result;
 use crate::CONFIG_FILE;
 
 #[derive(Parser, Debug)]
@@ -22,7 +22,7 @@ pub enum ConfigCommand {
 }
 
 impl ConfigCommand {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<()> {
         match self {
             ConfigCommand::Add(cmd) => cmd.run(),
             ConfigCommand::Remove(cmd) => cmd.run(),
@@ -52,7 +52,7 @@ pub struct UpdateCommand {
 }
 
 impl AddCommand {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<()> {
         let name = inquire::Text::new("name").prompt()?;
         let endpoint = inquire::Text::new("endpoint")
             .with_validator(validate_endpoint)
@@ -85,7 +85,7 @@ impl AddCommand {
         };
 
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::auth::get_config(path);
+        let mut config = crate::app::auth::get_config(path)?;
         config
             .servers
             .retain(|server| server.name != airflow_config.name);
@@ -100,12 +100,12 @@ impl AddCommand {
 }
 
 impl RemoveCommand {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::auth::get_config(path);
+        let mut config = crate::app::auth::get_config(path)?;
 
-        let name: String = if self.name.is_none() {
-            Select::new(
+        let name = match self.name {
+            None => Select::new(
                 "name",
                 config
                     .servers
@@ -113,9 +113,8 @@ impl RemoveCommand {
                     .map(|server| server.name.clone())
                     .collect(),
             )
-            .prompt()?
-        } else {
-            self.name.clone().unwrap()
+            .prompt()?,
+            Some(ref name) => name.to_string(),
         };
         config.servers.retain(|server| server.name != name);
 
@@ -127,9 +126,9 @@ impl RemoveCommand {
 }
 
 impl UpdateCommand {
-    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+    pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::auth::get_config(path);
+        let mut config = crate::app::auth::get_config(path)?;
 
         let name: String = if self.name.is_none() {
             Select::new(
@@ -185,14 +184,16 @@ impl UpdateCommand {
     }
 }
 
-fn validate_endpoint(endpoint: &str) -> Result<Validation, Box<dyn Error + Send + Sync>> {
+fn validate_endpoint(
+    endpoint: &str,
+) -> std::result::Result<Validation, Box<dyn std::error::Error + Send + Sync>> {
     match Url::parse(endpoint) {
         Ok(_) => Ok(Validation::Valid),
         Err(error) => Ok(Validation::Invalid(error.into())),
     }
 }
 
-fn write_config(config: &Config, path: Option<&Path>) -> Result<(), Box<dyn Error>> {
+fn write_config(config: &Config, path: Option<&Path>) -> Result<()> {
     let path = match path {
         Some(path) => path,
         None => CONFIG_FILE.as_path(),

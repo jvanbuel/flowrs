@@ -38,7 +38,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_dags() {
         let binding = get_config(Some(Path::new(".flowrs")));
-        let client = AirFlowClient::new(binding.servers[1].clone());
+        let client = AirFlowClient::new(binding.unwrap().servers[1].clone());
 
         println!("{:?}", client.config);
         let daglist: DagList = client.list_dags().await.unwrap();
