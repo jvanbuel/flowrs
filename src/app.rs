@@ -1,5 +1,5 @@
-pub mod config;
 pub mod client;
+pub mod config;
 pub mod dagruns;
 pub mod dags;
 pub mod error;

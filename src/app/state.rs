@@ -7,8 +7,8 @@ use crate::model::{
 };
 
 use super::{
-    config::{AirflowConfig, FlowrsConfig},
     client::AirFlowClient,
+    config::{AirflowConfig, FlowrsConfig},
     filter::Filter,
 };
 

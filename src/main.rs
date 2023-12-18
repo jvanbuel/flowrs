@@ -44,6 +44,8 @@ impl FlowrsApp {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    env_logger::init();
+
     let app = FlowrsApp::parse();
     app.run().await?;
     Ok(())
