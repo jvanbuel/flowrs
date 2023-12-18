@@ -1,12 +1,11 @@
-use std::error::Error;
-
+use crate::app::error::Result;
 use reqwest::{Method, Response};
 
 use super::client::AirFlowClient;
 use crate::model::dag::DagList;
 
 impl AirFlowClient {
-    pub async fn list_dags(&self) -> Result<DagList, Box<dyn Error + Send + Sync>> {
+    pub async fn list_dags(&self) -> Result<DagList> {
         let response: Response = self.base_api(Method::GET, "dags")?.send().await?;
         let daglist: DagList = response.json::<DagList>().await?;
         Ok(daglist)
@@ -16,7 +15,7 @@ impl AirFlowClient {
         &self,
         dag_id: &str,
         is_paused: bool,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    ) -> Result<()> {
         let _: Response = self
             .base_api(Method::PATCH, &format!("dags/{dag_id}"))?
             .query(&[("update_mask", "is_paused")])
@@ -37,8 +36,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_dags() {
-        let binding = get_config(Some(Path::new(".flowrs")));
-        let client = AirFlowClient::new(binding.unwrap().servers[1].clone());
+        let binding = get_config(Some(Path::new(".flowrs"))).unwrap();
+        let client = AirFlowClient::new(binding.servers[1].clone()).unwrap();
 
         println!("{:?}", client.config);
         let daglist: DagList = client.list_dags().await.unwrap();

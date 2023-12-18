@@ -3,6 +3,7 @@ pub type Result<T> = std::result::Result<T, FlowrsError>;
 #[derive(Debug)]
 pub enum FlowrsError {
     ConfigError(ConfigError),
+    APIError(reqwest::Error),
 }
 
 #[derive(Debug)]
@@ -11,6 +12,7 @@ pub enum ConfigError {
     Input(inquire::InquireError),
     IO(std::io::Error),
     TokenCmdParse(std::string::FromUtf8Error),
+    URLParse(url::ParseError),
 }
 
 #[derive(Debug)]
@@ -37,6 +39,7 @@ impl std::fmt::Display for ConfigError {
             ConfigError::Input(e) => write!(f, "InputError: {}", e),
             ConfigError::IO(e) => write!(f, "IOError: {}", e),
             ConfigError::TokenCmdParse(e) => write!(f, "TokenCmdParseError: {}", e),
+            ConfigError::URLParse(e) => write!(f, "URLParseError: {}", e),
         }
     }
 }
@@ -45,6 +48,7 @@ impl std::fmt::Display for FlowrsError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             FlowrsError::ConfigError(e) => write!(f, "ConfigError: {}", e),
+            FlowrsError::APIError(e) => write!(f, "APIError: {}", e),
         }
     }
 }
@@ -80,5 +84,17 @@ impl From<std::io::Error> for FlowrsError {
 impl From<std::string::FromUtf8Error> for FlowrsError {
     fn from(error: std::string::FromUtf8Error) -> Self {
         FlowrsError::ConfigError(ConfigError::TokenCmdParse(error))
+    }
+}
+
+impl From<reqwest::Error> for FlowrsError {
+    fn from(error: reqwest::Error) -> Self {
+        FlowrsError::APIError(error)
+    }
+}
+
+impl From<url::ParseError> for FlowrsError {
+    fn from(error: url::ParseError) -> Self {
+        FlowrsError::ConfigError(ConfigError::URLParse(error))
     }
 }

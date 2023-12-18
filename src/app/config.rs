@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::app::error::Result;
 use crate::CONFIG_FILE;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FlowrsConfig {
     pub servers: Vec<AirflowConfig>,
 }

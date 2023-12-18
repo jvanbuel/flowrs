@@ -1,5 +1,4 @@
-use std::error::Error;
-
+use crate::app::error::Result;
 use reqwest::{Method, Response};
 
 use crate::model::dagrun::DagRunList;
@@ -10,7 +9,7 @@ impl AirFlowClient {
     pub async fn list_dagruns(
         &self,
         dag_id: &str,
-    ) -> Result<DagRunList, Box<dyn Error + Send + Sync>> {
+    ) -> Result<DagRunList> {
         let response: Response = self
             .base_api(Method::GET, format!("dags/{dag_id}/dagRuns").as_str())?
             .query(&[("order_by", "-execution_date")])
@@ -20,7 +19,7 @@ impl AirFlowClient {
         Ok(dagruns)
     }
 
-    pub async fn list_all_dagruns(&self) -> Result<DagRunList, Box<dyn Error + Send + Sync>> {
+    pub async fn list_all_dagruns(&self) -> Result<DagRunList> {
         let response: Response = self
             .base_api(Method::POST, "dags/~/dagRuns/list")?
             .json(&serde_json::json!({"page_limit": 200}))
@@ -34,7 +33,7 @@ impl AirFlowClient {
         &self,
         dag_id: &str,
         dag_run_id: &str,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    ) -> Result<()> {
         let _: Response = self
             .base_api(
                 Method::POST,
@@ -58,7 +57,7 @@ mod tests {
     async fn test_list_dags() {
         let binding = get_config(Some(Path::new(".flowrs")));
         let server = binding.unwrap().servers[1].clone();
-        let client = AirFlowClient::new(server);
+        let client = AirFlowClient::new(server).unwrap();
         let first_dag = &client.list_dags().await.unwrap().dags[0];
 
         println!("{:?}", client.config);
@@ -73,7 +72,7 @@ mod tests {
     async fn test_list_all_dags() {
         let binding = get_config(Some(Path::new(".flowrs")));
         let server = binding.unwrap().servers[1].clone();
-        let client = AirFlowClient::new(server);
+        let client = AirFlowClient::new(server).unwrap();
 
         let dagrun_list: DagRunList = client.list_all_dagruns().await.unwrap();
         assert!(!dagrun_list.dag_runs.is_empty());

@@ -1,3 +1,4 @@
+use log::info;
 use ratatui::widgets::TableState;
 
 use crate::model::{
@@ -6,6 +7,7 @@ use crate::model::{
     taskinstance::{TaskInstance, TaskInstanceList},
 };
 
+use crate::app::error::Result;
 use super::{
     client::AirFlowClient,
     config::{AirflowConfig, FlowrsConfig},
@@ -78,13 +80,15 @@ pub enum Panel {
 }
 
 impl App {
-    pub async fn new(config: FlowrsConfig) -> App {
+    pub async fn new(config: FlowrsConfig) -> Result<App> {
+        info!("🔧 Config: {:?}", config);
+
         let server = config.servers[1].clone();
-        let client = AirFlowClient::new(server);
+        let client = AirFlowClient::new(server)?;
         let daglist = client.list_dags().await.unwrap();
         let dagruns = client.list_all_dagruns().await.unwrap();
         let taskinstances = client.list_all_taskinstances().await.unwrap();
-        App {
+        Ok(App {
             all_dags: daglist.clone(),
             filtered_dags: StatefulTable::new(daglist.dags),
             configs: StatefulTable::new(config.servers.clone()),
@@ -97,7 +101,7 @@ impl App {
             taskinstances: StatefulTable::new(vec![]),
             all_taskinstances: taskinstances,
             active_popup: false,
-        }
+        })
     }
 
     pub async fn update_dags(&mut self) {

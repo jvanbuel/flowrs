@@ -46,7 +46,7 @@ impl RunCommand {
         // create app and run it
         let path = self.file.as_ref().map(Path::new);
         let config = crate::app::config::get_config(path)?;
-        let app = Arc::new(Mutex::new(App::new(config).await));
+        let app = Arc::new(Mutex::new(App::new(config).await?));
 
         let res = run_app(&mut terminal, app).await;
 

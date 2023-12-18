@@ -1,4 +1,4 @@
-use std::error::Error;
+use crate::app::error::Result;
 
 use reqwest::{Method, Response};
 
@@ -11,7 +11,7 @@ impl AirFlowClient {
         &self,
         dag_id: &str,
         dag_run_id: &str,
-    ) -> Result<TaskInstanceList, Box<dyn Error + Send + Sync>> {
+    ) -> Result<TaskInstanceList> {
         let response: Response = self
             .base_api(
                 Method::GET,
@@ -25,7 +25,7 @@ impl AirFlowClient {
 
     pub async fn list_all_taskinstances(
         &self,
-    ) -> Result<TaskInstanceList, Box<dyn Error + Send + Sync>> {
+    ) -> Result<TaskInstanceList> {
         let response: Response = self
             .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")?
             .send()
