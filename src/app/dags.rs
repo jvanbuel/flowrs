@@ -29,9 +29,7 @@ mod tests {
     use crate::app::config::FlowrsConfig;
     use crate::app::dags::DagList;
 
-    #[tokio::test]
-    async fn test_list_dags() {
-        let configuration = r#"[[servers]]
+    const TEST_CONFIG: &str = r#"[[servers]]
         name = "test"
         endpoint = "http://localhost:8080"
 
@@ -40,7 +38,9 @@ mod tests {
         password = "airflow"
         "#;
 
-        let config: FlowrsConfig = toml::from_str(str::trim(configuration)).unwrap();
+    #[tokio::test]
+    async fn test_list_dags() {
+        let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
         let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
         let daglist: DagList = client.list_dags().await.unwrap();
         assert_eq!(daglist.dags[0].dag_id, "dataset_consumes_1");

@@ -58,9 +58,7 @@ mod tests {
     use crate::app::client::AirFlowClient;
     use crate::app::config::FlowrsConfig;
 
-    #[tokio::test]
-    async fn test_base_api_conveyor() {
-        let configuration = r#"[[servers]]
+    const TEST_CONFIG : &str = r#"[[servers]]
         name = "conveyor-dev"
         endpoint = "https://app.conveyordata.com/environments/dev/airflow/"
 
@@ -69,11 +67,11 @@ mod tests {
         token = ""
         "#;
 
-        let config: FlowrsConfig = toml::from_str(str::trim(configuration)).unwrap();
+    #[tokio::test]
+    async fn test_base_api_conveyor() {
 
+        let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
         let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
-
-        println!("{:?}", client.config);
 
         let _ = client.base_api(Method::GET, "config").unwrap().send().await;
     }
