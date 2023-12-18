@@ -16,7 +16,7 @@ use ratatui::{
 use crate::app::{
     error::Result,
     filter::Filter,
-    state::{App, Panel},
+    state::{App, Panel}, config::FlowrsConfig,
 };
 use crate::ui::ui;
 
@@ -45,7 +45,7 @@ impl RunCommand {
 
         // create app and run it
         let path = self.file.as_ref().map(Path::new);
-        let config = crate::app::config::get_config(path)?;
+        let config = FlowrsConfig::from_file(path)?;
         let app = Arc::new(Mutex::new(App::new(config).await?));
 
         let res = run_app(&mut terminal, app).await;

@@ -112,7 +112,7 @@ impl AddCommand {
         };
 
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::config::get_config(path)?;
+        let mut config = FlowrsConfig::from_file(path)?;
         config
             .servers
             .retain(|server| server.name != new_config.name);
@@ -129,7 +129,7 @@ impl AddCommand {
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::config::get_config(path)?;
+        let mut config = FlowrsConfig::from_file(path)?;
 
         let name = match self.name {
             None => Select::new(
@@ -155,7 +155,7 @@ impl RemoveCommand {
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::config::get_config(path)?;
+        let mut config = FlowrsConfig::from_file(path)?;
 
         let name: String = if self.name.is_none() {
             Select::new(
