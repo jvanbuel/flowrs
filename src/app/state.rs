@@ -1,4 +1,3 @@
-use log::info;
 use ratatui::widgets::TableState;
 
 use crate::model::{
@@ -77,13 +76,12 @@ pub enum Panel {
     Dag,
     DAGRun,
     TaskInstance,
+    Help,
 }
 
 impl App {
     pub async fn new(config: FlowrsConfig) -> Result<App> {
-        info!("🔧 Config: {:?}", config);
-
-        let server = config.servers[1].clone();
+        let server = config.servers[0].clone();
         let client = AirFlowClient::new(server)?;
         let daglist = client.list_dags().await.unwrap();
         let dagruns = client.list_all_dagruns().await.unwrap();
@@ -137,6 +135,7 @@ impl App {
             Panel::Dag => self.active_panel = Panel::DAGRun,
             Panel::DAGRun => self.active_panel = Panel::TaskInstance,
             Panel::TaskInstance => (),
+            Panel::Help => (),
         }
     }
 
@@ -147,6 +146,7 @@ impl App {
             Panel::Dag => self.active_panel = Panel::Config,
             Panel::DAGRun => self.active_panel = Panel::Dag,
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
+            Panel::Help => (),
         }
     }
 

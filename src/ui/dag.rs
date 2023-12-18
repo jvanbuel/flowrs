@@ -84,17 +84,19 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
         // .height(height as u16)
         .bottom_margin(1)
     });
-    let t = Table::new(rows)
-        .header(header)
-        .block(Block::default().borders(Borders::ALL).title("DAGs"))
-        .highlight_style(selected_style)
-        .highlight_symbol(">> ")
-        .widths(&[
+    let t = Table::new(
+        rows,
+        &[
             Constraint::Length(7),
             Constraint::Percentage(20),
             Constraint::Min(15),
             Constraint::Length(10),
             Constraint::Length(30),
-        ]);
+        ],
+    )
+    .header(header)
+    .block(Block::default().borders(Borders::ALL).title("DAGs"))
+    .highlight_style(selected_style)
+    .highlight_symbol(">> ");
     f.render_stateful_widget(t, rects[0], &mut app.filtered_dags.state);
 }

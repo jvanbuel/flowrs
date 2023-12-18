@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::app::state::App;
 
-pub fn render_config_panel(f: &mut Frame, app: &mut App) {
+pub fn render_help_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)
@@ -31,7 +31,6 @@ pub fn render_config_panel(f: &mut Frame, app: &mut App) {
             Line::from(item.name.as_str()),
             Line::from(item.endpoint.as_str()),
         ])
-        // .height(height as u16)
         .bottom_margin(1)
     });
 
@@ -44,8 +43,10 @@ pub fn render_config_panel(f: &mut Frame, app: &mut App) {
         ],
     )
     .header(header)
-    .block(Block::default().borders(Borders::ALL).title("Config"))
+    .block(Block::default().borders(Borders::ALL).title("Help"))
     .highlight_style(selected_style)
     .highlight_symbol(">> ");
-    f.render_stateful_widget(t, rects[0], &mut app.configs.state);
+
+    f.render_widget(t, rects[0])
 }
+

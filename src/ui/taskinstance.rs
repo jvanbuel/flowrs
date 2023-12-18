@@ -65,21 +65,24 @@ pub fn render_taskinstance_panel(f: &mut Frame, app: &mut App) {
         ])
         .bottom_margin(1)
     });
-    let t = Table::new(rows)
-        .header(header)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("TaskInstances"),
-        )
-        .highlight_style(selected_style)
-        .highlight_symbol(">> ")
-        .widths(&[
+    let t = Table::new(
+        rows,
+        &[
             Constraint::Percentage(15),
             Constraint::Percentage(15),
             Constraint::Length(20),
             Constraint::Length(15),
             Constraint::Length(5),
-        ]);
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("TaskInstances"),
+    )
+    .highlight_style(selected_style)
+    .highlight_symbol(">> ");
+
     f.render_stateful_widget(t, rects[0], &mut app.taskinstances.state);
 }

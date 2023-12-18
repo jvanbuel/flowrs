@@ -93,7 +93,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             }
 
             drop(app);
-            let ten_millis = std::time::Duration::from_millis(200);
+            let ten_millis = std::time::Duration::from_millis(500);
             thread::sleep(ten_millis);
         }
     });
@@ -126,6 +126,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
                     KeyCode::Char('/') => app.toggle_search(),
+                    KeyCode::Char('?') => app.active_panel = Panel::Help,
                     KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
                     KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
                     code => match app.active_panel {
@@ -133,6 +134,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                         Panel::Dag => handle_key_code_dag(code, &mut app).await,
                         Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
                         Panel::TaskInstance => handle_key_code_task(code, &mut app).await,
+                        Panel::Help => {}
                     },
                 }
             }

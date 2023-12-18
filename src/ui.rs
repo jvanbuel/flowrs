@@ -11,6 +11,7 @@ pub mod config;
 pub mod dag;
 pub mod dagrun;
 pub mod taskinstance;
+pub mod help;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
@@ -22,5 +23,6 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         Panel::Dag => render_dag_panel(f, app),
         Panel::DAGRun => render_dagrun_panel(f, app),
         Panel::TaskInstance => render_taskinstance_panel(f, app),
+        Panel::Help => help::render_help_panel(f, app),
     }
 }

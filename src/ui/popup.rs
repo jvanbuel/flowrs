@@ -58,17 +58,19 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
         ])
         .bottom_margin(1)
     });
-    let t = Table::new(rows)
-        .header(header)
-        .block(Block::default().borders(Borders::ALL).title("DAGRuns"))
-        .highlight_style(selected_style)
-        .highlight_symbol(">> ")
-        .widths(&[
+    let t = Table::new(
+        rows,
+        &[
             Constraint::Percentage(15),
             Constraint::Percentage(15),
             Constraint::Min(22),
             Constraint::Length(20),
             Constraint::Length(10),
-        ]);
+        ],
+    )
+    .header(header)
+    .block(Block::default().borders(Borders::ALL).title("DAGRuns"))
+    .highlight_style(selected_style)
+    .highlight_symbol(">> ");
     f.render_stateful_widget(t, rects[0], &mut app.dagruns.state);
 }
