@@ -10,6 +10,7 @@ pub enum ConfigError {
     Serde(ConfigSerdeError),
     Input(inquire::InquireError),
     IO(std::io::Error),
+    TokenCmdParse(std::string::FromUtf8Error),
 }
 
 #[derive(Debug)]
@@ -35,6 +36,7 @@ impl std::fmt::Display for ConfigError {
             ConfigError::Serde(e) => write!(f, "SerdeError: {}", e),
             ConfigError::Input(e) => write!(f, "InputError: {}", e),
             ConfigError::IO(e) => write!(f, "IOError: {}", e),
+            ConfigError::TokenCmdParse(e) => write!(f, "TokenCmdParseError: {}", e),
         }
     }
 }
@@ -72,5 +74,11 @@ impl From<inquire::InquireError> for FlowrsError {
 impl From<std::io::Error> for FlowrsError {
     fn from(error: std::io::Error) -> Self {
         FlowrsError::ConfigError(ConfigError::IO(error))
+    }
+}
+
+impl From<std::string::FromUtf8Error> for FlowrsError {
+    fn from(error: std::string::FromUtf8Error) -> Self {
+        FlowrsError::ConfigError(ConfigError::TokenCmdParse(error))
     }
 }

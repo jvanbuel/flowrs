@@ -2,18 +2,22 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 
+use log::info;
+
 use clap::Parser;
 use inquire::validator::Validation;
 use inquire::Select;
-use inquire::Text;
 use strum::Display;
 use url::Url;
 
-use crate::app::auth::AirflowConfig;
-use crate::app::auth::Config;
+use crate::app::config::AirflowAuth;
+use crate::app::config::AirflowConfig;
+use crate::app::config::BasicAuth;
+use crate::app::config::FlowrsConfig;
+use crate::app::config::TokenCmd;
 use crate::app::error::Result;
 use crate::CONFIG_FILE;
-use strum::{IntoEnumIterator, EnumIter};
+use strum::{EnumIter, IntoEnumIterator};
 
 #[derive(Parser, Debug)]
 pub enum ConfigCommand {
@@ -53,13 +57,11 @@ pub struct UpdateCommand {
     file: Option<String>,
 }
 
-
 #[derive(EnumIter, Debug, Display)]
 pub enum ConfigOption {
     BasicAuth,
     Token(Command),
 }
-
 
 type Command = Option<String>;
 
@@ -70,46 +72,50 @@ impl AddCommand {
             .with_validator(validate_endpoint)
             .prompt()?;
 
-        let mut token = None;
-        let mut username = None;
-        let mut password = None;
-
         let auth_type =
             Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
 
-        match auth_type {
+        let new_config = match auth_type {
             ConfigOption::BasicAuth => {
-                username = Some(inquire::Text::new("username").prompt()?);
-                password = Some(
-                    inquire::Password::new("password")
-                        .with_display_toggle_enabled()
-                        .prompt()?,
-                );
-            },
-            ConfigOption::Token(cmd) => {
-                token = match cmd {
-                    Some(cmd) => Some(cmd), // TODO: get token from command, return 
-                    None => Some(Text::new("token").prompt()?),
-                }
-            },
-            
-        }
+                let username = inquire::Text::new("username").prompt()?;
+                let password = inquire::Password::new("password")
+                    .with_display_toggle_enabled()
+                    .prompt()?;
 
-        let airflow_config = AirflowConfig {
-            name,
-            endpoint,
-            username,
-            password,
-            token,
+                AirflowConfig {
+                    name,
+                    endpoint,
+                    auth: AirflowAuth::BasicAuth(BasicAuth { username, password }),
+                }
+            }
+            ConfigOption::Token(_) => {
+                let cmd = Some(inquire::Text::new("cmd").prompt()?);
+                let token: String;
+                if let Some(cmd) = &cmd {
+                    info!("🔑 Running command: {}", cmd);
+                    let output = std::process::Command::new(cmd)
+                        .output()
+                        .expect("failed to execute process");
+                    token = String::from_utf8(output.stdout)?;
+                } else {
+                    token = inquire::Text::new("token").prompt()?;
+                }
+
+                AirflowConfig {
+                    name,
+                    endpoint,
+                    auth: AirflowAuth::TokenAuth(TokenCmd { cmd, token }),
+                }
+            }
         };
 
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::auth::get_config(path)?;
+        let mut config = crate::app::config::get_config(path)?;
         config
             .servers
-            .retain(|server| server.name != airflow_config.name);
+            .retain(|server| server.name != new_config.name);
 
-        config.servers.push(airflow_config);
+        config.servers.push(new_config);
 
         write_config(&config, path)?;
 
@@ -121,7 +127,7 @@ impl AddCommand {
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::auth::get_config(path)?;
+        let mut config = crate::app::config::get_config(path)?;
 
         let name = match self.name {
             None => Select::new(
@@ -147,7 +153,7 @@ impl RemoveCommand {
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = crate::app::auth::get_config(path)?;
+        let mut config = crate::app::config::get_config(path)?;
 
         let name: String = if self.name.is_none() {
             Select::new(
@@ -176,25 +182,36 @@ impl UpdateCommand {
             .with_validator(validate_endpoint)
             .prompt()?;
 
-        let mut token = None;
-        let mut username = None;
-        let mut password = None;
-
         let auth_type =
-            Select::new("authentication type", vec!["username/password", "token"]).prompt()?;
+            Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
 
-        if let "username/password" = auth_type {
-            username = Some(inquire::Text::new("username").prompt()?);
-            password = Some(inquire::Text::new("password").prompt()?);
-        } else {
-            token = Some(Text::new("token").prompt()?);
-        }
-
+        
         airflow_config.name = name;
         airflow_config.endpoint = endpoint;
-        airflow_config.username = username;
-        airflow_config.password = password;
-        airflow_config.token = token;
+        match auth_type {
+            ConfigOption::BasicAuth => {
+                let username = inquire::Text::new("username").prompt()?;
+                let password = inquire::Password::new("password")
+                    .with_display_toggle_enabled()
+                    .prompt()?;
+
+                airflow_config.auth = AirflowAuth::BasicAuth(BasicAuth { username, password });
+            }
+            ConfigOption::Token(_) => {
+                let cmd = Some(inquire::Text::new("cmd").prompt()?);
+                let token: String;
+                if let Some(cmd) = &cmd {
+                    info!("🔑 Running command: {}", cmd);
+                    let output = std::process::Command::new(cmd)
+                        .output()
+                        .expect("failed to execute process");
+                    token = String::from_utf8(output.stdout)?;
+                } else {
+                    token = inquire::Text::new("token").prompt()?;
+                }
+                airflow_config.auth = AirflowAuth::TokenAuth(TokenCmd { cmd, token });
+            }
+        };
 
         write_config(&config, path)?;
 
@@ -212,7 +229,7 @@ fn validate_endpoint(
     }
 }
 
-fn write_config(config: &Config, path: Option<&Path>) -> Result<()> {
+fn write_config(config: &FlowrsConfig, path: Option<&Path>) -> Result<()> {
     let path = match path {
         Some(path) => path,
         None => CONFIG_FILE.as_path(),

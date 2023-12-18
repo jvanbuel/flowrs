@@ -8,6 +8,7 @@ authors = ["janvanbuel@hotmail.com"]
 clap = { version = "^4.5", features = ["derive", "env"] }
 crossterm = "0.27.0"
 dirs = "5.0.1"
+env_logger = "0.10.1"
 inquire = "0.6.2"
 lazy_static = "1.4.0"
 ratatui = "0.26.0"

@@ -31,7 +31,7 @@ impl AirFlowClient {
 mod tests {
     use std::path::Path;
 
-    use crate::app::auth::get_config;
+    use crate::app::config::get_config;
     use crate::app::client::AirFlowClient;
     use crate::app::dags::DagList;
 

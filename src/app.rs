@@ -1,4 +1,4 @@
-pub mod auth;
+pub mod config;
 pub mod client;
 pub mod dagruns;
 pub mod dags;

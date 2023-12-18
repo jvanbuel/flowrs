@@ -7,7 +7,7 @@ use crate::model::{
 };
 
 use super::{
-    auth::{AirflowConfig, Config},
+    config::{AirflowConfig, FlowrsConfig},
     client::AirFlowClient,
     filter::Filter,
 };
@@ -18,7 +18,7 @@ pub struct App {
     pub configs: StatefulTable<AirflowConfig>,
     pub dagruns: StatefulTable<DagRun>,
     pub all_dagruns: DagRunList,
-    pub active_config: Config,
+    pub active_config: FlowrsConfig,
     pub client: AirFlowClient,
     pub active_panel: Panel,
     pub filter: Filter,
@@ -78,7 +78,7 @@ pub enum Panel {
 }
 
 impl App {
-    pub async fn new(config: Config) -> App {
+    pub async fn new(config: FlowrsConfig) -> App {
         let server = config.servers[1].clone();
         let client = AirFlowClient::new(server);
         let daglist = client.list_dags().await.unwrap();

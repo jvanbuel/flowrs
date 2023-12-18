@@ -2,7 +2,7 @@ use std::{error::Error, time::Duration};
 
 use reqwest::{Method, Url};
 
-use super::auth::AirflowConfig;
+use super::config::{AirflowAuth, AirflowConfig};
 
 pub struct AirFlowClient {
     pub client: reqwest::Client,
@@ -26,12 +26,25 @@ impl AirFlowClient {
     ) -> Result<reqwest::RequestBuilder, Box<dyn Error + Send + Sync>> {
         let base_url = Url::parse(&self.config.endpoint)?;
         let url = base_url.join(format!("api/v1/{endpoint}").as_str())?;
-        match &self.config.token {
-            Some(token) => Ok(self.client.request(method, url).bearer_auth(token)),
-            None => Ok(self.client.request(method, url).basic_auth(
-                self.config.username.clone().unwrap(),
-                self.config.password.clone(),
-            )),
+        match &self.config.auth {
+            AirflowAuth::BasicAuth(auth) => Ok(self
+                .client
+                .request(method, url)
+                .basic_auth(auth.username.clone(), Some(auth.password.clone()))),
+            AirflowAuth::TokenAuth(token) => {
+                if let Some(cmd) = &token.cmd {
+                    let output = std::process::Command::new(cmd)
+                        .output()
+                        .expect("failed to execute process");
+                    let token = String::from_utf8(output.stdout)?;
+                    Ok(self.client.request(method, url).bearer_auth(token))
+                } else {
+                    Ok(self
+                        .client
+                        .request(method, url)
+                        .bearer_auth(token.token.clone()))
+                }
+            }
         }
     }
 }

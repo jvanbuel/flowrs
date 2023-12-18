@@ -6,7 +6,7 @@ use crate::app::error::Result;
 use crate::CONFIG_FILE;
 
 #[derive(Deserialize, Serialize)]
-pub struct Config {
+pub struct FlowrsConfig {
     pub servers: Vec<AirflowConfig>,
 }
 
@@ -14,14 +14,29 @@ pub struct Config {
 pub struct AirflowConfig {
     pub name: String,
     pub endpoint: String,
-    pub token: Option<String>,
-    pub username: Option<String>,
-    pub password: Option<String>,
+    pub auth: AirflowAuth,
 }
 
-// Maye use a trait instead? Something that returns an Airflow Client? 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum AirflowAuth {
+    BasicAuth(BasicAuth),
+    TokenAuth(TokenCmd),
+}
 
-pub fn get_config(config_path: Option<&Path>) -> Result<Config> {
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct BasicAuth {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct TokenCmd {
+    pub cmd: Option<String>,
+    pub token: String,
+}
+// Maye use a trait instead? Something that returns an Airflow Client?
+
+pub fn get_config(config_path: Option<&Path>) -> Result<FlowrsConfig> {
     let path = match config_path {
         Some(path) => path,
         None => CONFIG_FILE.as_path(),
@@ -31,7 +46,7 @@ pub fn get_config(config_path: Option<&Path>) -> Result<Config> {
     if let Ok(toml_config) = toml_read {
         toml::from_str(&toml_config).map_err(|e| e.into())
     } else {
-        Ok(Config { servers: vec![] })
+        Ok(FlowrsConfig { servers: vec![] })
     }
 }
 
@@ -39,7 +54,7 @@ pub fn get_config(config_path: Option<&Path>) -> Result<Config> {
 mod tests {
     use std::path::Path;
 
-    use crate::app::auth::get_config;
+    use crate::app::config::get_config;
 
     #[test]
     fn test_get_config() {
