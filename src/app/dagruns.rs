@@ -6,10 +6,7 @@ use crate::model::dagrun::DagRunList;
 use super::client::AirFlowClient;
 
 impl AirFlowClient {
-    pub async fn list_dagruns(
-        &self,
-        dag_id: &str,
-    ) -> Result<DagRunList> {
+    pub async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
         let response: Response = self
             .base_api(Method::GET, format!("dags/{dag_id}/dagRuns").as_str())?
             .query(&[("order_by", "-execution_date")])
@@ -29,11 +26,7 @@ impl AirFlowClient {
         Ok(dagruns)
     }
 
-    pub async fn clear_dagrun(
-        &self,
-        dag_id: &str,
-        dag_run_id: &str,
-    ) -> Result<()> {
+    pub async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
         let _: Response = self
             .base_api(
                 Method::POST,
@@ -47,16 +40,24 @@ impl AirFlowClient {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
 
     use crate::app::client::AirFlowClient;
-    use crate::app::config::get_config;
+    use crate::app::config::FlowrsConfig;
     use crate::app::dagruns::DagRunList;
 
     #[tokio::test]
     async fn test_list_dags() {
-        let binding = get_config(Some(Path::new(".flowrs")));
-        let server = binding.unwrap().servers[1].clone();
+        let configuration = r#"[[servers]]
+        name = "test"
+        endpoint = "http://localhost:8080"
+
+        [servers.auth.BasicAuth]
+        username = "airflow"
+        password = "airflow"
+        "#;
+
+        let config: FlowrsConfig = toml::from_str(str::trim(configuration)).unwrap();
+        let server = config.servers[0].clone();
         let client = AirFlowClient::new(server).unwrap();
         let first_dag = &client.list_dags().await.unwrap().dags[0];
 
@@ -70,8 +71,17 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_all_dags() {
-        let binding = get_config(Some(Path::new(".flowrs")));
-        let server = binding.unwrap().servers[1].clone();
+        let configuration = r#"[[servers]]
+        name = "test"
+        endpoint = "http://localhost:8080"
+
+        [servers.auth.BasicAuth]
+        username = "airflow"
+        password = "airflow"
+        "#;
+
+        let config: FlowrsConfig = toml::from_str(str::trim(configuration)).unwrap();
+        let server = config.servers[0].clone();
         let client = AirFlowClient::new(server).unwrap();
 
         let dagrun_list: DagRunList = client.list_all_dagruns().await.unwrap();

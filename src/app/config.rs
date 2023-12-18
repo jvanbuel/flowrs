@@ -60,6 +60,6 @@ mod tests {
     fn test_get_config() {
         let result = get_config(Some(Path::new(".flowrs"))).unwrap();
         assert_eq!(result.servers.len(), 2);
-        assert_eq!(result.servers[1].name, "test");
+        assert_eq!(result.servers[0].name, "test");
     }
 }

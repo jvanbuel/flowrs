@@ -7,12 +7,12 @@ use crate::model::{
     taskinstance::{TaskInstance, TaskInstanceList},
 };
 
-use crate::app::error::Result;
 use super::{
     client::AirFlowClient,
     config::{AirflowConfig, FlowrsConfig},
     filter::Filter,
 };
+use crate::app::error::Result;
 
 pub struct App {
     pub all_dags: DagList,

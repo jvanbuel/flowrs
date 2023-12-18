@@ -11,11 +11,7 @@ impl AirFlowClient {
         Ok(daglist)
     }
 
-    pub async fn toggle_dag(
-        &self,
-        dag_id: &str,
-        is_paused: bool,
-    ) -> Result<()> {
+    pub async fn toggle_dag(&self, dag_id: &str, is_paused: bool) -> Result<()> {
         let _: Response = self
             .base_api(Method::PATCH, &format!("dags/{dag_id}"))?
             .query(&[("update_mask", "is_paused")])
@@ -28,18 +24,24 @@ impl AirFlowClient {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
 
     use crate::app::client::AirFlowClient;
-    use crate::app::config::get_config;
+    use crate::app::config::FlowrsConfig;
     use crate::app::dags::DagList;
 
     #[tokio::test]
     async fn test_list_dags() {
-        let binding = get_config(Some(Path::new(".flowrs"))).unwrap();
-        let client = AirFlowClient::new(binding.servers[1].clone()).unwrap();
+        let configuration = r#"[[servers]]
+        name = "test"
+        endpoint = "http://localhost:8080"
 
-        println!("{:?}", client.config);
+        [servers.auth.BasicAuth]
+        username = "airflow"
+        password = "airflow"
+        "#;
+
+        let config: FlowrsConfig = toml::from_str(str::trim(configuration)).unwrap();
+        let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
         let daglist: DagList = client.list_dags().await.unwrap();
         assert_eq!(daglist.dags[0].dag_id, "dataset_consumes_1");
     }

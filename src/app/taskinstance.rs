@@ -23,9 +23,7 @@ impl AirFlowClient {
         Ok(daglist)
     }
 
-    pub async fn list_all_taskinstances(
-        &self,
-    ) -> Result<TaskInstanceList> {
+    pub async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
         let response: Response = self
             .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")?
             .send()

@@ -16,6 +16,7 @@ impl AirFlowClient {
         let client = reqwest::Client::builder()
             .http1_title_case_headers()
             .timeout(Duration::from_secs(5))
+            .use_rustls_tls()
             .build()?;
         Ok(Self { client, config })
     }
@@ -37,7 +38,7 @@ impl AirFlowClient {
                         .expect("failed to execute process");
                     let token = String::from_utf8(output.stdout)?;
                     debug!("🔑 Token: {}", token);
-                    Ok(self.client.request(method, url).bearer_auth(token))
+                    Ok(self.client.request(method, url).bearer_auth(token.trim()))
                 } else {
                     Ok(self
                         .client
@@ -46,5 +47,34 @@ impl AirFlowClient {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use reqwest::Method;
+
+    use crate::app::client::AirFlowClient;
+    use crate::app::config::FlowrsConfig;
+
+    #[tokio::test]
+    async fn test_base_api_conveyor() {
+        let configuration = r#"[[servers]]
+        name = "conveyor-dev"
+        endpoint = "https://app.conveyordata.com/environments/dev/airflow/"
+
+        [servers.auth.TokenAuth]
+        cmd = "conveyor auth get --quiet | jq -r .access_token"
+        token = ""
+        "#;
+
+        let config: FlowrsConfig = toml::from_str(str::trim(configuration)).unwrap();
+
+        let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
+
+        println!("{:?}", client.config);
+
+        let _ = client.base_api(Method::GET, "config").unwrap().send().await;
     }
 }
