@@ -19,6 +19,8 @@ pub struct AirflowConfig {
     pub password: Option<String>,
 }
 
+// Maye use a trait instead? Something that returns an Airflow Client? 
+
 pub fn get_config(config_path: Option<&Path>) -> Result<Config> {
     let path = match config_path {
         Some(path) => path,

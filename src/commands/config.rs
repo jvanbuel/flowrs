@@ -6,12 +6,14 @@ use clap::Parser;
 use inquire::validator::Validation;
 use inquire::Select;
 use inquire::Text;
+use strum::Display;
 use url::Url;
 
 use crate::app::auth::AirflowConfig;
 use crate::app::auth::Config;
 use crate::app::error::Result;
 use crate::CONFIG_FILE;
+use strum::{IntoEnumIterator, EnumIter};
 
 #[derive(Parser, Debug)]
 pub enum ConfigCommand {
@@ -51,6 +53,16 @@ pub struct UpdateCommand {
     file: Option<String>,
 }
 
+
+#[derive(EnumIter, Debug, Display)]
+pub enum ConfigOption {
+    BasicAuth,
+    Token(Command),
+}
+
+
+type Command = Option<String>;
+
 impl AddCommand {
     pub fn run(&self) -> Result<()> {
         let name = inquire::Text::new("name").prompt()?;
@@ -63,17 +75,24 @@ impl AddCommand {
         let mut password = None;
 
         let auth_type =
-            Select::new("authentication type", vec!["username/password", "token"]).prompt()?;
+            Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
 
-        if let "username/password" = auth_type {
-            username = Some(inquire::Text::new("username").prompt()?);
-            password = Some(
-                inquire::Password::new("password")
-                    .with_display_toggle_enabled()
-                    .prompt()?,
-            );
-        } else {
-            token = Some(Text::new("token").prompt()?);
+        match auth_type {
+            ConfigOption::BasicAuth => {
+                username = Some(inquire::Text::new("username").prompt()?);
+                password = Some(
+                    inquire::Password::new("password")
+                        .with_display_toggle_enabled()
+                        .prompt()?,
+                );
+            },
+            ConfigOption::Token(cmd) => {
+                token = match cmd {
+                    Some(cmd) => Some(cmd), // TODO: get token from command, return 
+                    None => Some(Text::new("token").prompt()?),
+                }
+            },
+            
         }
 
         let airflow_config = AirflowConfig {
