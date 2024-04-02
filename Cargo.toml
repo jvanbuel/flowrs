@@ -23,7 +23,7 @@ time = { version = "0.3.34", features = [
   "parsing",
   "macros",
 ] }
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.37.0", features = ["full"] }
 toml = "0.8.12"
 url = "2.5.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
