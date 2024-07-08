@@ -108,8 +108,11 @@ impl App {
 
     pub async fn toggle_current_dag(&mut self) {
         let i = self.filtered_dags.state.selected().unwrap_or(0);
-        let dag_id = &self.filtered_dags.items[i].dag_id;
+        let dag_id = &self.filtered_dags.items[i].dag_id.clone();
         let is_paused = self.filtered_dags.items[i].is_paused;
+
+        // Don't wait for API response to update UI
+        self.filtered_dags.items[i].is_paused = !is_paused;
 
         self.client.toggle_dag(dag_id, is_paused).await.unwrap();
     }
