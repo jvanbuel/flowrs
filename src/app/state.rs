@@ -26,6 +26,7 @@ pub struct App {
     pub taskinstances: StatefulTable<TaskInstance>,
     pub all_taskinstances: TaskInstanceList,
     pub active_popup: bool,
+    pub is_loading: bool,
 }
 
 #[derive(Clone)]
@@ -71,6 +72,7 @@ impl<T> StatefulTable<T> {
     }
 }
 
+#[derive(Clone)]
 pub enum Panel {
     Config,
     Dag,
@@ -99,11 +101,14 @@ impl App {
             taskinstances: StatefulTable::new(vec![]),
             all_taskinstances: taskinstances,
             active_popup: false,
+            is_loading: false,
         })
     }
 
     pub async fn update_dags(&mut self) {
+        self.is_loading = true;
         self.all_dags = self.client.list_dags().await.unwrap();
+        self.is_loading = false;
     }
 
     pub async fn toggle_current_dag(&mut self) {

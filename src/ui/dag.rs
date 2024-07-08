@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
@@ -9,6 +9,8 @@ use time::format_description;
 
 use crate::app::state::App;
 use crate::ui::TIME_FORMAT;
+
+use super::constants::DM_RGB;
 
 pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
     let rects = if app.filter.is_enabled() {
@@ -39,17 +41,26 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
             .split(f.size())
     };
 
+    if app.is_loading {
+        let text = "Loading...";
+        let paragraph = Paragraph::new(text)
+            .block(Block::default().borders(Borders::ALL).title("DAGs"))
+            .style(Style::default().fg(Color::LightYellow));
+        f.render_widget(paragraph, rects[0]);
+        return;
+    }
+
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-    let normal_style = Style::default().bg(Color::Blue);
+    let normal_style = Style::default().bg(DM_RGB);
 
     let headers = ["Active", "Name", "Owners", "Schedule", "Next Run"];
     let header_cells = headers
         .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
+        .map(|h| Cell::from(*h).style(Style::default().fg(Color::White)));
     let header = Row::new(header_cells)
-        .style(normal_style)
-        .height(1)
+        .style(normal_style.add_modifier(Modifier::BOLD))
         .bottom_margin(1);
+    // .underlined();
     let rows = app.filtered_dags.items.iter().map(|item| {
         Row::new(vec![
             if item.is_paused {
@@ -83,20 +94,26 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
         ])
         // .height(height as u16)
         .bottom_margin(1)
+        .style(normal_style)
     });
     let t = Table::new(
         rows,
         &[
             Constraint::Length(7),
-            Constraint::Percentage(20),
-            Constraint::Min(15),
+            Constraint::Percentage(40),
+            Constraint::Max(15),
             Constraint::Length(10),
-            Constraint::Length(30),
+            Constraint::Fill(1),
         ],
     )
     .header(header)
-    .block(Block::default().borders(Borders::ALL).title("DAGs"))
-    .highlight_style(selected_style)
-    .highlight_symbol(">> ");
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("DAGs")
+            .border_style(normal_style)
+            .bg(DM_RGB),
+    )
+    .highlight_style(selected_style);
     f.render_stateful_widget(t, rects[0], &mut app.filtered_dags.state);
 }

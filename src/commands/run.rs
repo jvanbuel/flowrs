@@ -101,21 +101,70 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
 
     tokio::spawn(async move {
         loop {
-            let mut app = app_nw.lock().await;
-            match app.active_panel {
+            // this is completely wrong! You don't need to lock your state while making a request...
+            // The lock should be acquired only when you're updating the state, after the API request has terurned.
+            let active_panel: Panel;
+            let client: AirFlowClient;
+            {
+                let app = app_nw.lock().await;
+                active_panel = app.active_panel.clone();
+                client = app.client.clone();
+            }
+            match active_panel {
                 Panel::Dag => {
-                    app.update_dags().await;
-                    app.filter_dags();
-                    // app.update_all_dagruns().await;
+                    info!("Fetching dags...");
+                    let dags = client.list_dags().await;
+                    // filter dags
+                    if let Ok(dag_list) = dags {
+                        let mut app = app_nw.lock().await;
+                        app.all_dags = dag_list;
+                        app.filter_dags();
+                    }
                 }
-                Panel::DAGRun => app.update_dagruns().await,
-                Panel::TaskInstance => app.update_task_instances().await,
+                Panel::DAGRun => {
+                    let dag_id = {
+                        let app = app_nw.lock().await;
+                        app.filtered_dags.items
+                            [app.filtered_dags.state.selected().unwrap_or_default()]
+                        .dag_id
+                        .clone()
+                    };
+                    info!("Fetching dagruns for dag_id: {}", dag_id);
+                    let dagruns = client.list_dagruns(&dag_id).await;
+                    if let Ok(dagruns) = dagruns {
+                        let mut app = app_nw.lock().await;
+                        app.dagruns.items = dagruns.dag_runs;
+                    }
+                }
+                Panel::TaskInstance => {
+                    let dag_id = {
+                        let app = app_nw.lock().await;
+                        app.filtered_dags.items
+                            [app.filtered_dags.state.selected().unwrap_or_default()]
+                        .dag_id
+                        .clone()
+                    };
+                    let dag_run_id = {
+                        let app = app_nw.lock().await;
+                        app.dagruns.items[app.dagruns.state.selected().unwrap_or_default()]
+                            .dag_run_id
+                            .clone()
+                    };
+                    info!(
+                        "Fetching task instances for dag_id: {}, dag_run_id: {}",
+                        dag_id, dag_run_id
+                    );
+                    let taskinstances = client.list_task_instances(&dag_id, &dag_run_id).await;
+                    if let Ok(taskinstances) = taskinstances {
+                        let mut app = app_nw.lock().await;
+                        app.all_taskinstances = taskinstances;
+                    }
+                }
                 _ => {}
             }
 
-            drop(app);
-            let ten_millis = std::time::Duration::from_millis(500);
-            thread::sleep(ten_millis);
+            let refresh_rate = std::time::Duration::from_millis(1000);
+            thread::sleep(refresh_rate);
         }
     });
 
@@ -169,6 +218,7 @@ async fn handle_key_code_config(code: KeyCode, app: &mut App) {
             app.configs.next();
             let selected_config = app.configs.state.selected().unwrap_or_default();
             let new_config = &app.configs.items[selected_config];
+            info!("Selected config: {:?}", new_config);
             app.client = AirFlowClient::new(new_config.clone()).unwrap();
         }
         KeyCode::Up | KeyCode::Char('k') => {

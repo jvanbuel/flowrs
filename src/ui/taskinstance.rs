@@ -9,7 +9,7 @@ use time::format_description;
 
 use crate::app::state::App;
 
-use super::TIME_FORMAT;
+use super::{constants::DM_RGB, TIME_FORMAT};
 
 pub fn render_taskinstance_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
@@ -18,14 +18,12 @@ pub fn render_taskinstance_panel(f: &mut Frame, app: &mut App) {
         .split(f.size());
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-    let normal_style = Style::default().bg(Color::Blue);
+    let normal_style = Style::default().bg(DM_RGB);
 
     let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
-    let header_cells = headers
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Red)));
+    let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
     let header = Row::new(header_cells)
-        .style(normal_style)
+        .style(normal_style.add_modifier(Modifier::BOLD))
         .height(1)
         .bottom_margin(1);
     let rows = app.taskinstances.items.iter().map(|item| {
@@ -81,8 +79,8 @@ pub fn render_taskinstance_panel(f: &mut Frame, app: &mut App) {
             .borders(Borders::ALL)
             .title("TaskInstances"),
     )
-    .highlight_style(selected_style)
-    .highlight_symbol(">> ");
+    .style(normal_style)
+    .highlight_style(selected_style);
 
     f.render_stateful_widget(t, rects[0], &mut app.taskinstances.state);
 }

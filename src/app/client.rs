@@ -6,6 +6,7 @@ use reqwest::{Method, Url};
 
 use super::config::{AirflowAuth, AirflowConfig};
 
+#[derive(Debug, Clone)]
 pub struct AirFlowClient {
     pub client: reqwest::Client,
     pub config: AirflowConfig,
@@ -58,7 +59,7 @@ mod tests {
     use crate::app::client::AirFlowClient;
     use crate::app::config::FlowrsConfig;
 
-    const TEST_CONFIG : &str = r#"[[servers]]
+    const TEST_CONFIG: &str = r#"[[servers]]
         name = "conveyor-dev"
         endpoint = "https://app.conveyordata.com/environments/dev/airflow/"
 
@@ -69,7 +70,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_base_api_conveyor() {
-
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
         let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
 

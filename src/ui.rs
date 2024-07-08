@@ -8,10 +8,11 @@ use self::{
 };
 
 pub mod config;
+pub mod constants;
 pub mod dag;
 pub mod dagrun;
-pub mod taskinstance;
 pub mod help;
+pub mod taskinstance;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
