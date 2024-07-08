@@ -1,22 +1,32 @@
-use std::{io, path::Path, sync::Arc, thread};
-
-use tokio::sync::Mutex;
+use std::{
+    fs::File,
+    io::{self, Stdout},
+    path::Path,
+    sync::Arc,
+    thread,
+};
 
 use clap::Parser;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers},
+    event::{self, EnableMouseCapture, Event, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use log::{info, LevelFilter};
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
+use simplelog::{Config, WriteLogger};
+use std::panic::PanicInfo;
+use tokio::sync::Mutex;
 
 use crate::app::{
+    client::AirFlowClient,
+    config::FlowrsConfig,
     error::Result,
     filter::Filter,
-    state::{App, Panel}, config::FlowrsConfig,
+    state::{App, Panel},
 };
 use crate::ui::ui;
 
@@ -28,12 +38,12 @@ pub struct RunCommand {
 
 impl RunCommand {
     pub async fn run(&self) -> Result<()> {
-        // setup panic hook
-        let original_hook = std::panic::take_hook();
+        // setup logging
+        setup_logging(None)?;
 
+        // setup panic hook
         std::panic::set_hook(Box::new(move |panic| {
-            reset_terminal().unwrap();
-            original_hook(panic);
+            panic_hook(panic);
         }));
 
         // setup terminal
@@ -48,30 +58,41 @@ impl RunCommand {
         let config = FlowrsConfig::from_file(path)?;
         let app = Arc::new(Mutex::new(App::new(config).await?));
 
-        let res = run_app(&mut terminal, app).await;
+        run_app(&mut terminal, app).await?;
 
-        // restore terminal
-        disable_raw_mode()?;
-        execute!(
-            terminal.backend_mut(),
-            LeaveAlternateScreen,
-            DisableMouseCapture
-        )?;
+        info!("Shutting down the terminal...");
         terminal.show_cursor()?;
-
-        if let Err(err) = res {
-            println!("{:?}", err)
-        }
-
-        Ok(())
+        shutdown(terminal)
     }
 }
 
-/// Resets the terminal.
-fn reset_terminal() -> Result<()> {
+fn shutdown(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
     disable_raw_mode()?;
-    crossterm::execute!(io::stdout(), LeaveAlternateScreen)?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()?;
+    Ok(())
+}
 
+fn setup_logging(debug: Option<String>) -> Result<()> {
+    let log_file = format!(
+        "./flowrs-debug-{}.log",
+        chrono::Local::now().format("%Y%m%d%H%M%S")
+    );
+    let log_level = debug
+        .map(|level| match level.to_lowercase().as_str() {
+            "debug" => LevelFilter::Debug,
+            "trace" => LevelFilter::Trace,
+            "warn" => LevelFilter::Warn,
+            "error" => LevelFilter::Error,
+            _ => LevelFilter::Info,
+        })
+        .unwrap_or_else(|| LevelFilter::Info);
+
+    WriteLogger::init(
+        log_level,
+        Config::default(),
+        File::create(log_file).unwrap(),
+    )?;
     Ok(())
 }
 
@@ -144,8 +165,18 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
 
 async fn handle_key_code_config(code: KeyCode, app: &mut App) {
     match code {
-        KeyCode::Down | KeyCode::Char('j') => app.configs.next(),
-        KeyCode::Up | KeyCode::Char('k') => app.configs.previous(),
+        KeyCode::Down | KeyCode::Char('j') => {
+            app.configs.next();
+            let selected_config = app.configs.state.selected().unwrap_or_default();
+            let new_config = &app.configs.items[selected_config];
+            app.client = AirFlowClient::new(new_config.clone()).unwrap();
+        }
+        KeyCode::Up | KeyCode::Char('k') => {
+            app.configs.previous();
+            let selected_config = app.configs.state.selected().unwrap_or_default();
+            let new_config = &app.configs.items[selected_config];
+            app.client = AirFlowClient::new(new_config.clone()).unwrap();
+        }
         _ => {}
     }
 }
@@ -196,4 +227,39 @@ fn mutate_filter(filter: &mut Filter, code: KeyCode) {
         },
         _ => {}
     }
+}
+
+// #[cfg(debug_assertions)]
+fn panic_hook(info: &PanicInfo<'_>) {
+    use backtrace::Backtrace;
+    use crossterm::style::Print;
+
+    let (msg, location) = get_panic_info(info);
+
+    let stacktrace: String = format!("{:?}", Backtrace::new()).replace('\n', "\n\r");
+
+    disable_raw_mode().unwrap();
+    execute!(
+        io::stdout(),
+        LeaveAlternateScreen,
+        Print(format!(
+            "thread '<unnamed>' panicked at '{}', {}\n\r{}",
+            msg, location, stacktrace
+        )),
+    )
+    .unwrap();
+}
+
+fn get_panic_info(info: &PanicInfo<'_>) -> (String, String) {
+    let location = info.location().unwrap();
+
+    let msg = match info.payload().downcast_ref::<&'static str>() {
+        Some(s) => *s,
+        None => match info.payload().downcast_ref::<String>() {
+            Some(s) => &s[..],
+            None => "Box<Any>",
+        },
+    };
+
+    (msg.to_string(), format!("{}", location))
 }

@@ -5,3 +5,5 @@ logs
 plugins
 dags
 .DS_Store
+
+flowrs-debug*

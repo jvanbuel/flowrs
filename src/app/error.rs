@@ -13,6 +13,7 @@ pub enum ConfigError {
     IO(std::io::Error),
     TokenCmdParse(std::string::FromUtf8Error),
     URLParse(url::ParseError),
+    LogError(log::SetLoggerError),
 }
 
 #[derive(Debug)]
@@ -40,6 +41,7 @@ impl std::fmt::Display for ConfigError {
             ConfigError::IO(e) => write!(f, "IOError: {}", e),
             ConfigError::TokenCmdParse(e) => write!(f, "TokenCmdParseError: {}", e),
             ConfigError::URLParse(e) => write!(f, "URLParseError: {}", e),
+            ConfigError::LogError(e) => write!(f, "LogError: {}", e),
         }
     }
 }
@@ -96,5 +98,11 @@ impl From<reqwest::Error> for FlowrsError {
 impl From<url::ParseError> for FlowrsError {
     fn from(error: url::ParseError) -> Self {
         FlowrsError::ConfigError(ConfigError::URLParse(error))
+    }
+}
+
+impl From<log::SetLoggerError> for FlowrsError {
+    fn from(error: log::SetLoggerError) -> Self {
+        FlowrsError::ConfigError(ConfigError::LogError(error))
     }
 }
