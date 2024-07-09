@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use crossterm::{
-    event::{self, EnableMouseCapture, Event, KeyCode, KeyModifiers},
+    event::{EnableMouseCapture, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -25,6 +25,7 @@ use crate::app::{
     client::AirFlowClient,
     config::FlowrsConfig,
     error::Result,
+    events::{custom::CustomEvent, generator::EventGenerator},
     filter::Filter,
     state::{App, Panel},
 };
@@ -98,6 +99,8 @@ fn setup_logging(debug: Option<String>) -> Result<()> {
 
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> io::Result<()> {
     let app_nw = app.clone();
+
+    let event_generator = EventGenerator::new(100);
 
     tokio::spawn(async move {
         loop {
@@ -174,39 +177,49 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             ui(f, &mut app);
         })?;
 
-        if let Event::Key(key) = event::read()? {
-            if key.modifiers == KeyModifiers::CONTROL {
-                match key.code {
-                    KeyCode::Char('c') => return Ok(()),
-                    KeyCode::Char('d') => return Ok(()),
-                    _ => {}
-                }
-            }
+        if let Ok(event) = event_generator.next() {
+            match event {
+                CustomEvent::Tick => continue,
+                CustomEvent::Key(key) => {
+                    if key.modifiers == KeyModifiers::CONTROL {
+                        match key.code {
+                            KeyCode::Char('c') => return Ok(()),
+                            KeyCode::Char('d') => return Ok(()),
+                            _ => {}
+                        }
+                    }
 
-            if app.filter.is_enabled() {
-                mutate_filter(&mut app.filter, key.code);
-                app.filter_dags();
-            } else if app.active_popup {
-                match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => app.active_popup = false,
-                    KeyCode::Enter => app.active_popup = false,
-                    _ => {}
+                    if app.filter.is_enabled() {
+                        mutate_filter(&mut app.filter, key.code);
+                        app.filter_dags();
+                    } else if app.active_popup {
+                        match key.code {
+                            KeyCode::Char('q') | KeyCode::Esc => app.active_popup = false,
+                            KeyCode::Enter => app.active_popup = false,
+                            _ => {}
+                        }
+                    } else {
+                        match key.code {
+                            KeyCode::Char('q') => return Ok(()),
+                            KeyCode::Char('/') => app.toggle_search(),
+                            KeyCode::Char('?') => app.active_panel = Panel::Help,
+                            KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
+                                app.next_panel()
+                            }
+                            KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => {
+                                app.previous_panel()
+                            }
+                            code => match app.active_panel {
+                                Panel::Config => handle_key_code_config(code, &mut app).await,
+                                Panel::Dag => handle_key_code_dag(code, &mut app).await,
+                                Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
+                                Panel::TaskInstance => handle_key_code_task(code, &mut app).await,
+                                Panel::Help => {}
+                            },
+                        }
+                    }
                 }
-            } else {
-                match key.code {
-                    KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Char('/') => app.toggle_search(),
-                    KeyCode::Char('?') => app.active_panel = Panel::Help,
-                    KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
-                    KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
-                    code => match app.active_panel {
-                        Panel::Config => handle_key_code_config(code, &mut app).await,
-                        Panel::Dag => handle_key_code_dag(code, &mut app).await,
-                        Panel::DAGRun => handle_key_code_dagrun(code, &mut app).await,
-                        Panel::TaskInstance => handle_key_code_task(code, &mut app).await,
-                        Panel::Help => {}
-                    },
-                }
+                CustomEvent::Mouse(_) => {}
             }
         }
     }
