@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Color, Modifier, Style, Stylize},
+    style::{Color, Modifier, Style, Styled, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Paragraph, Row, Table},
     Frame,
@@ -13,30 +13,25 @@ use crate::ui::TIME_FORMAT;
 use super::constants::DM_RGB;
 
 pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
+    let normal_style = Style::default().bg(DM_RGB);
+
     let rects = if app.filter.is_enabled() {
         let rects = Layout::default()
-            .constraints(if app.filter.is_enabled() {
-                [Constraint::Percentage(90), Constraint::Percentage(10)].as_ref()
-            } else {
-                [Constraint::Percentage(100)].as_ref()
-            })
+            .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
             .margin(0)
             .split(f.size());
 
         let filter = app.filter.prefix().clone();
 
         let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-            .block(Block::default().borders(Borders::ALL).title("filter"));
+            .block(Block::default().borders(Borders::ALL).title("filter"))
+            .set_style(normal_style);
         f.render_widget(paragraph, rects[1]);
 
         rects
     } else {
         Layout::default()
-            .constraints(if app.filter.is_enabled() {
-                [Constraint::Percentage(90), Constraint::Percentage(10)].as_ref()
-            } else {
-                [Constraint::Percentage(100)].as_ref()
-            })
+            .constraints([Constraint::Percentage(100)].as_ref())
             .margin(0)
             .split(f.size())
     };
@@ -51,7 +46,6 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
     }
 
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-    let normal_style = Style::default().bg(DM_RGB);
 
     let headers = ["Active", "Name", "Owners", "Schedule", "Next Run"];
     let header_cells = headers

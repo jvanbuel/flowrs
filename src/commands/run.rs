@@ -100,7 +100,7 @@ fn setup_logging(debug: Option<String>) -> Result<()> {
 async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> io::Result<()> {
     let app_nw = app.clone();
 
-    let event_generator = EventGenerator::new(100);
+    let event_generator = EventGenerator::new(50);
 
     tokio::spawn(async move {
         loop {
