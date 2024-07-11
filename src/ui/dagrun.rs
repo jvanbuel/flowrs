@@ -42,16 +42,16 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
             }),
             Line::from(item.run_type.as_str()),
             Line::from(match item.state.as_str() {
-                "success" => Span::styled(item.state.as_str(), Style::default().fg(Color::Green)),
-                "running" => {
-                    Span::styled(item.state.as_str(), Style::default().fg(Color::LightGreen))
-                }
-                "failed" => Span::styled(item.state.as_str(), Style::default().fg(Color::Red)),
-                "queued" => {
-                    Span::styled(item.state.as_str(), Style::default().fg(Color::LightBlue))
-                }
-
-                _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
+                "success" => Span::styled(
+                    "■",
+                    Style::default()
+                        .fg(Color::Rgb(0, 128, 0))
+                        .add_modifier(Modifier::BOLD),
+                ),
+                "running" => Span::styled("■", Style::default().fg(Color::LightGreen)),
+                "failed" => Span::styled("■", Style::default().fg(Color::Red)),
+                "queued" => Span::styled("■", Style::default().fg(Color::LightBlue)),
+                _ => Span::styled("■", Style::default().fg(Color::White)),
             }),
         ])
         .bottom_margin(1)
@@ -59,7 +59,7 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
     let t = Table::new(
         rows,
         &[
-            Constraint::Percentage(15),
+            Constraint::Min(20),
             Constraint::Percentage(15),
             Constraint::Min(22),
             Constraint::Length(20),
