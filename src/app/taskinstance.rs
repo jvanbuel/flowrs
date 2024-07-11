@@ -1,5 +1,6 @@
 use crate::app::error::Result;
 
+use log::info;
 use reqwest::{Method, Response};
 
 use crate::model::taskinstance::TaskInstanceList;
@@ -20,6 +21,7 @@ impl AirFlowClient {
             .send()
             .await?;
         let daglist: TaskInstanceList = response.json::<TaskInstanceList>().await?;
+        info!("TaskInstances: {:?}", daglist);
         Ok(daglist)
     }
 

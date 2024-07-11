@@ -45,12 +45,7 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
             }),
             Line::from(item.run_type.as_str()),
             Line::from(match item.state.as_str() {
-                "success" => Span::styled(
-                    "■",
-                    Style::default()
-                        .fg(Color::Rgb(0, 128, 0))
-                        .add_modifier(Modifier::BOLD),
-                ),
+                "success" => Span::styled("■", Style::default().fg(Color::Rgb(0, 128, 0))),
                 "running" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightGreen)),
                 "failed" => Span::styled("■", DEFAULT_STYLE.fg(Color::Red)),
                 "queued" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightBlue)),
