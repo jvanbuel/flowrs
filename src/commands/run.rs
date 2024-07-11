@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use crossterm::{
-    event::{EnableMouseCapture, KeyCode, KeyModifiers},
+    event::{EnableMouseCapture, KeyCode, KeyModifiers, DisableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -69,7 +69,7 @@ impl RunCommand {
 
 fn shutdown(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
     terminal.show_cursor()?;
     Ok(())
 }
