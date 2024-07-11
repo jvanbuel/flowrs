@@ -10,11 +10,9 @@ use time::format_description;
 use crate::app::state::App;
 use crate::ui::TIME_FORMAT;
 
-use super::constants::DM_RGB;
+use super::constants::DEFAULT_STYLE;
 
 pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
-    let normal_style = Style::default().bg(DM_RGB);
-
     let rects = if app.filter.is_enabled() {
         let rects = Layout::default()
             .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
@@ -25,7 +23,7 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
 
         let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
             .block(Block::default().borders(Borders::ALL).title("filter"))
-            .set_style(normal_style);
+            .set_style(DEFAULT_STYLE);
         f.render_widget(paragraph, rects[1]);
 
         rects
@@ -48,12 +46,10 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
     let headers = ["Active", "Name", "Owners", "Schedule", "Next Run"];
-    let header_cells = headers
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::White)));
+    let header_cells = headers.iter().map(|h| Cell::from(*h));
     let header = Row::new(header_cells)
-        .style(normal_style.add_modifier(Modifier::BOLD))
-        .bottom_margin(1);
+        .style(DEFAULT_STYLE.reversed())
+        .add_modifier(Modifier::BOLD);
     // .underlined();
     let rows = app.filtered_dags.items.iter().map(|item| {
         Row::new(vec![
@@ -87,8 +83,8 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
             }),
         ])
         // .height(height as u16)
-        .bottom_margin(1)
-        .style(normal_style)
+        // .bottom_margin(1)
+        .style(DEFAULT_STYLE)
     });
     let t = Table::new(
         rows,
@@ -105,8 +101,8 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
         Block::default()
             .borders(Borders::ALL)
             .title("DAGs")
-            .border_style(normal_style)
-            .bg(DM_RGB),
+            .border_style(DEFAULT_STYLE)
+            .style(DEFAULT_STYLE),
     )
     .highlight_style(selected_style);
     f.render_stateful_widget(t, rects[0], &mut app.filtered_dags.state);

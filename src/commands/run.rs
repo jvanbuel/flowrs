@@ -305,6 +305,7 @@ fn panic_hook(info: &PanicInfo<'_>) {
     execute!(
         io::stdout(),
         LeaveAlternateScreen,
+        DisableMouseCapture,
         Print(format!(
             "thread '<unnamed>' panicked at '{}', {}\n\r{}",
             msg, location, stacktrace

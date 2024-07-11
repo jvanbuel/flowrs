@@ -1,6 +1,8 @@
+use std::fmt::DebugList;
+
 use ratatui::{
     layout::{Constraint, Layout},
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
@@ -9,7 +11,10 @@ use time::format_description;
 
 use crate::app::state::App;
 
-use super::{constants::DM_RGB, TIME_FORMAT};
+use super::{
+    constants::{DEFAULT_STYLE, DM_RGB},
+    TIME_FORMAT,
+};
 
 pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
@@ -17,15 +22,13 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
         .margin(0)
         .split(f.size());
 
-    let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-    let normal_style = Style::default().bg(DM_RGB);
+    let normal_style = DEFAULT_STYLE;
 
     let headers = ["DAG Id", "DAGRun Id", "Logical Date", "Type", "State"];
     let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
-    let header = Row::new(header_cells)
-        .style(normal_style.add_modifier(Modifier::BOLD))
-        .height(1)
-        .bottom_margin(1);
+    let header =
+        Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+
     let rows = app.dagruns.items.iter().map(|item| {
         Row::new(vec![
             Line::from(Span::styled(
@@ -48,13 +51,12 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
                         .fg(Color::Rgb(0, 128, 0))
                         .add_modifier(Modifier::BOLD),
                 ),
-                "running" => Span::styled("■", Style::default().fg(Color::LightGreen)),
-                "failed" => Span::styled("■", Style::default().fg(Color::Red)),
-                "queued" => Span::styled("■", Style::default().fg(Color::LightBlue)),
-                _ => Span::styled("■", Style::default().fg(Color::White)),
+                "running" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightGreen)),
+                "failed" => Span::styled("■", DEFAULT_STYLE.fg(Color::Red)),
+                "queued" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightBlue)),
+                _ => Span::styled("■", DEFAULT_STYLE.fg(Color::White)),
             }),
         ])
-        .bottom_margin(1)
     });
     let t = Table::new(
         rows,
@@ -67,8 +69,13 @@ pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
         ],
     )
     .header(header)
-    .block(Block::default().borders(Borders::ALL).title("DAGRuns"))
-    .style(normal_style)
-    .highlight_style(selected_style);
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("DAGRuns")
+            .style(DEFAULT_STYLE),
+    )
+    .style(DEFAULT_STYLE)
+    .highlight_style(DEFAULT_STYLE.reversed());
     f.render_stateful_widget(t, rects[0], &mut app.dagruns.state);
 }
