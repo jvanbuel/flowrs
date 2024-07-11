@@ -12,6 +12,7 @@ pub enum ConfigError {
     Input(inquire::InquireError),
     IO(std::io::Error),
     TokenCmdParse(std::string::FromUtf8Error),
+    NoTokenOrCmd,
     URLParse(url::ParseError),
     LogError(log::SetLoggerError),
 }
@@ -42,6 +43,9 @@ impl std::fmt::Display for ConfigError {
             ConfigError::TokenCmdParse(e) => write!(f, "TokenCmdParseError: {}", e),
             ConfigError::URLParse(e) => write!(f, "URLParseError: {}", e),
             ConfigError::LogError(e) => write!(f, "LogError: {}", e),
+            ConfigError::NoTokenOrCmd => {
+                write!(f, "No token or command to refresh token provided.")
+            }
         }
     }
 }

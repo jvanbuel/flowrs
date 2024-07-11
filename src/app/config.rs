@@ -32,33 +32,31 @@ pub struct BasicAuth {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct TokenCmd {
     pub cmd: Option<String>,
-    pub token: String,
+    pub token: Option<String>,
 }
 // Maye use a trait instead? Something that returns an Airflow Client?
 
 impl FlowrsConfig {
     pub fn from_file(config_path: Option<&Path>) -> Result<Self> {
-            let path = match config_path {
-        Some(path) => path,
-        None => CONFIG_FILE.as_path(),
-    };
+        let path = match config_path {
+            Some(path) => path,
+            None => CONFIG_FILE.as_path(),
+        };
 
-    let toml_read = std::fs::read_to_string(path);
-    if let Ok(toml_config) = toml_read {
-        toml::from_str(&toml_config).map_err(|e| e.into())
-    } else {
-        Ok(FlowrsConfig { servers: vec![] })
-    }
+        let toml_read = std::fs::read_to_string(path);
+        if let Ok(toml_config) = toml_read {
+            toml::from_str(&toml_config).map_err(|e| e.into())
+        } else {
+            Ok(FlowrsConfig { servers: vec![] })
+        }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
     use std::path::Path;
 
     use crate::app::config::FlowrsConfig;
-
 
     #[test]
     fn test_get_config() {

@@ -8,7 +8,7 @@ use std::{
 
 use clap::Parser;
 use crossterm::{
-    event::{EnableMouseCapture, KeyCode, KeyModifiers, DisableMouseCapture},
+    event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyModifiers},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -69,7 +69,11 @@ impl RunCommand {
 
 fn shutdown(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
     terminal.show_cursor()?;
     Ok(())
 }
@@ -118,6 +122,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                     info!("Fetching dags...");
                     let dags = client.list_dags().await;
                     // filter dags
+                    info!("Dags: {:?}", dags);
                     if let Ok(dag_list) = dags {
                         let mut app = app_nw.lock().await;
                         app.all_dags = dag_list;

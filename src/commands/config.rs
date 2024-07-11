@@ -106,7 +106,10 @@ impl AddCommand {
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::TokenAuth(TokenCmd { cmd, token }),
+                    auth: AirflowAuth::TokenAuth(TokenCmd {
+                        cmd,
+                        token: Some(token),
+                    }),
                 }
             }
         };
@@ -210,7 +213,10 @@ impl UpdateCommand {
                 } else {
                     token = inquire::Text::new("token").prompt()?;
                 }
-                airflow_config.auth = AirflowAuth::TokenAuth(TokenCmd { cmd, token });
+                airflow_config.auth = AirflowAuth::TokenAuth(TokenCmd {
+                    cmd,
+                    token: Some(token),
+                });
             }
         };
 

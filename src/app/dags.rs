@@ -1,5 +1,5 @@
 use crate::app::error::Result;
-use log::error;
+use log::{debug, error};
 use reqwest::{Method, Response};
 
 use super::client::AirFlowClient;
@@ -7,8 +7,14 @@ use crate::model::dag::DagList;
 
 impl AirFlowClient {
     pub async fn list_dags(&self) -> Result<DagList> {
-        let response: Response = self.base_api(Method::GET, "dags")?.send().await?;
+        let r = self.base_api(Method::GET, "dags")?.build()?;
+        debug!("Request: {:?}", r);
+
+        let response = self.client.execute(r).await?;
+        debug!("Response: {:?}", response);
+
         let daglist = response.json::<DagList>().await;
+        debug!("DagList: {:?}", daglist);
         match daglist {
             Ok(daglist) => Ok(daglist),
             Err(e) => {
