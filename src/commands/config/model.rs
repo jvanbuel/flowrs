@@ -1,7 +1,9 @@
 use crate::app::error::Result;
 use clap::Parser;
+use inquire::validator::Validation;
 use strum::Display;
 use strum::EnumIter;
+use url::Url;
 
 #[derive(Parser, Debug)]
 pub enum ConfigCommand {
@@ -48,3 +50,12 @@ pub enum ConfigOption {
 }
 
 type Command = Option<String>;
+
+pub fn validate_endpoint(
+    endpoint: &str,
+) -> std::result::Result<Validation, Box<dyn std::error::Error + Send + Sync>> {
+    match Url::parse(endpoint) {
+        Ok(_) => Ok(Validation::Valid),
+        Err(error) => Ok(Validation::Invalid(error.into())),
+    }
+}

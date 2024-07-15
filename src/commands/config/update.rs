@@ -10,7 +10,7 @@ use crate::{
         config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
         error::Result,
     },
-    commands::config::{model::ConfigOption, validate_endpoint, write_config},
+    commands::config::model::{validate_endpoint, ConfigOption},
 };
 
 impl UpdateCommand {
@@ -82,7 +82,7 @@ impl UpdateCommand {
         };
 
         config.servers = Some(servers);
-        write_config(&config, path)?;
+        config.to_file(path)?;
 
         println!("✅ Config updated successfully!");
         Ok(())

@@ -3,15 +3,12 @@ use std::path::Path;
 use inquire::Select;
 
 use super::model::RemoveCommand;
-use crate::{
-    app::{config::FlowrsConfig, error::Result},
-    commands::config::write_config,
-};
+use crate::app::{config::FlowrsConfig, error::Result};
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let config = FlowrsConfig::from_file(path)?;
+        let mut config = FlowrsConfig::from_file(path)?;
 
         if let Some(mut servers) = config.servers.clone() {
             let name = match self.name {
@@ -23,7 +20,8 @@ impl RemoveCommand {
                 Some(ref name) => name.to_string(),
             };
             servers.retain(|server| server.name != name);
-            write_config(&config, path)?;
+            config.servers = Some(servers);
+            config.to_file(path)?;
 
             println!("✅ Config '{}' removed successfully!", name);
         };

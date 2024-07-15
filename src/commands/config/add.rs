@@ -10,7 +10,7 @@ use crate::{
         config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
         error::Result,
     },
-    commands::config::{model::ConfigOption, validate_endpoint, write_config},
+    commands::config::model::{validate_endpoint, ConfigOption},
 };
 
 impl AddCommand {
@@ -73,7 +73,7 @@ impl AddCommand {
             config.servers = Some(vec![new_config]);
         }
 
-        write_config(&config, path)?;
+        config.to_file(path)?;
 
         println!("✅ Config added successfully!");
         Ok(())
