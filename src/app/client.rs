@@ -79,7 +79,7 @@ mod tests {
     #[tokio::test]
     async fn test_base_api_conveyor() {
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
-        let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
+        let client = AirFlowClient::new(config.servers.unwrap()[0].clone()).unwrap();
 
         let _ = client.base_api(Method::GET, "config").unwrap().send().await;
     }

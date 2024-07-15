@@ -59,7 +59,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_dags() {
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
-        let server = config.servers[0].clone();
+        let server = config.servers.unwrap()[0].clone();
         let client = AirFlowClient::new(server).unwrap();
         let first_dag = &client.list_dags().await.unwrap().dags[0];
 
@@ -74,7 +74,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_all_dags() {
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
-        let server = config.servers[0].clone();
+        let server = config.servers.unwrap()[0].clone();
         let client = AirFlowClient::new(server).unwrap();
 
         let dagrun_list: DagRunList = client.list_all_dagruns().await.unwrap();

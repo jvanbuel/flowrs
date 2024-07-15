@@ -50,7 +50,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_dags() {
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
-        let client = AirFlowClient::new(config.servers[0].clone()).unwrap();
+        let client = AirFlowClient::new(config.servers.unwrap()[0].clone()).unwrap();
         let daglist: DagList = client.list_dags().await.unwrap();
         assert_eq!(daglist.dags[0].dag_id, "dataset_consumes_1");
     }

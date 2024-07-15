@@ -109,7 +109,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
     tokio::spawn(async move {
         loop {
             // this is completely wrong! You don't need to lock your state while making a request...
-            // The lock should be acquired only when you're updating the state, after the API request has terurned.
+            // The lock should be acquired only when you're updating the state, after the API request has returned.
             let active_panel: Panel;
             let client: AirFlowClient;
             {
@@ -135,7 +135,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                     }
                 }
                 Panel::DAGRun => {
-                    let mut dag_id = String::from("");
+                    let dag_id: String;
                     {
                         let mut app = app_nw.lock().await;
                         dag_id = app.filtered_dags.items

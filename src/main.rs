@@ -9,7 +9,8 @@ mod commands;
 mod model;
 mod ui;
 
-use commands::{config::ConfigCommand, run::RunCommand};
+use commands::config::model::ConfigCommand;
+use commands::run::RunCommand;
 use dirs::home_dir;
 
 lazy_static::lazy_static! {

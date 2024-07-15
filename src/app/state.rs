@@ -83,15 +83,15 @@ pub enum Panel {
 
 impl App {
     pub async fn new(config: FlowrsConfig) -> Result<App> {
-        let server = config.servers[0].clone();
-        let client = AirFlowClient::new(server)?;
+        let servers = config.clone().servers.unwrap().clone();
+        let client = AirFlowClient::new(servers[0].clone())?;
         let daglist = client.list_dags().await.unwrap();
         let dagruns = client.list_all_dagruns().await.unwrap();
         let taskinstances = client.list_all_taskinstances().await.unwrap();
         Ok(App {
             all_dags: daglist.clone(),
             filtered_dags: StatefulTable::new(daglist.dags),
-            configs: StatefulTable::new(config.servers.clone()),
+            configs: StatefulTable::new(servers.clone()),
             dagruns: StatefulTable::new(vec![]),
             all_dagruns: dagruns,
             active_config: config,
