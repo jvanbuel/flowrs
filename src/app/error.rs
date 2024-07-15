@@ -4,6 +4,7 @@ pub type Result<T> = std::result::Result<T, FlowrsError>;
 pub enum FlowrsError {
     ConfigError(ConfigError),
     APIError(reqwest::Error),
+    Serde(serde_json::Error),
 }
 
 #[derive(Debug)]
@@ -55,6 +56,7 @@ impl std::fmt::Display for FlowrsError {
         match self {
             FlowrsError::ConfigError(e) => write!(f, "ConfigError: {}", e),
             FlowrsError::APIError(e) => write!(f, "APIError: {}", e),
+            FlowrsError::Serde(e) => write!(f, "SerdeError: {}", e),
         }
     }
 }
@@ -108,5 +110,11 @@ impl From<url::ParseError> for FlowrsError {
 impl From<log::SetLoggerError> for FlowrsError {
     fn from(error: log::SetLoggerError) -> Self {
         FlowrsError::ConfigError(ConfigError::LogError(error))
+    }
+}
+
+impl From<serde_json::Error> for FlowrsError {
+    fn from(error: serde_json::Error) -> Self {
+        FlowrsError::Serde(error)
     }
 }

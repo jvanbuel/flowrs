@@ -5,5 +5,6 @@ pub mod dags;
 pub mod error;
 pub mod events;
 pub mod filter;
+pub mod managed_services;
 pub mod state;
 pub mod taskinstance;

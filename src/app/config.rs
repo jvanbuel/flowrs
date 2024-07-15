@@ -2,9 +2,11 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::app::error::Result;
+use crate::app::managed_services::conveyor::get_conveyor_environment_servers;
 use crate::CONFIG_FILE;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -57,7 +59,40 @@ impl FlowrsConfig {
         Self::from_str(&toml_config)
     }
     pub fn from_str(config: &str) -> Result<Self> {
-        toml::from_str(config).map_err(|e| e.into())
+        let mut config: FlowrsConfig = toml::from_str(config)?;
+
+        info!("Config: {:?}", config);
+
+        if config.managed_services.is_none() {
+            Ok(config)
+        } else {
+            let services = config.managed_services.clone().unwrap();
+            for service in services {
+                match service {
+                    ManagedService::Conveyor => {
+                        let conveyor_servers = get_conveyor_environment_servers()?;
+                        if config.servers.is_none() {
+                            config.servers = Some(conveyor_servers);
+                        } else {
+                            let mut existing_servers = config.servers.clone().unwrap();
+                            existing_servers.extend(conveyor_servers);
+                            config.servers = Some(existing_servers);
+                        }
+                    }
+                    ManagedService::Mwaa => {
+                        todo!();
+                    }
+                    ManagedService::Astronomer => {
+                        todo!();
+                    }
+                    ManagedService::Gcc => {
+                        todo!();
+                    }
+                }
+            }
+            info!("Updated Config: {:?}", config);
+            Ok(config)
+        }
     }
 
     pub fn to_str(&self) -> Result<String> {
@@ -102,23 +137,39 @@ mod tests {
         assert_eq!(servers[0].name, "test");
     }
 
-    const TEST_CONFIG_CONVEYOR: &str = r#"managed_services = ["Conveyor", "Mwaa"]"#;
+    const TEST_CONFIG_CONVEYOR: &str = r#"managed_services = ["Conveyor"]
+
+[[servers]]
+name = "bla"
+endpoint = "http://localhost:8080"
+
+[servers.auth.BasicAuth]
+username = "airflow"
+password = "airflow"
+    "#;
     #[test]
     fn test_get_config_conveyor() {
         let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR).unwrap();
         let services = result.managed_services.unwrap();
-        assert_eq!(services.len(), 2);
+        assert_eq!(services.len(), 1);
         assert_eq!(services[0], ManagedService::Conveyor);
     }
 
     #[test]
     fn test_write_config_conveyor() {
         let config = FlowrsConfig {
-            servers: None,
-            managed_services: Some(vec![ManagedService::Conveyor, ManagedService::Mwaa]),
+            servers: Some(vec![AirflowConfig {
+                name: "bla".to_string(),
+                endpoint: "http://localhost:8080".to_string(),
+                auth: AirflowAuth::BasicAuth(BasicAuth {
+                    username: "airflow".to_string(),
+                    password: "airflow".to_string(),
+                }),
+            }]),
+            managed_services: Some(vec![ManagedService::Conveyor]),
         };
 
         let serialized_config = config.to_str().unwrap();
-        assert_eq!(serialized_config.trim(), TEST_CONFIG_CONVEYOR);
+        assert_eq!(serialized_config.trim(), TEST_CONFIG_CONVEYOR.trim());
     }
 }

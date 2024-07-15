@@ -119,14 +119,12 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             }
             match active_panel {
                 Panel::Dag => {
-                    info!("Fetching dags...");
                     {
                         let mut app = app_nw.lock().await;
                         app.is_loading = true;
                     }
                     let dags = client.list_dags().await;
                     // filter dags
-                    info!("Dags: {:?}", dags);
                     if let Ok(dag_list) = dags {
                         let mut app = app_nw.lock().await;
                         app.all_dags = dag_list;
