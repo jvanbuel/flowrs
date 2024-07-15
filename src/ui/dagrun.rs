@@ -1,5 +1,3 @@
-use std::fmt::DebugList;
-
 use ratatui::{
     layout::{Constraint, Layout},
     style::{Color, Modifier, Style, Stylize},
@@ -11,10 +9,7 @@ use time::format_description;
 
 use crate::app::state::App;
 
-use super::{
-    constants::{DEFAULT_STYLE, DM_RGB},
-    TIME_FORMAT,
-};
+use super::{constants::DEFAULT_STYLE, TIME_FORMAT};
 
 pub fn render_dagrun_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()

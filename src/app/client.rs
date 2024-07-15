@@ -1,7 +1,7 @@
 use crate::app::error::Result;
 use std::time::Duration;
 
-use log::{error, info};
+use log::info;
 use reqwest::{Method, Url};
 
 use super::{
@@ -47,15 +47,11 @@ impl AirFlowClient {
                         .expect("failed to execute process");
                     // Be careful that there are no leading or trailing whitespace characters or quotation marks
                     let token = String::from_utf8(output.stdout)?.trim().replace('"', "");
-                    info!("🔑 Token: {}", token);
-                    info!("Url: {}", url);
                     Ok(self.client.request(method, url).bearer_auth(token))
                 } else {
                     if let Some(token) = &token.token {
-                        info!("🔑 Token: {}", token.trim_end());
                         return Ok(self.client.request(method, url).bearer_auth(token.trim()));
                     }
-                    error!("No token or command to refresh token provided.");
                     Err(FlowrsError::ConfigError(ConfigError::NoTokenOrCmd))
                 }
             }

@@ -1,4 +1,5 @@
 use crate::app::error::Result;
+use log::info;
 use reqwest::{Method, Response};
 
 use crate::model::dagrun::DagRunList;
@@ -13,6 +14,7 @@ impl AirFlowClient {
             .send()
             .await?;
         let dagruns: DagRunList = response.json::<DagRunList>().await?;
+        info!("DagRuns: {:?}", dagruns);
         Ok(dagruns)
     }
 

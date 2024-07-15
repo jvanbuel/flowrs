@@ -120,6 +120,10 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
             match active_panel {
                 Panel::Dag => {
                     info!("Fetching dags...");
+                    {
+                        let mut app = app_nw.lock().await;
+                        app.is_loading = true;
+                    }
                     let dags = client.list_dags().await;
                     // filter dags
                     info!("Dags: {:?}", dags);
@@ -127,21 +131,25 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
                         let mut app = app_nw.lock().await;
                         app.all_dags = dag_list;
                         app.filter_dags();
+                        app.is_loading = false;
                     }
                 }
                 Panel::DAGRun => {
-                    let dag_id = {
-                        let app = app_nw.lock().await;
-                        app.filtered_dags.items
+                    let mut dag_id = String::from("");
+                    {
+                        let mut app = app_nw.lock().await;
+                        dag_id = app.filtered_dags.items
                             [app.filtered_dags.state.selected().unwrap_or_default()]
                         .dag_id
-                        .clone()
+                        .clone();
+                        app.is_loading = true;
                     };
                     info!("Fetching dagruns for dag_id: {}", dag_id);
                     let dagruns = client.list_dagruns(&dag_id).await;
                     if let Ok(dagruns) = dagruns {
                         let mut app = app_nw.lock().await;
                         app.dagruns.items = dagruns.dag_runs;
+                        app.is_loading = false;
                     }
                 }
                 Panel::TaskInstance => {
