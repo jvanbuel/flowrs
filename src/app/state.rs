@@ -13,6 +13,7 @@ use super::{
 };
 use crate::app::error::Result;
 
+
 pub struct App {
     pub all_dags: DagList,
     pub filtered_dags: StatefulTable<Dag>,

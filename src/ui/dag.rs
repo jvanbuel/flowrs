@@ -34,7 +34,7 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
             .split(f.size())
     };
 
-    if app.is_loading {
+    if app.is_loading && app.filtered_dags.items.is_empty() {
         let text = "Loading...";
         let paragraph = Paragraph::new(text)
             .block(Block::default().borders(Borders::ALL).title("DAGs"))

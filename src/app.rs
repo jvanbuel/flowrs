@@ -6,5 +6,6 @@ pub mod error;
 pub mod events;
 pub mod filter;
 pub mod managed_services;
+pub mod popup;
 pub mod state;
 pub mod taskinstance;
