@@ -13,7 +13,6 @@ use super::{
 };
 use crate::app::error::Result;
 
-
 pub struct App {
     pub all_dags: DagList,
     pub filtered_dags: StatefulTable<Dag>,
@@ -28,6 +27,7 @@ pub struct App {
     pub all_taskinstances: TaskInstanceList,
     pub active_popup: bool,
     pub is_loading: bool,
+    pub is_initializing: bool,
 }
 
 #[derive(Clone)]
@@ -103,6 +103,7 @@ impl App {
             all_taskinstances: taskinstances,
             active_popup: false,
             is_loading: false,
+            is_initializing: true,
         })
     }
 

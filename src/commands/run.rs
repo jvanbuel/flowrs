@@ -53,6 +53,8 @@ impl RunCommand {
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
+        terminal.clear()?;
+        terminal.hide_cursor()?;
 
         // create app and run it
         let path = self.file.as_ref().map(Path::new);
@@ -187,6 +189,7 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
         terminal.draw(|f| {
             ui(f, &mut app);
         })?;
+
 
         if let Ok(event) = event_generator.next() {
             match event {

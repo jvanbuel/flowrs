@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ascii_flowrs::ASCII_FLOWRS;
+use ascii_flowrs::ASCII_LOGO;
 use clap::Parser;
 
 mod app;
@@ -20,7 +20,7 @@ lazy_static::lazy_static! {
 use app::error::Result;
 
 #[derive(Parser)]
-#[clap(name = "flowrs", version, about, before_help=ASCII_FLOWRS)]
+#[clap(name = "flowrs", version, about, before_help=ASCII_LOGO)]
 struct FlowrsApp {
     #[clap(subcommand)]
     command: Option<FlowrsCommand>,

@@ -63,6 +63,7 @@ impl FlowrsConfig {
 
         info!("Config: {:?}", config);
 
+        // This should not happen here, but when the App has started
         if config.managed_services.is_none() {
             Ok(config)
         } else {

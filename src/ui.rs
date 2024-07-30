@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use crate::app::state::{App, Panel};
 
+use init_screen::render_init_screen;
 use ratatui::Frame;
 
 use self::{
@@ -12,11 +15,18 @@ pub mod constants;
 pub mod dag;
 pub mod dagrun;
 pub mod help;
+mod init_screen;
 pub mod taskinstance;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
 pub fn ui(f: &mut Frame, app: &mut App) {
+    if app.is_initializing {
+        // Shouldn't happen here ==> initialization is done when config has been updated,
+        // should happen in state loop that does API calls.
+        // app.is_initializing = false;
+        return render_init_screen(f, app);
+    }
     match app.active_panel {
         Panel::Config => {
             render_config_panel(f, app);
