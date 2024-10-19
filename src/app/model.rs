@@ -8,7 +8,7 @@ pub mod filter;
 pub mod popup;
 
 pub trait Model {
-    async fn update(&mut self, event: FlowrsEvent);
+    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent>;
     fn view(&mut self, f: &mut Frame);
 }
 

@@ -9,7 +9,7 @@ use crossterm::event;
 use super::custom::FlowrsEvent;
 
 pub struct EventGenerator {
-    pub tick_rate: Duration,
+    pub _tick_rate: Duration,
     pub rx_event: Receiver<FlowrsEvent>,
     pub tx_event: Sender<FlowrsEvent>,
 }
@@ -39,7 +39,7 @@ impl EventGenerator {
         });
 
         Self {
-            tick_rate,
+            _tick_rate: tick_rate,
             rx_event,
             tx_event,
         }

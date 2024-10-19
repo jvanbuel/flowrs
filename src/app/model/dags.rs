@@ -84,22 +84,32 @@ impl DagModel {
 }
 
 impl Model for DagModel {
-    async fn update(&mut self, event: FlowrsEvent) {
+    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
         debug!("DagModel::update");
         match event {
             FlowrsEvent::Tick => {
                 if self.context.ticks.load(Relaxed) % 10 != 0 {
-                    return;
+                    return None;
                 }
                 self.update_dags().await;
+                None
             }
             FlowrsEvent::Key(key_event) => match key_event.code {
-                KeyCode::Down | KeyCode::Char('j') => self.filtered.next(),
-                KeyCode::Up | KeyCode::Char('k') => self.filtered.previous(),
-                KeyCode::Char('t') => self.toggle_current_dag().await,
-                _ => {}
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.filtered.next();
+                    None
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.filtered.previous();
+                    None
+                }
+                KeyCode::Char('t') => {
+                    self.toggle_current_dag().await;
+                    None
+                }
+                _ => None,
             },
-            _ => {}
+            _ => None,
         }
     }
     fn view(&mut self, f: &mut Frame) {

@@ -61,6 +61,12 @@ impl AirFlowClient {
     }
 }
 
+impl From<AirflowConfig> for AirFlowClient {
+    fn from(config: AirflowConfig) -> Self {
+        Self::new(config).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

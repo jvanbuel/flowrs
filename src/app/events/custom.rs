@@ -5,6 +5,7 @@ pub enum FlowrsEvent {
     Tick,
     Key(KeyEvent),
     Mouse(MouseEvent),
+    ConfigSelected(usize),
 }
 
 impl From<crossterm::event::Event> for FlowrsEvent {

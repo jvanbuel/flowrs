@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::AtomicU32, Arc, RwLock},
+    sync::{atomic::AtomicU32, Arc},
     vec,
 };
 
@@ -9,10 +9,7 @@ use crate::airflow::model::{
     taskinstance::{TaskInstance, TaskInstanceList},
 };
 
-use crate::airflow::{
-    client::AirFlowClient,
-    config::{AirflowConfig, FlowrsConfig},
-};
+use crate::airflow::{client::AirFlowClient, config::FlowrsConfig};
 use crate::app::error::Result;
 use crate::app::model::dags::DagModel;
 use crate::app::model::filter::Filter;
@@ -65,7 +62,7 @@ impl App {
         });
         Ok(App {
             dags: DagModel::new(context.clone()),
-            configs: ConfigModel::new(servers),
+            configs: ConfigModel::new(context.clone(), servers),
             dagruns: StatefulTable::new(vec![]),
             active_config: config,
             context: context.clone(),
@@ -79,33 +76,6 @@ impl App {
         })
     }
 
-    pub async fn update_dags(&mut self) {
-        match self.context.client.list_dags().await {
-            Ok(daglist) => {
-                self.dags.all = daglist.dags;
-                self.filter_dags();
-            }
-            Err(e) => {
-                eprintln!("Error fetching dags: {}", e);
-            }
-        }
-    }
-
-    pub async fn update_dagruns(&mut self) {
-        let current_dag_id =
-            &self.dags.filtered.items[self.dags.filtered.state.selected().unwrap()].dag_id;
-        self.dagruns.items = self
-            .context
-            .client
-            .list_dagruns(current_dag_id)
-            .await
-            .unwrap()
-            .dag_runs;
-    }
-    // pub async fn update_all_dagruns(&mut self) {
-    //     self.all_dagruns = self.client.list_all_dagruns().await.unwrap();
-    // }
-
     pub fn next_panel(&mut self) {
         self.filter.reset();
         match self.active_panel {
@@ -115,6 +85,11 @@ impl App {
             Panel::TaskInstance => (),
             Panel::Help => (),
         }
+    }
+
+    pub fn update_contexts(&mut self) {
+        self.dags.context = self.context.clone();
+        self.configs.context = self.context.clone();
     }
 
     pub fn previous_panel(&mut self) {
@@ -130,42 +105,6 @@ impl App {
 
     pub fn toggle_search(&mut self) {
         self.filter.toggle();
-    }
-
-    pub fn filter_dags(&mut self) {
-        let prefix = &self.filter.prefix;
-        let dags = &self.dags.all;
-        let filtered_dags = match prefix {
-            Some(prefix) => dags
-                .iter()
-                .filter(|dag| dag.dag_id.contains(prefix))
-                .cloned()
-                .collect::<Vec<Dag>>(),
-            None => dags.clone(),
-        };
-        self.dags.filtered.items = filtered_dags;
-    }
-
-    pub async fn clear_dagrun(&mut self) {
-        let dag_id = &self.get_current_dag_id();
-        let dag_run_id = &self.get_current_dagrun_id();
-        self.context
-            .client
-            .clear_dagrun(dag_id, dag_run_id)
-            .await
-            .unwrap();
-    }
-
-    pub async fn update_task_instances(&mut self) {
-        let dag_id = &self.get_current_dag_id();
-        let dag_run_id = &self.get_current_dagrun_id();
-        self.taskinstances.items = self
-            .context
-            .client
-            .list_task_instances(dag_id, dag_run_id)
-            .await
-            .unwrap()
-            .task_instances;
     }
 
     fn get_current_dag_id(&self) -> String {

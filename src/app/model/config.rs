@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout};
@@ -8,6 +10,7 @@ use ratatui::Frame;
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::state::FlowrsContext;
 use crate::ui::constants::DEFAULT_STYLE;
 
 use super::{filter::Filter, Model, StatefulTable};
@@ -20,16 +23,18 @@ pub struct ConfigModel {
     pub filter: Filter,
     pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
+    pub context: Arc<FlowrsContext>,
 }
 
 impl ConfigModel {
-    pub fn new(configs: Vec<AirflowConfig>) -> Self {
+    pub fn new(context: Arc<FlowrsContext>, configs: Vec<AirflowConfig>) -> Self {
         ConfigModel {
             all: configs.clone(),
             filtered: StatefulTable::new(configs),
             filter: Filter::new(),
             popup: PopUp::new(),
             errors: vec![],
+            context,
         }
     }
 
@@ -50,15 +55,30 @@ impl ConfigModel {
 }
 
 impl Model for ConfigModel {
-    async fn update(&mut self, event: FlowrsEvent) {
+    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
         debug!("ConfigModel::update");
         if let FlowrsEvent::Key(key_event) = event {
             match key_event.code {
-                KeyCode::Down | KeyCode::Char('j') => self.filtered.next(),
-                KeyCode::Up | KeyCode::Char('k') => self.filtered.previous(),
-                _ => {}
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.filtered.next();
+                    return None;
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.filtered.previous();
+                    return None;
+                }
+                KeyCode::Enter => {
+                    let selected_config = self.filtered.state.selected().unwrap_or_default();
+                    debug!(
+                        "Selected config: {}",
+                        self.filtered.items[selected_config].name
+                    );
+                    return Some(FlowrsEvent::ConfigSelected(selected_config));
+                }
+                _ => return None,
             }
         }
+        None
     }
 
     fn view(&mut self, f: &mut Frame) {
