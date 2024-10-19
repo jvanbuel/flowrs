@@ -6,7 +6,7 @@ use std::{
 use crossterm::event::{KeyCode, KeyModifiers};
 use events::{custom::FlowrsEvent, generator::EventGenerator};
 use log::debug;
-use model::{filter::Filter, Model};
+use model::Model;
 use ratatui::{prelude::Backend, Terminal};
 use state::{App, FlowrsContext, Panel};
 
@@ -40,7 +40,6 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> i
                 Panel::TaskInstance => {
                     unimplemented!()
                 }
-                _ => {}
             }
 
             // then handle generic events
@@ -61,7 +60,7 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> i
                     // Handle other key events
                     match key.code {
                         KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('?') => app.active_panel = Panel::Help,
+                        KeyCode::Char('?') => unimplemented!(),
                         KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
                         KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
                         _ => {}
@@ -79,24 +78,24 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> i
     }
 }
 
-fn mutate_filter(filter: &mut Filter, code: KeyCode) {
-    match code {
-        KeyCode::Esc | KeyCode::Enter => {
-            filter.toggle();
-        }
-        KeyCode::Backspace => {
-            if let Some(ref mut prefix) = filter.prefix {
-                prefix.pop();
-            }
-        }
-        KeyCode::Char(c) => match filter.prefix {
-            Some(ref mut prefix) => {
-                prefix.push(c);
-            }
-            None => {
-                filter.prefix = Some(c.to_string());
-            }
-        },
-        _ => {}
-    }
-}
+// fn mutate_filter(filter: &mut Filter, code: KeyCode) {
+//     match code {
+//         KeyCode::Esc | KeyCode::Enter => {
+//             filter.toggle();
+//         }
+//         KeyCode::Backspace => {
+//             if let Some(ref mut prefix) = filter.prefix {
+//                 prefix.pop();
+//             }
+//         }
+//         KeyCode::Char(c) => match filter.prefix {
+//             Some(ref mut prefix) => {
+//                 prefix.push(c);
+//             }
+//             None => {
+//                 filter.prefix = Some(c.to_string());
+//             }
+//         },
+//         _ => {}
+//     }
+// }

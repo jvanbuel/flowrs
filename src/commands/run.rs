@@ -12,7 +12,6 @@ use crossterm::{
     terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
 use log::{info, LevelFilter};
-use serde::de::IntoDeserializer;
 use simplelog::{Config, WriteLogger};
 
 use crate::airflow::config::FlowrsConfig;
