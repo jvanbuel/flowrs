@@ -1,10 +1,10 @@
-use crate::app::error::Result;
 use log::info;
 use reqwest::{Method, Response};
 
-use crate::model::dagrun::DagRunList;
+use crate::airflow::model::dagrun::DagRunList;
+use crate::app::error::Result;
 
-use super::client::AirFlowClient;
+use super::AirFlowClient;
 
 impl AirFlowClient {
     pub async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
@@ -18,6 +18,7 @@ impl AirFlowClient {
         Ok(dagruns)
     }
 
+    #[allow(dead_code)]
     pub async fn list_all_dagruns(&self) -> Result<DagRunList> {
         let response: Response = self
             .base_api(Method::POST, "dags/~/dagRuns/list")?
@@ -43,9 +44,9 @@ impl AirFlowClient {
 #[cfg(test)]
 mod tests {
 
-    use crate::app::client::AirFlowClient;
-    use crate::app::config::FlowrsConfig;
-    use crate::app::dagruns::DagRunList;
+    use super::AirFlowClient;
+    use super::DagRunList;
+    use crate::airflow::config::FlowrsConfig;
 
     const TEST_CONFIG: &str = r#"[[servers]]
         name = "test"

@@ -1,24 +1,23 @@
 use ratatui::widgets::TableState;
 
-use crate::model::{
+use crate::airflow::model::{
     dag::{Dag, DagList},
-    dagrun::{DagRun, DagRunList},
+    dagrun::DagRun,
     taskinstance::{TaskInstance, TaskInstanceList},
 };
 
-use super::{
+use crate::airflow::{
     client::AirFlowClient,
     config::{AirflowConfig, FlowrsConfig},
-    filter::Filter,
 };
 use crate::app::error::Result;
+use crate::app::filter::Filter;
 
 pub struct App {
     pub all_dags: DagList,
     pub filtered_dags: StatefulTable<Dag>,
     pub configs: StatefulTable<AirflowConfig>,
     pub dagruns: StatefulTable<DagRun>,
-    pub all_dagruns: DagRunList,
     pub active_config: FlowrsConfig,
     pub client: AirFlowClient,
     pub active_panel: Panel,
@@ -87,14 +86,12 @@ impl App {
         let servers = config.clone().servers.unwrap().clone();
         let client = AirFlowClient::new(servers[0].clone())?;
         let daglist = client.list_dags().await.unwrap();
-        let dagruns = client.list_all_dagruns().await.unwrap();
         let taskinstances = client.list_all_taskinstances().await.unwrap();
         Ok(App {
             all_dags: daglist.clone(),
             filtered_dags: StatefulTable::new(daglist.dags),
             configs: StatefulTable::new(servers.clone()),
             dagruns: StatefulTable::new(vec![]),
-            all_dagruns: dagruns,
             active_config: config,
             client,
             active_panel: Panel::Dag,
@@ -108,9 +105,7 @@ impl App {
     }
 
     pub async fn update_dags(&mut self) {
-        self.is_loading = true;
         self.all_dags = self.client.list_dags().await.unwrap();
-        self.is_loading = false;
     }
 
     pub async fn toggle_current_dag(&mut self) {

@@ -5,8 +5,8 @@ use std::path::Path;
 use log::info;
 use serde::{Deserialize, Serialize};
 
+use super::managed_services::conveyor::get_conveyor_environment_servers;
 use crate::app::error::Result;
-use crate::app::managed_services::conveyor::get_conveyor_environment_servers;
 use crate::CONFIG_FILE;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -119,7 +119,7 @@ impl FlowrsConfig {
 
 #[cfg(test)]
 mod tests {
-    use crate::app::config::*;
+    use super::*;
 
     const TEST_CONFIG: &str = r#"[[servers]]
         name = "test"

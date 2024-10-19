@@ -6,12 +6,11 @@ use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
 use crate::{
-    app::{
-        config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
-        error::Result,
-    },
+    airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
     commands::config::model::{validate_endpoint, ConfigOption},
 };
+
+use crate::app::error::Result;
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {

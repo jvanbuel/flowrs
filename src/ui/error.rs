@@ -10,7 +10,7 @@ use crate::app::state::App;
 
 use super::constants::DM_RGB;
 
-pub fn render_help_panel(f: &mut Frame, app: &mut App) {
+pub fn render_error_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)
@@ -19,20 +19,18 @@ pub fn render_help_panel(f: &mut Frame, app: &mut App) {
     let selected_style = Style::default().add_modifier(Modifier::REVERSED);
     let normal_style = Style::default().bg(DM_RGB);
 
-    let headers = ["Name", "Endpoint"];
+    let headers = ["Error"];
     let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
 
     let header = Row::new(header_cells)
         .style(normal_style.add_modifier(Modifier::BOLD))
         .height(1)
         .bottom_margin(1);
-    let rows = app.configs.items.iter().map(|item| {
-        Row::new(vec![
-            Line::from(item.name.as_str()),
-            Line::from(item.endpoint.as_str()),
-        ])
-        .bottom_margin(1)
-    });
+    let rows = app
+        .configs
+        .items
+        .iter()
+        .map(|item| Row::new(vec![Line::from(item.name.as_str())]).bottom_margin(1));
 
     let t = Table::new(
         rows,

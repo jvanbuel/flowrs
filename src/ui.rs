@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crate::app::state::{App, Panel};
 
 use init_screen::render_init_screen;
@@ -25,7 +23,7 @@ pub fn ui(f: &mut Frame, app: &mut App) {
         // Shouldn't happen here ==> initialization is done when config has been updated,
         // should happen in state loop that does API calls.
         // app.is_initializing = false;
-        return render_init_screen(f, app);
+        return render_init_screen(f);
     }
     match app.active_panel {
         Panel::Config => {

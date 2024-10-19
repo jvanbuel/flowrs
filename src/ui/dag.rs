@@ -17,7 +17,7 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
         let rects = Layout::default()
             .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
             .margin(0)
-            .split(f.size());
+            .split(f.area());
 
         let filter = app.filter.prefix().clone();
 
@@ -31,7 +31,7 @@ pub fn render_dag_panel(f: &mut Frame, app: &mut App) {
         Layout::default()
             .constraints([Constraint::Percentage(100)].as_ref())
             .margin(0)
-            .split(f.size())
+            .split(f.area())
     };
 
     if app.is_loading && app.filtered_dags.items.is_empty() {

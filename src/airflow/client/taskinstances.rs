@@ -3,9 +3,9 @@ use crate::app::error::Result;
 use log::info;
 use reqwest::{Method, Response};
 
-use crate::model::taskinstance::TaskInstanceList;
+use crate::airflow::model::taskinstance::TaskInstanceList;
 
-use super::client::AirFlowClient;
+use super::AirFlowClient;
 
 impl AirFlowClient {
     pub async fn list_task_instances(

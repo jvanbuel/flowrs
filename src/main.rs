@@ -3,10 +3,10 @@ use std::path::PathBuf;
 use ascii_flowrs::ASCII_LOGO;
 use clap::Parser;
 
+mod airflow;
 mod app;
 mod ascii_flowrs;
 mod commands;
-mod model;
 mod ui;
 
 use commands::config::model::ConfigCommand;

@@ -1,13 +1,15 @@
+pub mod dagruns;
+pub mod dags;
+pub mod taskinstances;
+
 use crate::app::error::Result;
 use std::time::Duration;
 
 use log::info;
 use reqwest::{Method, Url};
 
-use super::{
-    config::{AirflowAuth, AirflowConfig},
-    error::{ConfigError, FlowrsError},
-};
+use crate::airflow::config::{AirflowAuth, AirflowConfig};
+use crate::app::error::{ConfigError, FlowrsError};
 
 #[derive(Debug, Clone)]
 pub struct AirFlowClient {
@@ -35,7 +37,7 @@ impl AirFlowClient {
                 Ok(self
                     .client
                     .request(method, url)
-                    .basic_auth(auth.username.clone(), Some(auth.password.clone())))
+                    .basic_auth(&auth.username, Some(&auth.password)))
             }
             AirflowAuth::TokenAuth(token) => {
                 info!("🔑 Token Auth: {:?}", token.cmd);
@@ -64,8 +66,8 @@ mod tests {
 
     use reqwest::Method;
 
-    use crate::app::client::AirFlowClient;
-    use crate::app::config::FlowrsConfig;
+    use super::AirFlowClient;
+    use crate::airflow::config::FlowrsConfig;
 
     const TEST_CONFIG: &str = r#"[[servers]]
         name = "conveyor-dev"

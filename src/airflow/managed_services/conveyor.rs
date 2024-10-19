@@ -1,7 +1,5 @@
-use crate::app::{
-    config::{AirflowConfig, TokenCmd},
-    error::Result,
-};
+use crate::airflow::config::{AirflowAuth, AirflowConfig, TokenCmd};
+use crate::app::error::Result;
 use log::info;
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +35,7 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
                 "https://app.conveyordata.com/environments/{}/airflow/",
                 env.name
             ),
-            auth: crate::app::config::AirflowAuth::TokenAuth(TokenCmd {
+            auth: AirflowAuth::TokenAuth(TokenCmd {
                 cmd: Some("conveyor auth get --quiet | jq -r .access_token".to_string()),
                 token: None,
             }),

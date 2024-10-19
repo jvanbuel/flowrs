@@ -14,7 +14,7 @@ pub fn render_config_panel(f: &mut Frame, app: &mut App) {
     let rects = Layout::default()
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)
-        .split(f.size());
+        .split(f.area());
 
     let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 

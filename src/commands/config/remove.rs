@@ -3,7 +3,8 @@ use std::path::Path;
 use inquire::Select;
 
 use super::model::RemoveCommand;
-use crate::app::{config::FlowrsConfig, error::Result};
+use crate::airflow::config::FlowrsConfig;
+use crate::app::error::Result;
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {

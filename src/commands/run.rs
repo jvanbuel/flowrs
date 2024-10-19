@@ -1,6 +1,7 @@
+use std::panic::PanicHookInfo;
 use std::{
     fs::File,
-    io::{self, Stdout},
+    io::{self},
     path::Path,
     sync::Arc,
     thread,
@@ -8,22 +9,17 @@ use std::{
 
 use clap::Parser;
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyModifiers},
+    event::{DisableMouseCapture, KeyCode, KeyModifiers},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{disable_raw_mode, LeaveAlternateScreen},
 };
 use log::{info, LevelFilter};
-use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    Terminal,
-};
+use ratatui::{backend::Backend, Terminal};
 use simplelog::{Config, WriteLogger};
-use std::panic::PanicInfo;
 use tokio::sync::Mutex;
 
+use crate::airflow::{client::AirFlowClient, config::FlowrsConfig};
 use crate::app::{
-    client::AirFlowClient,
-    config::FlowrsConfig,
     error::Result,
     events::{custom::CustomEvent, generator::EventGenerator},
     filter::Filter,
@@ -48,13 +44,7 @@ impl RunCommand {
         }));
 
         // setup terminal
-        enable_raw_mode()?;
-        let mut stdout = io::stdout();
-        execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-        let backend = CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
-        terminal.clear()?;
-        terminal.hide_cursor()?;
+        let mut terminal = ratatui::init();
 
         // create app and run it
         let path = self.file.as_ref().map(Path::new);
@@ -64,20 +54,9 @@ impl RunCommand {
         run_app(&mut terminal, app).await?;
 
         info!("Shutting down the terminal...");
-        terminal.show_cursor()?;
-        shutdown(terminal)
+        ratatui::restore();
+        Ok(())
     }
-}
-
-fn shutdown(mut terminal: Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-    Ok(())
 }
 
 fn setup_logging(debug: Option<String>) -> Result<()> {
@@ -189,7 +168,6 @@ async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -
         terminal.draw(|f| {
             ui(f, &mut app);
         })?;
-
 
         if let Ok(event) = event_generator.next() {
             match event {
@@ -307,7 +285,7 @@ fn mutate_filter(filter: &mut Filter, code: KeyCode) {
 }
 
 // #[cfg(debug_assertions)]
-fn panic_hook(info: &PanicInfo<'_>) {
+fn panic_hook(info: &PanicHookInfo<'_>) {
     use backtrace::Backtrace;
     use crossterm::style::Print;
 
@@ -328,7 +306,7 @@ fn panic_hook(info: &PanicInfo<'_>) {
     .unwrap();
 }
 
-fn get_panic_info(info: &PanicInfo<'_>) -> (String, String) {
+fn get_panic_info(info: &PanicHookInfo<'_>) -> (String, String) {
     let location = info.location().unwrap();
 
     let msg = match info.payload().downcast_ref::<&'static str>() {

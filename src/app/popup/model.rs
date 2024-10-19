@@ -1,4 +1,4 @@
-use crate::model::{dag::Dag, dagrun::DagRun, taskinstance::TaskInstance};
+use crate::airflow::model::{dag::Dag, dagrun::DagRun, taskinstance::TaskInstance};
 
 enum Action {
     Trigger(Box<Dag>),

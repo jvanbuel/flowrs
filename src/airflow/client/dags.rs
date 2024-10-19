@@ -2,8 +2,8 @@ use crate::app::error::Result;
 use log::error;
 use reqwest::{Method, Response};
 
-use super::client::AirFlowClient;
-use crate::model::dag::DagList;
+use super::AirFlowClient;
+use crate::airflow::model::dag::DagList;
 
 impl AirFlowClient {
     pub async fn list_dags(&self) -> Result<DagList> {
@@ -34,9 +34,9 @@ impl AirFlowClient {
 #[cfg(test)]
 mod tests {
 
-    use crate::app::client::AirFlowClient;
-    use crate::app::config::FlowrsConfig;
-    use crate::app::dags::DagList;
+    use super::AirFlowClient;
+    use super::DagList;
+    use crate::airflow::config::FlowrsConfig;
 
     const TEST_CONFIG: &str = r#"[[servers]]
         name = "test"
