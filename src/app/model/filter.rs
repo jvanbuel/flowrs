@@ -27,4 +27,11 @@ impl Filter {
         self.enabled = false;
         self.prefix = None;
     }
+
+    pub fn matches(&self, matchee: &str) -> bool {
+        match &self.prefix {
+            Some(prefix) => matchee.contains(prefix),
+            None => true,
+        }
+    }
 }

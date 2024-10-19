@@ -1,18 +1,18 @@
 use crossterm::event::{KeyEvent, MouseEvent};
 
 #[derive(Debug, Clone)]
-pub enum CustomEvent<I, J> {
+pub enum FlowrsEvent {
     Tick,
-    Key(I),
-    Mouse(J),
+    Key(KeyEvent),
+    Mouse(MouseEvent),
 }
 
-impl From<crossterm::event::Event> for CustomEvent<KeyEvent, MouseEvent> {
+impl From<crossterm::event::Event> for FlowrsEvent {
     fn from(ev: crossterm::event::Event) -> Self {
         match ev {
-            crossterm::event::Event::Key(key) => CustomEvent::Key(key),
-            crossterm::event::Event::Mouse(mouse) => CustomEvent::Mouse(mouse),
-            _ => CustomEvent::Tick,
+            crossterm::event::Event::Key(key) => FlowrsEvent::Key(key),
+            crossterm::event::Event::Mouse(mouse) => FlowrsEvent::Mouse(mouse),
+            _ => FlowrsEvent::Tick,
         }
     }
 }

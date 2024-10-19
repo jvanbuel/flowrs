@@ -11,3 +11,17 @@ enum Action {
 struct ActionBuffer {
     action: Vec<Action>,
 }
+
+pub struct PopUp {
+    action_buffer: ActionBuffer,
+    is_open: bool,
+}
+
+impl PopUp {
+    pub fn new() -> Self {
+        PopUp {
+            action_buffer: ActionBuffer { action: vec![] },
+            is_open: false,
+        }
+    }
+}

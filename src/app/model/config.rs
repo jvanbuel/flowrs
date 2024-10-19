@@ -1,0 +1,95 @@
+use crossterm::event::KeyCode;
+use log::debug;
+use ratatui::layout::{Constraint, Layout};
+use ratatui::style::{Modifier, Stylize};
+use ratatui::text::Line;
+use ratatui::widgets::{Block, Borders, Cell, Row, Table};
+use ratatui::Frame;
+
+use crate::airflow::config::AirflowConfig;
+use crate::app::events::custom::FlowrsEvent;
+use crate::ui::constants::DEFAULT_STYLE;
+
+use super::{filter::Filter, Model, StatefulTable};
+use crate::app::error::FlowrsError;
+use crate::app::model::popup::PopUp;
+
+pub struct ConfigModel {
+    pub all: Vec<AirflowConfig>,
+    pub filtered: StatefulTable<AirflowConfig>,
+    pub filter: Filter,
+    pub popup: PopUp,
+    pub errors: Vec<FlowrsError>,
+}
+
+impl ConfigModel {
+    pub fn new(configs: Vec<AirflowConfig>) -> Self {
+        ConfigModel {
+            all: configs.clone(),
+            filtered: StatefulTable::new(configs),
+            filter: Filter::new(),
+            popup: PopUp::new(),
+            errors: vec![],
+        }
+    }
+
+    pub fn filter_configs(&mut self) {
+        let prefix = &self.filter.prefix;
+        let dags = &self.all;
+        let filtered_configs = match prefix {
+            Some(prefix) => self
+                .all
+                .iter()
+                .filter(|config| config.name.contains(prefix))
+                .cloned()
+                .collect::<Vec<AirflowConfig>>(),
+            None => dags.to_vec(),
+        };
+        self.filtered.items = filtered_configs;
+    }
+}
+
+impl Model for ConfigModel {
+    async fn update(&mut self, event: FlowrsEvent) {
+        debug!("ConfigModel::update");
+        if let FlowrsEvent::Key(key_event) = event {
+            match key_event.code {
+                KeyCode::Down | KeyCode::Char('j') => self.filtered.next(),
+                KeyCode::Up | KeyCode::Char('k') => self.filtered.previous(),
+                _ => {}
+            }
+        }
+    }
+
+    fn view(&mut self, f: &mut Frame) {
+        let rects = Layout::default()
+            .constraints([Constraint::Percentage(100)].as_ref())
+            .margin(0)
+            .split(f.area());
+
+        let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
+
+        let headers = ["Name", "Endpoint"];
+        let header_cells = headers.iter().map(|h| Cell::from(*h).style(DEFAULT_STYLE));
+
+        let header =
+            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+
+        let rows = self.filtered.items.iter().map(|item| {
+            Row::new(vec![
+                Line::from(item.name.as_str()),
+                Line::from(item.endpoint.as_str()),
+            ])
+        });
+
+        let t = Table::new(
+            rows,
+            &[Constraint::Percentage(20), Constraint::Percentage(80)],
+        )
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title("Config"))
+        .style(DEFAULT_STYLE)
+        .highlight_style(selected_style);
+        f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
+    }
+}

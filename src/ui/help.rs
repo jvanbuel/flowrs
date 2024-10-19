@@ -26,7 +26,7 @@ pub fn render_help_panel(f: &mut Frame, app: &mut App) {
         .style(normal_style.add_modifier(Modifier::BOLD))
         .height(1)
         .bottom_margin(1);
-    let rows = app.configs.items.iter().map(|item| {
+    let rows = app.configs.filtered.items.iter().map(|item| {
         Row::new(vec![
             Line::from(item.name.as_str()),
             Line::from(item.endpoint.as_str()),
