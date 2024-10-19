@@ -94,21 +94,34 @@ impl Model for DagModel {
                 self.update_dags().await;
                 None
             }
-            FlowrsEvent::Key(key_event) => match key_event.code {
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.filtered.next();
+            FlowrsEvent::Key(key_event) => {
+                if self.filter.is_enabled() {
+                    self.filter.update(key_event);
+                    self.filter_dags();
                     None
+                } else {
+                    match key_event.code {
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            self.filtered.next();
+                            None
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            self.filtered.previous();
+                            None
+                        }
+                        KeyCode::Char('t') => {
+                            self.toggle_current_dag().await;
+                            None
+                        }
+                        KeyCode::Char('/') => {
+                            self.filter.toggle();
+                            self.filter_dags();
+                            None
+                        }
+                        _ => None,
+                    }
                 }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.filtered.previous();
-                    None
-                }
-                KeyCode::Char('t') => {
-                    self.toggle_current_dag().await;
-                    None
-                }
-                _ => None,
-            },
+            }
             _ => None,
         }
     }

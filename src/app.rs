@@ -77,25 +77,3 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> i
         }
     }
 }
-
-// fn mutate_filter(filter: &mut Filter, code: KeyCode) {
-//     match code {
-//         KeyCode::Esc | KeyCode::Enter => {
-//             filter.toggle();
-//         }
-//         KeyCode::Backspace => {
-//             if let Some(ref mut prefix) = filter.prefix {
-//                 prefix.pop();
-//             }
-//         }
-//         KeyCode::Char(c) => match filter.prefix {
-//             Some(ref mut prefix) => {
-//                 prefix.push(c);
-//             }
-//             None => {
-//                 filter.prefix = Some(c.to_string());
-//             }
-//         },
-//         _ => {}
-//     }
-// }

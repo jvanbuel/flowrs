@@ -1,4 +1,4 @@
-use crate::ascii_flowrs::ASCII_LOGO;
+use crate::ui::constants::ASCII_LOGO;
 use ansi_to_tui::IntoText;
 use ratatui::{
     layout::{Constraint, Direction, Layout},

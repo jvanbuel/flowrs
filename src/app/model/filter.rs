@@ -1,3 +1,5 @@
+use crossterm::event::{KeyCode, KeyEvent};
+
 pub struct Filter {
     pub enabled: bool,
     pub prefix: Option<String>,
@@ -32,6 +34,28 @@ impl Filter {
         match &self.prefix {
             Some(prefix) => matchee.contains(prefix),
             None => true,
+        }
+    }
+
+    pub fn update(&mut self, key_event: &KeyEvent) {
+        match key_event.code {
+            KeyCode::Esc | KeyCode::Enter => {
+                self.toggle();
+            }
+            KeyCode::Backspace => {
+                if let Some(ref mut prefix) = self.prefix {
+                    prefix.pop();
+                }
+            }
+            KeyCode::Char(c) => match self.prefix {
+                Some(ref mut prefix) => {
+                    prefix.push(c);
+                }
+                None => {
+                    self.prefix = Some(c.to_string());
+                }
+            },
+            _ => {}
         }
     }
 }

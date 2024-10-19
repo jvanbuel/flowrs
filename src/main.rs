@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 
-use ascii_flowrs::ASCII_LOGO;
 use clap::Parser;
+use ui::constants::ASCII_LOGO;
 
 mod airflow;
 mod app;
-mod ascii_flowrs;
 mod commands;
 mod ui;
 
