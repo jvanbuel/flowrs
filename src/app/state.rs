@@ -1,38 +1,23 @@
-use std::{
-    sync::{atomic::AtomicU32, Arc},
-    vec,
-};
+use std::vec;
 
 use crate::airflow::model::{dagrun::DagRun, taskinstance::TaskInstance};
 
-use crate::airflow::{client::AirFlowClient, config::FlowrsConfig};
+use crate::airflow::config::FlowrsConfig;
 use crate::app::error::Result;
 use crate::app::model::dags::DagModel;
 use crate::app::model::StatefulTable;
 
-use super::model::config::ConfigModel;
-
-pub struct FlowrsContext {
-    pub client: AirFlowClient,
-    pub ticks: AtomicU32,
-}
-
-impl FlowrsContext {
-    pub fn new(client: AirFlowClient) -> Self {
-        FlowrsContext {
-            client,
-            ticks: AtomicU32::new(0),
-        }
-    }
-}
+use super::{model::config::ConfigModel, worker::WorkerMessage};
+use tokio::sync::mpsc::Sender;
 
 pub struct App {
     pub dags: DagModel,
     pub configs: ConfigModel,
     pub dagruns: StatefulTable<DagRun>,
-    pub context: Arc<FlowrsContext>,
+    pub ticks: u32,
     pub active_panel: Panel,
     pub taskinstances: StatefulTable<TaskInstance>,
+    pub tx_worker: Option<Sender<WorkerMessage>>,
 }
 
 #[derive(Clone)]
@@ -46,18 +31,14 @@ pub enum Panel {
 impl App {
     pub async fn new(config: FlowrsConfig) -> Result<App> {
         let servers = config.servers.unwrap().clone();
-        let client = AirFlowClient::new(servers[0].clone())?;
-        let context = Arc::new(FlowrsContext {
-            client,
-            ticks: AtomicU32::new(0),
-        });
         Ok(App {
-            dags: DagModel::new(context.clone()),
-            configs: ConfigModel::new(context.clone(), servers),
+            dags: DagModel::new(),
+            configs: ConfigModel::new(servers),
             dagruns: StatefulTable::new(vec![]),
-            context: context.clone(),
-            active_panel: Panel::Dag,
             taskinstances: StatefulTable::new(vec![]),
+            active_panel: Panel::Dag,
+            ticks: 0,
+            tx_worker: None,
         })
     }
 
@@ -70,11 +51,6 @@ impl App {
         }
     }
 
-    pub fn update_contexts(&mut self) {
-        self.dags.context = self.context.clone();
-        self.configs.context = self.context.clone();
-    }
-
     pub fn previous_panel(&mut self) {
         match self.active_panel {
             Panel::Config => (),
@@ -82,5 +58,11 @@ impl App {
             Panel::DAGRun => self.active_panel = Panel::Dag,
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
         }
+    }
+
+    pub fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
+        self.tx_worker = Some(tx_worker.clone());
+        self.dags.register_worker(tx_worker.clone());
+        self.configs.register_worker(tx_worker);
     }
 }

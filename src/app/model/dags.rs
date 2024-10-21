@@ -1,5 +1,3 @@
-use std::sync::{atomic::Ordering::Relaxed, Arc};
-
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout};
@@ -17,41 +15,34 @@ use crate::ui::TIME_FORMAT;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::model::popup::PopUp;
-use crate::app::state::FlowrsContext;
+use crate::app::worker::WorkerMessage;
+use tokio::sync::mpsc::Sender;
 
 pub struct DagModel {
     pub all: Vec<Dag>,
     pub filtered: StatefulTable<Dag>,
     pub filter: Filter,
+    #[allow(dead_code)]
     pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
-    pub context: Arc<FlowrsContext>,
+    tx_worker: Option<Sender<WorkerMessage>>,
+    ticks: u32,
 }
 
 impl DagModel {
-    pub fn new(context: Arc<FlowrsContext>) -> Self {
+    pub fn new() -> Self {
         DagModel {
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
             popup: PopUp::new(),
             errors: vec![],
-            context,
+            ticks: 0,
+            tx_worker: None,
         }
     }
 
-    pub async fn update_dags(&mut self) {
-        let dag_list = self.context.client.list_dags().await;
-        match dag_list {
-            Ok(dag_list) => {
-                self.all = dag_list.dags;
-                self.filter_dags();
-            }
-            Err(e) => self.errors.push(e),
-        }
-    }
-
-    fn filter_dags(&mut self) {
+    pub fn filter_dags(&mut self) {
         let prefix = &self.filter.prefix;
         let filtered_dags = match prefix {
             Some(prefix) => &self
@@ -65,21 +56,15 @@ impl DagModel {
         self.filtered.items = filtered_dags.to_vec();
     }
 
-    pub async fn toggle_current_dag(&mut self) {
-        let i = self.filtered.state.selected().unwrap_or(0);
-        let dag_id = &self.filtered.items[i].dag_id.clone();
-        let is_paused = self.filtered.items[i].is_paused;
+    pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
+        self.tx_worker = Some(tx_worker);
+    }
 
-        // Don't wait for API response to update UI
-        self.filtered.items[i].is_paused = !is_paused;
-
-        match self.context.client.toggle_dag(dag_id, is_paused).await {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("Error toggling dag: {}", e);
-                self.filtered.items[i].is_paused = is_paused;
-            }
-        }
+    pub fn current(&mut self) -> Option<&mut Dag> {
+        self.filtered
+            .state
+            .selected()
+            .map(|i| &mut self.filtered.items[i])
     }
 }
 
@@ -88,16 +73,20 @@ impl Model for DagModel {
         debug!("DagModel::update");
         match event {
             FlowrsEvent::Tick => {
-                if self.context.ticks.load(Relaxed) % 10 != 0 {
+                self.ticks += 1;
+                if self.ticks % 10 != 0 {
                     return None;
                 }
-                self.update_dags().await;
+                if let Some(tx_worker) = &self.tx_worker {
+                    let _ = tx_worker
+                        .send(crate::app::worker::WorkerMessage::UpdateDags)
+                        .await;
+                }
                 None
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
-                    self.filter_dags();
                     None
                 } else {
                     match key_event.code {
@@ -110,7 +99,22 @@ impl Model for DagModel {
                             None
                         }
                         KeyCode::Char('t') => {
-                            self.toggle_current_dag().await;
+                            let send_channel = self.tx_worker.clone().unwrap();
+                            match self.current() {
+                                Some(dag) => {
+                                    let _ = send_channel
+                                        .send(WorkerMessage::ToggleDag {
+                                            dag_id: dag.dag_id.clone(),
+                                            is_paused: dag.is_paused,
+                                        })
+                                        .await;
+                                    dag.is_paused = !dag.is_paused;
+                                }
+
+                                None => self
+                                    .errors
+                                    .push(FlowrsError::from(String::from("No dag selected"))),
+                            }
                             None
                         }
                         KeyCode::Char('/') => {
@@ -154,7 +158,6 @@ impl Model for DagModel {
         let header = Row::new(header_cells)
             .style(DEFAULT_STYLE.reversed())
             .add_modifier(Modifier::BOLD);
-        // .underlined();
         let rows = self.filtered.items.iter().map(|item| {
             Row::new(vec![
                 if item.is_paused {

@@ -1,18 +1,17 @@
-use crossterm::event::{KeyEvent, MouseEvent};
+use crossterm::event::KeyEvent;
 
 #[derive(Debug, Clone)]
 pub enum FlowrsEvent {
     Tick,
     Key(KeyEvent),
-    Mouse(MouseEvent),
-    ConfigSelected(usize),
+    Mouse,
 }
 
 impl From<crossterm::event::Event> for FlowrsEvent {
     fn from(ev: crossterm::event::Event) -> Self {
         match ev {
             crossterm::event::Event::Key(key) => FlowrsEvent::Key(key),
-            crossterm::event::Event::Mouse(mouse) => FlowrsEvent::Mouse(mouse),
+            crossterm::event::Event::Mouse(_) => FlowrsEvent::Mouse,
             _ => FlowrsEvent::Tick,
         }
     }

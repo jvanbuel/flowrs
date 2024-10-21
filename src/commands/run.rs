@@ -1,4 +1,5 @@
 use std::panic::PanicHookInfo;
+use std::sync::{Arc, Mutex};
 use std::{
     fs::File,
     io::{self},
@@ -39,9 +40,9 @@ impl RunCommand {
 
         // create app and run it
         let config = FlowrsConfig::from_file(self.file.as_deref().map(Path::new))?;
-        let mut app = App::new(config).await?;
+        let app = App::new(config).await?;
 
-        run_app(&mut terminal, &mut app).await?;
+        run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
 
         info!("Shutting down the terminal...");
         ratatui::restore();

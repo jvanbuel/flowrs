@@ -1,6 +1,6 @@
 use std::{
     io,
-    sync::{atomic::Ordering::Relaxed, Arc},
+    sync::{Arc, Mutex},
 };
 
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -8,7 +8,8 @@ use events::{custom::FlowrsEvent, generator::EventGenerator};
 use log::debug;
 use model::Model;
 use ratatui::{prelude::Backend, Terminal};
-use state::{App, FlowrsContext, Panel};
+use state::{App, Panel};
+use worker::{Worker, WorkerMessage};
 
 use crate::{airflow::client::AirFlowClient, ui::draw_ui};
 
@@ -16,37 +17,58 @@ pub mod error;
 pub mod events;
 pub mod model;
 pub mod state;
+pub mod worker;
 
-pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
-    let events = EventGenerator::new(200);
+pub async fn run_app<B: Backend>(
+    terminal: &mut Terminal<B>,
+    app: Arc<Mutex<App>>,
+) -> io::Result<()> {
+    let mut events = EventGenerator::new(200);
+    let ui_app = app.clone();
+    let worker_app = app.clone();
+
+    let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
+
+    log::info!("Starting worker");
+    let airflow_client: AirFlowClient;
+    {
+        let app = app.lock().unwrap();
+        airflow_client = AirFlowClient::from(app.configs.all[0].clone());
+    }
+
+    log::info!("Spawning worker");
+    tokio::spawn(async move {
+        Worker::new(worker_app, airflow_client, rx_worker)
+            .run()
+            .await
+    });
+
+    log::info!("Registering worker");
+    app.lock().unwrap().register_worker(tx_worker);
 
     loop {
         terminal.draw(|f| {
             debug!("Drawing UI");
-            draw_ui(f, app);
+            draw_ui(f, &ui_app);
         })?;
 
-        if let Ok(event) = events.next() {
+        if let Some(mut event) = events.next().await {
             // First handle panel specific events, and send messages to the event channel
-            match app.active_panel {
-                Panel::Config => {
-                    if let Some(msg) = app.configs.update(&event).await {
-                        debug!("Sending message to event channel: {:?}", msg);
-                        events.tx_event.send(msg).unwrap();
-                    }
-                }
-                Panel::Dag => _ = app.dags.update(&event).await,
+            let mut app = app.lock().unwrap();
+            event = match app.active_panel {
+                Panel::Config => app.configs.update(&event).await.unwrap_or(event),
+                Panel::Dag => app.dags.update(&event).await.unwrap_or(event),
                 Panel::DAGRun => unimplemented!(),
                 Panel::TaskInstance => {
                     unimplemented!()
                 }
-            }
+            };
 
             // then handle generic events
             match event {
                 FlowrsEvent::Tick => {
                     debug!("Tick event");
-                    app.context.ticks.fetch_add(1, Relaxed);
+                    app.ticks += 1;
                 }
                 FlowrsEvent::Key(key) => {
                     // Handle exit key events
@@ -65,12 +87,6 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> i
                         KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
                         _ => {}
                     }
-                }
-                FlowrsEvent::ConfigSelected(index) => {
-                    let new_client: AirFlowClient =
-                        app.configs.filtered.items[index].clone().into();
-                    app.context = Arc::new(FlowrsContext::new(new_client));
-                    app.update_contexts();
                 }
                 _ => {}
             }

@@ -5,6 +5,7 @@ pub enum FlowrsError {
     ConfigError(ConfigError),
     APIError(reqwest::Error),
     Serde(serde_json::Error),
+    Generic(String),
 }
 
 #[derive(Debug)]
@@ -57,6 +58,7 @@ impl std::fmt::Display for FlowrsError {
             FlowrsError::ConfigError(e) => write!(f, "ConfigError: {}", e),
             FlowrsError::APIError(e) => write!(f, "APIError: {}", e),
             FlowrsError::Serde(e) => write!(f, "SerdeError: {}", e),
+            FlowrsError::Generic(e) => write!(f, "GenericError: {}", e),
         }
     }
 }
@@ -116,5 +118,11 @@ impl From<log::SetLoggerError> for FlowrsError {
 impl From<serde_json::Error> for FlowrsError {
     fn from(error: serde_json::Error) -> Self {
         FlowrsError::Serde(error)
+    }
+}
+
+impl From<String> for FlowrsError {
+    fn from(error: String) -> Self {
+        FlowrsError::Generic(error)
     }
 }

@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::app::{
     model::Model,
     state::{App, Panel},
@@ -15,8 +17,9 @@ pub mod taskinstance;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
-pub fn draw_ui(f: &mut Frame, app: &mut App) {
-    if app.context.ticks.load(std::sync::atomic::Ordering::Relaxed) == 0 {
+pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
+    let mut app = app.lock().unwrap();
+    if app.ticks == 0 {
         render_init_screen(f);
         return;
     }
@@ -25,7 +28,7 @@ pub fn draw_ui(f: &mut Frame, app: &mut App) {
             app.configs.view(f);
         }
         Panel::Dag => app.dags.view(f),
-        Panel::DAGRun => render_dagrun_panel(f, app),
-        Panel::TaskInstance => render_taskinstance_panel(f, app),
+        Panel::DAGRun => render_dagrun_panel(f, &mut app),
+        Panel::TaskInstance => render_taskinstance_panel(f, &mut app),
     }
 }

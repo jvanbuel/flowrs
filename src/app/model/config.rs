@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout};
@@ -7,10 +5,11 @@ use ratatui::style::{Modifier, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
+use tokio::sync::mpsc::Sender;
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
-use crate::app::state::FlowrsContext;
+use crate::app::worker::WorkerMessage;
 use crate::ui::constants::DEFAULT_STYLE;
 
 use super::{filter::Filter, Model, StatefulTable};
@@ -23,18 +22,18 @@ pub struct ConfigModel {
     pub filter: Filter,
     pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
-    pub context: Arc<FlowrsContext>,
+    pub tx_worker: Option<Sender<WorkerMessage>>,
 }
 
 impl ConfigModel {
-    pub fn new(context: Arc<FlowrsContext>, configs: Vec<AirflowConfig>) -> Self {
+    pub fn new(configs: Vec<AirflowConfig>) -> Self {
         ConfigModel {
             all: configs.clone(),
             filtered: StatefulTable::new(configs),
             filter: Filter::new(),
             popup: PopUp::new(),
             errors: vec![],
-            context,
+            tx_worker: None,
         }
     }
 
@@ -52,12 +51,21 @@ impl ConfigModel {
         };
         self.filtered.items = filtered_configs;
     }
+
+    pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
+        self.tx_worker = Some(tx_worker);
+    }
 }
 
 impl Model for ConfigModel {
     async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
         debug!("ConfigModel::update");
         if let FlowrsEvent::Key(key_event) = event {
+            if self.filter.enabled {
+                self.filter.update(key_event);
+                self.filter_configs();
+                return None;
+            }
             match key_event.code {
                 KeyCode::Down | KeyCode::Char('j') => {
                     self.filtered.next();
@@ -67,13 +75,24 @@ impl Model for ConfigModel {
                     self.filtered.previous();
                     return None;
                 }
+                KeyCode::Char('/') => {
+                    self.filter.toggle();
+                    return None;
+                }
                 KeyCode::Enter => {
                     let selected_config = self.filtered.state.selected().unwrap_or_default();
                     debug!(
                         "Selected config: {}",
                         self.filtered.items[selected_config].name
                     );
-                    return Some(FlowrsEvent::ConfigSelected(selected_config));
+                    if let Some(tx_worker) = &self.tx_worker {
+                        let _ = tx_worker
+                            .send(WorkerMessage::ConfigSelected(
+                                self.filtered.state.selected().unwrap_or_default(),
+                            ))
+                            .await;
+                    }
+                    return None;
                 }
                 _ => return None,
             }
