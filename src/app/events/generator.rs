@@ -26,11 +26,11 @@ impl EventGenerator {
                     .unwrap_or_else(|| Duration::from_secs(0));
                 if let Ok(true) = event::poll(timeout) {
                     if let Ok(ev) = event::read() {
-                        tx_event_thread.send(FlowrsEvent::from(ev)).await;
+                        let _ = tx_event_thread.send(FlowrsEvent::from(ev)).await;
                     }
                 }
                 if last_tick.elapsed() > tick_rate {
-                    tx_event_thread.send(FlowrsEvent::Tick).await;
+                    let _ = tx_event_thread.send(FlowrsEvent::Tick).await;
                     last_tick = Instant::now();
                 }
             }

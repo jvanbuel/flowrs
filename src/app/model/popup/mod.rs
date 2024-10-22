@@ -13,8 +13,8 @@ struct ActionBuffer {
 }
 
 pub struct PopUp {
-    action_buffer: ActionBuffer,
-    is_open: bool,
+    pub action_buffer: ActionBuffer,
+    pub is_open: bool,
 }
 
 impl PopUp {

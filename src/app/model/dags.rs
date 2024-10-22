@@ -1,9 +1,9 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Layout};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
+use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table};
 use ratatui::Frame;
 use time::format_description;
 
@@ -75,18 +75,29 @@ impl Model for DagModel {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if self.ticks % 10 != 0 {
-                    return None;
+                    return Some(FlowrsEvent::Tick);
                 }
                 if let Some(tx_worker) = &self.tx_worker {
                     let _ = tx_worker
                         .send(crate::app::worker::WorkerMessage::UpdateDags)
                         .await;
                 }
-                None
+                Some(FlowrsEvent::Tick)
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
+                    None
+                } else if self.popup.is_open {
+                    match key_event.code {
+                        KeyCode::Enter => {
+                            self.popup.is_open = false;
+                        }
+                        KeyCode::Esc => {
+                            self.popup.is_open = false;
+                        }
+                        _ => {}
+                    }
                     None
                 } else {
                     match key_event.code {
@@ -99,6 +110,10 @@ impl Model for DagModel {
                             None
                         }
                         KeyCode::Char('t') => {
+                            self.popup.is_open = true;
+                            None
+                        }
+                        KeyCode::Char('p') => {
                             let send_channel = self.tx_worker.clone().unwrap();
                             match self.current() {
                                 Some(dag) => {
@@ -122,13 +137,14 @@ impl Model for DagModel {
                             self.filter_dags();
                             None
                         }
-                        _ => None,
+                        _ => Some(FlowrsEvent::Key(*key_event)), // if no match, return the event
                     }
                 }
             }
             _ => None,
         }
     }
+
     fn view(&mut self, f: &mut Frame) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()
@@ -158,7 +174,7 @@ impl Model for DagModel {
         let header = Row::new(header_cells)
             .style(DEFAULT_STYLE.reversed())
             .add_modifier(Modifier::BOLD);
-        let rows = self.filtered.items.iter().map(|item| {
+        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
                 if item.is_paused {
                     Line::from(Span::styled("🔘", Style::default().fg(Color::Gray)))
@@ -189,9 +205,11 @@ impl Model for DagModel {
                     "None".to_string()
                 }),
             ])
-            // .height(height as u16)
-            // .bottom_margin(1)
-            .style(DEFAULT_STYLE)
+            .style(if (idx % 2) == 0 {
+                DEFAULT_STYLE
+            } else {
+                DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
+            })
         });
         let t = Table::new(
             rows,
@@ -207,11 +225,27 @@ impl Model for DagModel {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("DAGs")
+                .title("DAGs - Press <p> to toggle pause")
                 .border_style(DEFAULT_STYLE)
                 .style(DEFAULT_STYLE),
         )
         .highlight_style(selected_style);
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
+
+        if self.popup.is_open {
+            let block = Block::bordered().title("Popup");
+            let area = popup_area(rects[0], 60, 20);
+            f.render_widget(Clear, area); //this clears out the background
+            f.render_widget(block, area);
+        }
     }
+}
+
+/// helper function to create a centered rect using up certain percentage of the available rect `r`
+fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
+    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
+    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
+    let [area] = vertical.areas(area);
+    let [area] = horizontal.areas(area);
+    area
 }

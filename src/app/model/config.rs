@@ -92,9 +92,9 @@ impl Model for ConfigModel {
                             ))
                             .await;
                     }
-                    return None;
+                    return Some(event.clone());
                 }
-                _ => return None,
+                _ => return Some(FlowrsEvent::Key(*key_event)),
             }
         }
         None

@@ -52,17 +52,20 @@ pub async fn run_app<B: Backend>(
             draw_ui(f, &ui_app);
         })?;
 
-        if let Some(mut event) = events.next().await {
+        if let Some(event) = events.next().await {
             // First handle panel specific events, and send messages to the event channel
             let mut app = app.lock().unwrap();
-            event = match app.active_panel {
-                Panel::Config => app.configs.update(&event).await.unwrap_or(event),
-                Panel::Dag => app.dags.update(&event).await.unwrap_or(event),
+            let fall_through_event = match app.active_panel {
+                Panel::Config => app.configs.update(&event).await,
+                Panel::Dag => app.dags.update(&event).await,
                 Panel::DAGRun => unimplemented!(),
                 Panel::TaskInstance => {
                     unimplemented!()
                 }
             };
+            if fall_through_event.is_none() {
+                continue;
+            }
 
             // then handle generic events
             match event {
