@@ -20,7 +20,9 @@ pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
+    #[allow(dead_code)]
     pub popup: PopUp,
+    #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
     pub tx_worker: Option<Sender<WorkerMessage>>,
 }

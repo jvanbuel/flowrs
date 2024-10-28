@@ -12,10 +12,21 @@ pub struct Worker {
 }
 
 pub enum WorkerMessage {
-    UpdateDags,
-    ToggleDag { dag_id: String, is_paused: bool },
     ConfigSelected(usize),
-    UpdateDagRuns { dag_id: String, clear: bool },
+    UpdateDags,
+    ToggleDag {
+        dag_id: String,
+        is_paused: bool,
+    },
+    UpdateDagRuns {
+        dag_id: String,
+        clear: bool,
+    },
+    UpdateTaskInstances {
+        dag_id: String,
+        dag_run_id: String,
+        clear: bool,
+    },
 }
 
 impl Worker {
@@ -66,9 +77,28 @@ impl Worker {
                         match dag_runs {
                             Ok(dag_runs) => {
                                 app.dagruns.all = dag_runs.dag_runs;
-                                app.dagruns.filter_dagruns();
+                                app.dagruns.filter_dag_runs();
                             }
                             Err(e) => app.dagruns.errors.push(e),
+                        }
+                    }
+                    WorkerMessage::UpdateTaskInstances {
+                        dag_id,
+                        dag_run_id,
+                        clear,
+                    } => {
+                        let task_instances =
+                            self.client.list_task_instances(&dag_id, &dag_run_id).await;
+                        let mut app = self.app.lock().unwrap();
+                        if clear {
+                            app.task_instances.dag_run_id = Some(dag_run_id);
+                        }
+                        match task_instances {
+                            Ok(task_instances) => {
+                                app.task_instances.all = task_instances.task_instances;
+                                app.task_instances.filter_task_instances();
+                            }
+                            Err(e) => app.task_instances.errors.push(e),
                         }
                     }
                 }

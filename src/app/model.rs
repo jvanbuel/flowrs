@@ -7,6 +7,7 @@ pub mod dagruns;
 pub mod dags;
 pub mod filter;
 pub mod popup;
+pub mod taskinstances;
 
 pub trait Model {
     async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent>;

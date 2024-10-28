@@ -8,11 +8,8 @@ use crate::app::{
 use init_screen::render_init_screen;
 use ratatui::Frame;
 
-use self::taskinstance::render_taskinstance_panel;
-
 pub mod constants;
 mod init_screen;
-pub mod taskinstance;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
@@ -28,6 +25,6 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         }
         Panel::Dag => app.dags.view(f),
         Panel::DAGRun => app.dagruns.view(f),
-        Panel::TaskInstance => render_taskinstance_panel(f, &mut app),
+        Panel::TaskInstance => app.task_instances.view(f),
     }
 }

@@ -59,9 +59,7 @@ pub async fn run_app<B: Backend>(
                 Panel::Config => app.configs.update(&event).await,
                 Panel::Dag => app.dags.update(&event).await,
                 Panel::DAGRun => app.dagruns.update(&event).await,
-                Panel::TaskInstance => {
-                    unimplemented!()
-                }
+                Panel::TaskInstance => app.task_instances.update(&event).await,
             };
             if fall_through_event.is_none() {
                 continue;

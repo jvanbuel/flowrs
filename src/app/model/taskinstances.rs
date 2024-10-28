@@ -1,15 +1,15 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
 use time::format_description;
 
-use crate::airflow::model::dagrun::DagRun;
+use crate::airflow::model::taskinstance::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
-use crate::ui::constants::DEFAULT_STYLE;
+use crate::ui::constants::{DEFAULT_STYLE, DM_RGB};
 use crate::ui::TIME_FORMAT;
 
 use super::{filter::Filter, Model, StatefulTable};
@@ -18,10 +18,11 @@ use crate::app::model::popup::PopUp;
 use crate::app::worker::WorkerMessage;
 use tokio::sync::mpsc::Sender;
 
-pub struct DagRunModel {
+pub struct TaskInstanceModel {
     pub dag_id: Option<String>,
-    pub all: Vec<DagRun>,
-    pub filtered: StatefulTable<DagRun>,
+    pub dag_run_id: Option<String>,
+    pub all: Vec<TaskInstance>,
+    pub filtered: StatefulTable<TaskInstance>,
     pub filter: Filter,
     #[allow(dead_code)]
     pub popup: PopUp,
@@ -30,10 +31,11 @@ pub struct DagRunModel {
     ticks: u32,
 }
 
-impl DagRunModel {
+impl TaskInstanceModel {
     pub fn new() -> Self {
-        DagRunModel {
+        TaskInstanceModel {
             dag_id: None,
+            dag_run_id: None,
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
@@ -44,18 +46,18 @@ impl DagRunModel {
         }
     }
 
-    pub fn filter_dag_runs(&mut self) {
+    pub fn filter_task_instances(&mut self) {
         let prefix = &self.filter.prefix;
-        let filtered_dag_runs = match prefix {
+        let filtered_task_instances = match prefix {
             Some(prefix) => &self
                 .all
                 .iter()
                 .filter(|dagrun| dagrun.dag_run_id.contains(prefix))
                 .cloned()
-                .collect::<Vec<DagRun>>(),
+                .collect::<Vec<TaskInstance>>(),
             None => &self.all,
         };
-        self.filtered.items = filtered_dag_runs.to_vec();
+        self.filtered.items = filtered_task_instances.to_vec();
     }
 
     pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
@@ -63,15 +65,15 @@ impl DagRunModel {
     }
 
     #[allow(dead_code)]
-    pub fn current(&self) -> Option<&DagRun> {
+    pub fn current(&mut self) -> Option<&mut TaskInstance> {
         self.filtered
             .state
             .selected()
-            .map(|i| &self.filtered.items[i])
+            .map(|i| &mut self.filtered.items[i])
     }
 }
 
-impl Model for DagRunModel {
+impl Model for TaskInstanceModel {
     async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
         debug!("DagRunModel::update");
         match event {
@@ -80,12 +82,13 @@ impl Model for DagRunModel {
                 if self.ticks % 10 != 0 {
                     return Some(FlowrsEvent::Tick);
                 }
-                if let Some(dag_id) = &self.dag_id {
-                    log::debug!("Updating dagruns for dag_id: {}", dag_id);
+                if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {
+                    log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
                     if let Some(tx_worker) = &self.tx_worker {
                         let _ = tx_worker
-                            .send(crate::app::worker::WorkerMessage::UpdateDagRuns {
+                            .send(crate::app::worker::WorkerMessage::UpdateTaskInstances {
                                 dag_id: dag_id.clone(),
+                                dag_run_id: dag_run_id.clone(),
                                 clear: false,
                             })
                             .await;
@@ -124,22 +127,8 @@ impl Model for DagRunModel {
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
-                            self.filter_dag_runs();
+                            self.filter_task_instances();
                             None
-                        }
-                        KeyCode::Enter => {
-                            if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
-                                if let Some(tx_worker) = &self.tx_worker {
-                                    let _ = tx_worker
-                                        .send(WorkerMessage::UpdateTaskInstances {
-                                            dag_id: dag_id.clone(),
-                                            dag_run_id: dag_run.dag_run_id.clone(),
-                                            clear: true,
-                                        })
-                                        .await;
-                                }
-                            }
-                            Some(FlowrsEvent::Key(*key_event))
                         }
                         _ => Some(FlowrsEvent::Key(*key_event)), // if no match, return the event
                     }
@@ -155,34 +144,48 @@ impl Model for DagRunModel {
             .margin(0)
             .split(f.area());
 
-        let normal_style = DEFAULT_STYLE;
+        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
+        let normal_style = Style::default().bg(DM_RGB);
 
-        let headers = ["State", "DAG Run ID", "Logical Date", "Type"];
+        let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
         let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
-        let header =
-            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
-
+        let header = Row::new(header_cells).style(normal_style.add_modifier(Modifier::BOLD));
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
-                Line::from(match item.state.as_str() {
-                    "success" => Span::styled("■", Style::default().fg(Color::Rgb(0, 128, 0))),
-                    "running" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightGreen)),
-                    "failed" => Span::styled("■", DEFAULT_STYLE.fg(Color::Red)),
-                    "queued" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightBlue)),
-                    _ => Span::styled("■", DEFAULT_STYLE.fg(Color::White)),
-                }),
-                Line::from(Span::styled(
-                    item.dag_run_id.as_str(),
-                    Style::default().add_modifier(Modifier::BOLD),
-                )),
-                Line::from(if let Some(date) = item.logical_date {
+                Line::from(item.task_id.as_str()),
+                Line::from(if let Some(date) = item.execution_date {
                     date.format(&format_description::parse(TIME_FORMAT).unwrap())
                         .unwrap()
                         .to_string()
                 } else {
                     "None".to_string()
                 }),
-                Line::from(item.run_type.as_str()),
+                Line::from(if let Some(i) = item.duration {
+                    format!("{i}")
+                } else {
+                    "None".to_string()
+                }),
+                Line::from(match item.state.as_str() {
+                    "success" => {
+                        Span::styled(item.state.as_str(), Style::default().fg(Color::Green))
+                    }
+                    "running" => {
+                        Span::styled(item.state.as_str(), Style::default().fg(Color::LightGreen))
+                    }
+                    "failed" => Span::styled(item.state.as_str(), Style::default().fg(Color::Red)),
+                    "queued" => {
+                        Span::styled(item.state.as_str(), Style::default().fg(Color::LightBlue))
+                    }
+                    "up_for_retry" => {
+                        Span::styled(item.state.as_str(), Style::default().fg(Color::LightYellow))
+                    }
+                    "upstream_failed" => Span::styled(
+                        item.state.as_str(),
+                        Style::default().fg(Color::Rgb(255, 165, 0)), // orange
+                    ),
+                    _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
+                }),
+                Line::from(format!("{:?}", item.try_number)),
             ])
             .style(if (idx % 2) == 0 {
                 DEFAULT_STYLE
@@ -193,25 +196,22 @@ impl Model for DagRunModel {
         let t = Table::new(
             rows,
             &[
-                Constraint::Min(20),
                 Constraint::Percentage(15),
-                Constraint::Min(22),
+                Constraint::Percentage(15),
                 Constraint::Length(20),
-                Constraint::Length(10),
+                Constraint::Length(15),
+                Constraint::Length(5),
             ],
         )
         .header(header)
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title(if let Some(dag_id) = &self.dag_id {
-                    format!("DAGRuns ({})", dag_id)
-                } else {
-                    "DAGRuns".to_string()
-                })
-                .style(DEFAULT_STYLE),
+                .title("TaskInstances"),
         )
-        .row_highlight_style(DEFAULT_STYLE.reversed());
+        .style(DEFAULT_STYLE)
+        .row_highlight_style(selected_style);
+
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
     }
 }
