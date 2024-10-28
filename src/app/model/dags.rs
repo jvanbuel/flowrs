@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
@@ -90,6 +90,7 @@ impl Model for DagModel {
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
+                    self.filter_dags();
                     None
                 } else if self.popup.is_open {
                     match key_event.code {

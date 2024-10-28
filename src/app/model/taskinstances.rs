@@ -99,6 +99,7 @@ impl Model for TaskInstanceModel {
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
+                    self.filter_task_instances();
                     None
                 } else if self.popup.is_open {
                     match key_event.code {

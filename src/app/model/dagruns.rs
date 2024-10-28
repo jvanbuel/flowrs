@@ -15,7 +15,6 @@ use syntect::util::LinesWithEndings;
 use syntect_tui::into_span;
 use time::format_description;
 
-use crate::airflow::model::dag::Dag;
 use crate::airflow::model::dagrun::DagRun;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
@@ -40,20 +39,11 @@ pub struct DagRunModel {
     ticks: u32,
 }
 
+#[derive(Default)]
 pub struct DagCodeWidget {
     pub code: Option<String>,
     pub vertical_scroll: usize,
     pub vertical_scroll_state: ScrollbarState,
-}
-
-impl Default for DagCodeWidget {
-    fn default() -> Self {
-        DagCodeWidget {
-            code: None,
-            vertical_scroll: 0,
-            vertical_scroll_state: ScrollbarState::default(),
-        }
-    }
 }
 
 impl DagRunModel {
@@ -123,6 +113,7 @@ impl Model for DagRunModel {
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
+                    self.filter_dag_runs();
                     None
                 } else if self.popup.is_open {
                     match key_event.code {
