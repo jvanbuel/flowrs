@@ -155,6 +155,7 @@ impl Model for TaskInstanceModel {
         let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
         let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
         let header = Row::new(header_cells).style(normal_style.add_modifier(Modifier::BOLD));
+
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
                 Line::from(item.task_id.as_str()),
@@ -171,24 +172,13 @@ impl Model for TaskInstanceModel {
                     "None".to_string()
                 }),
                 Line::from(match item.state.as_str() {
-                    "success" => {
-                        Span::styled(item.state.as_str(), Style::default().fg(Color::Green))
-                    }
-                    "running" => {
-                        Span::styled(item.state.as_str(), Style::default().fg(Color::LightGreen))
-                    }
-                    "failed" => Span::styled(item.state.as_str(), Style::default().fg(Color::Red)),
-                    "queued" => {
-                        Span::styled(item.state.as_str(), Style::default().fg(Color::LightBlue))
-                    }
-                    "up_for_retry" => {
-                        Span::styled(item.state.as_str(), Style::default().fg(Color::LightYellow))
-                    }
-                    "upstream_failed" => Span::styled(
-                        item.state.as_str(),
-                        Style::default().fg(Color::Rgb(255, 165, 0)), // orange
-                    ),
-                    _ => Span::styled(item.state.as_str(), Style::default().fg(Color::White)),
+                    "success" => state_to_color(item, Color::Green),
+                    "running" => state_to_color(item, Color::LightGreen),
+                    "failed" => state_to_color(item, Color::Red),
+                    "queued" => state_to_color(item, Color::LightBlue),
+                    "up_for_retry" => state_to_color(item, Color::LightYellow),
+                    "upstream_failed" => state_to_color(item, Color::Rgb(255, 165, 0)),
+                    _ => state_to_color(item, Color::White),
                 }),
                 Line::from(format!("{:?}", item.try_number)),
             ])
@@ -229,4 +219,8 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
     area
+}
+
+fn state_to_color(item: &TaskInstance, color: Color) -> Span {
+    Span::styled(item.state.as_str(), Style::default().fg(color))
 }
