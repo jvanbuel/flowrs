@@ -1,4 +1,3 @@
-use log::info;
 use reqwest::{Method, Response};
 
 use crate::airflow::model::dagrun::DagRunList;
@@ -14,7 +13,6 @@ impl AirFlowClient {
             .send()
             .await?;
         let dagruns: DagRunList = response.json::<DagRunList>().await?;
-        info!("DagRuns: {:?}", dagruns);
         Ok(dagruns)
     }
 
@@ -29,6 +27,7 @@ impl AirFlowClient {
         Ok(dagruns)
     }
 
+    #[allow(dead_code)]
     pub async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
         let _: Response = self
             .base_api(

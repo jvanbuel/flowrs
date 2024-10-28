@@ -8,10 +8,9 @@ use crate::app::{
 use init_screen::render_init_screen;
 use ratatui::Frame;
 
-use self::{dagrun::render_dagrun_panel, taskinstance::render_taskinstance_panel};
+use self::taskinstance::render_taskinstance_panel;
 
 pub mod constants;
-pub mod dagrun;
 mod init_screen;
 pub mod taskinstance;
 
@@ -28,7 +27,7 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
             app.configs.view(f);
         }
         Panel::Dag => app.dags.view(f),
-        Panel::DAGRun => render_dagrun_panel(f, &mut app),
+        Panel::DAGRun => app.dagruns.view(f),
         Panel::TaskInstance => render_taskinstance_panel(f, &mut app),
     }
 }

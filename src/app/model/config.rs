@@ -128,7 +128,7 @@ impl Model for ConfigModel {
         .header(header)
         .block(Block::default().borders(Borders::ALL).title("Config"))
         .style(DEFAULT_STYLE)
-        .highlight_style(selected_style);
+        .row_highlight_style(selected_style);
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
     }
 }

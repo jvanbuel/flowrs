@@ -3,6 +3,7 @@ use ratatui::{widgets::TableState, Frame};
 use super::events::custom::FlowrsEvent;
 
 pub mod config;
+pub mod dagruns;
 pub mod dags;
 pub mod filter;
 pub mod popup;

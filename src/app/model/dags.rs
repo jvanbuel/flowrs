@@ -137,6 +137,18 @@ impl Model for DagModel {
                             self.filter_dags();
                             None
                         }
+                        KeyCode::Enter => {
+                            let selected_dag = self.current().map(|dag| dag.dag_id.clone())?;
+                            debug!("Selected dag: {}", selected_dag);
+                            if let Some(tx_worker) = &self.tx_worker {
+                                let _ = tx_worker
+                                    .send(WorkerMessage::UpdateDagRuns {
+                                        dag_id: selected_dag,
+                                    })
+                                    .await;
+                            }
+                            Some(FlowrsEvent::Key(*key_event))
+                        }
                         _ => Some(FlowrsEvent::Key(*key_event)), // if no match, return the event
                     }
                 }
@@ -229,7 +241,7 @@ impl Model for DagModel {
                 .border_style(DEFAULT_STYLE)
                 .style(DEFAULT_STYLE),
         )
-        .highlight_style(selected_style);
+        .row_highlight_style(selected_style);
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
 
         if self.popup.is_open {

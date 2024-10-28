@@ -1,9 +1,10 @@
 use std::vec;
 
-use crate::airflow::model::{dagrun::DagRun, taskinstance::TaskInstance};
+use crate::airflow::model::taskinstance::TaskInstance;
 
 use crate::airflow::config::FlowrsConfig;
 use crate::app::error::Result;
+use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
 use crate::app::model::StatefulTable;
 
@@ -13,7 +14,7 @@ use tokio::sync::mpsc::Sender;
 pub struct App {
     pub dags: DagModel,
     pub configs: ConfigModel,
-    pub dagruns: StatefulTable<DagRun>,
+    pub dagruns: DagRunModel,
     pub ticks: u32,
     pub active_panel: Panel,
     pub taskinstances: StatefulTable<TaskInstance>,
@@ -34,7 +35,7 @@ impl App {
         Ok(App {
             dags: DagModel::new(),
             configs: ConfigModel::new(servers),
-            dagruns: StatefulTable::new(vec![]),
+            dagruns: DagRunModel::new(),
             taskinstances: StatefulTable::new(vec![]),
             active_panel: Panel::Dag,
             ticks: 0,
@@ -63,6 +64,7 @@ impl App {
     pub fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
         self.tx_worker = Some(tx_worker.clone());
         self.dags.register_worker(tx_worker.clone());
-        self.configs.register_worker(tx_worker);
+        self.configs.register_worker(tx_worker.clone());
+        self.dagruns.register_worker(tx_worker.clone());
     }
 }

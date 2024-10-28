@@ -58,7 +58,7 @@ pub async fn run_app<B: Backend>(
             let fall_through_event = match app.active_panel {
                 Panel::Config => app.configs.update(&event).await,
                 Panel::Dag => app.dags.update(&event).await,
-                Panel::DAGRun => unimplemented!(),
+                Panel::DAGRun => app.dagruns.update(&event).await,
                 Panel::TaskInstance => {
                     unimplemented!()
                 }

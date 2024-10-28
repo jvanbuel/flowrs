@@ -80,7 +80,7 @@ pub fn render_taskinstance_panel(f: &mut Frame, app: &mut App) {
             .title("TaskInstances"),
     )
     .style(normal_style)
-    .highlight_style(selected_style);
+    .row_highlight_style(selected_style);
 
     f.render_stateful_widget(t, rects[0], &mut app.taskinstances.state);
 }
