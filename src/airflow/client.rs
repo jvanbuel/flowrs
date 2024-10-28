@@ -1,5 +1,6 @@
 pub mod dagruns;
 pub mod dags;
+pub mod logs;
 pub mod taskinstances;
 
 use crate::app::error::Result;

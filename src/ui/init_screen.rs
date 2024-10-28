@@ -1,19 +1,28 @@
 use crate::ui::constants::ASCII_LOGO;
 use ansi_to_tui::IntoText;
 use ratatui::{
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Flex, Layout, Rect},
     widgets::Paragraph,
     Frame,
 };
 
 pub fn render_init_screen(f: &mut Frame) {
-    let layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(vec![Constraint::Length(10000)])
-        .split(f.area());
-
     let text = ASCII_LOGO.into_text().unwrap();
-    let paragraph = Paragraph::new(text);
+    // let paragraph = Paragraph::new(&text);
 
-    f.render_widget(paragraph, layout[0])
+    let area = center(
+        f.area(),
+        Constraint::Length(text.width() as u16),
+        Constraint::Length(text.height() as u16),
+    );
+
+    f.render_widget(text, area)
+}
+
+fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {
+    let [area] = Layout::horizontal([horizontal])
+        .flex(Flex::Center)
+        .areas(area);
+    let [area] = Layout::vertical([vertical]).flex(Flex::Center).areas(area);
+    area
 }
