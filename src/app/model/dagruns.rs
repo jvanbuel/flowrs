@@ -20,6 +20,7 @@ use tokio::sync::mpsc::Sender;
 
 pub struct DagRunModel {
     pub dag_id: Option<String>,
+    pub dag_code: Option<String>,
     pub all: Vec<DagRun>,
     pub filtered: StatefulTable<DagRun>,
     pub filter: Filter,
@@ -34,6 +35,7 @@ impl DagRunModel {
     pub fn new() -> Self {
         DagRunModel {
             dag_id: None,
+            dag_code: None,
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
@@ -127,6 +129,18 @@ impl Model for DagRunModel {
                             self.filter_dag_runs();
                             None
                         }
+                        KeyCode::Char('v') => {
+                            if let Some(dag_id) = &self.dag_id {
+                                if let Some(tx_worker) = &self.tx_worker {
+                                    let _ = tx_worker
+                                        .send(WorkerMessage::GetDagCode {
+                                            dag_id: dag_id.clone(),
+                                        })
+                                        .await;
+                                }
+                            }
+                            None
+                        }
                         KeyCode::Enter => {
                             if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
                                 if let Some(tx_worker) = &self.tx_worker {
@@ -193,10 +207,9 @@ impl Model for DagRunModel {
         let t = Table::new(
             rows,
             &[
-                Constraint::Min(20),
-                Constraint::Percentage(15),
-                Constraint::Min(22),
-                Constraint::Length(20),
+                Constraint::Length(7),
+                Constraint::Percentage(20),
+                Constraint::Max(22),
                 Constraint::Length(10),
             ],
         )

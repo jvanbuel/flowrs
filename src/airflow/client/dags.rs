@@ -29,6 +29,15 @@ impl AirFlowClient {
             .await?;
         Ok(())
     }
+
+    pub async fn get_dag_code(&self, file_token: &String) -> Result<String> {
+        let r = self
+            .base_api(Method::GET, &format!("dagSources/{file_token}"))?
+            .build()?;
+        let response = self.client.execute(r).await?;
+        let code = response.text().await?;
+        Ok(code)
+    }
 }
 
 #[cfg(test)]
@@ -52,6 +61,16 @@ mod tests {
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
         let client = AirFlowClient::new(config.servers.unwrap()[0].clone()).unwrap();
         let daglist: DagList = client.list_dags().await.unwrap();
-        assert_eq!(daglist.dags[0].dag_id, "dataset_consumes_1");
+        assert_eq!(daglist.dags[0].owners, vec!["airflow"]);
+    }
+
+    #[tokio::test]
+    async fn test_get_dag_code() {
+        let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
+        let client = AirFlowClient::new(config.servers.unwrap()[0].clone()).unwrap();
+
+        let dag = client.list_dags().await.unwrap().dags[0].clone();
+        let code = client.get_dag_code(&dag.file_token).await.unwrap();
+        assert!(code.contains("with DAG"));
     }
 }

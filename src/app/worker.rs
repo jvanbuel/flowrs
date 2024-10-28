@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::airflow::client::AirFlowClient;
+use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
 use super::state::App;
 use tokio::sync::mpsc::Receiver;
@@ -26,6 +26,9 @@ pub enum WorkerMessage {
         dag_id: String,
         dag_run_id: String,
         clear: bool,
+    },
+    GetDagCode {
+        dag_id: String,
     },
 }
 
@@ -99,6 +102,26 @@ impl Worker {
                                 app.task_instances.filter_task_instances();
                             }
                             Err(e) => app.task_instances.errors.push(e),
+                        }
+                    }
+                    WorkerMessage::GetDagCode { dag_id } => {
+                        let current_dag: Dag;
+                        {
+                            let app = self.app.lock().unwrap();
+                            current_dag = app
+                                .dags
+                                .get_dag_by_id(&dag_id)
+                                .expect("Dag not found")
+                                .clone();
+                        }
+
+                        let dag_code = self.client.get_dag_code(&current_dag.file_token).await;
+                        let mut app = self.app.lock().unwrap();
+                        match dag_code {
+                            Ok(dag_code) => {
+                                app.dagruns.dag_code = Some(dag_code);
+                            }
+                            Err(e) => app.dags.errors.push(e),
                         }
                     }
                 }

@@ -66,6 +66,9 @@ impl DagModel {
             .selected()
             .map(|i| &mut self.filtered.items[i])
     }
+    pub fn get_dag_by_id(&self, dag_id: &str) -> Option<&Dag> {
+        self.all.iter().find(|dag| dag.dag_id == dag_id)
+    }
 }
 
 impl Model for DagModel {
