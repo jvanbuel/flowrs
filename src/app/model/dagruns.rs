@@ -3,10 +3,19 @@ use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap};
+use ratatui::widgets::{
+    Block, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    Table, Wrap,
+};
 use ratatui::Frame;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::ThemeSet;
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
+use syntect_tui::into_span;
 use time::format_description;
 
+use crate::airflow::model::dag::Dag;
 use crate::airflow::model::dagrun::DagRun;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
@@ -20,7 +29,7 @@ use tokio::sync::mpsc::Sender;
 
 pub struct DagRunModel {
     pub dag_id: Option<String>,
-    pub dag_code: Option<String>,
+    pub dag_code: DagCodeWidget,
     pub all: Vec<DagRun>,
     pub filtered: StatefulTable<DagRun>,
     pub filter: Filter,
@@ -31,11 +40,27 @@ pub struct DagRunModel {
     ticks: u32,
 }
 
+pub struct DagCodeWidget {
+    pub code: Option<String>,
+    pub vertical_scroll: usize,
+    pub vertical_scroll_state: ScrollbarState,
+}
+
+impl Default for DagCodeWidget {
+    fn default() -> Self {
+        DagCodeWidget {
+            code: None,
+            vertical_scroll: 0,
+            vertical_scroll_state: ScrollbarState::default(),
+        }
+    }
+}
+
 impl DagRunModel {
     pub fn new() -> Self {
         DagRunModel {
             dag_id: None,
-            dag_code: None,
+            dag_code: DagCodeWidget::default(),
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
@@ -110,10 +135,26 @@ impl Model for DagRunModel {
                         _ => {}
                     }
                     None
-                } else if self.dag_code.is_some() {
+                } else if self.dag_code.code.is_some() {
                     match key_event.code {
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('v') | KeyCode::Enter => {
-                            self.dag_code = None;
+                            self.dag_code.code = None;
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            self.dag_code.vertical_scroll =
+                                self.dag_code.vertical_scroll.saturating_add(1);
+                            self.dag_code.vertical_scroll_state = self
+                                .dag_code
+                                .vertical_scroll_state
+                                .position(self.dag_code.vertical_scroll)
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            self.dag_code.vertical_scroll =
+                                self.dag_code.vertical_scroll.saturating_sub(1);
+                            self.dag_code.vertical_scroll_state = self
+                                .dag_code
+                                .vertical_scroll_state
+                                .position(self.dag_code.vertical_scroll)
                         }
                         _ => {}
                     }
@@ -239,23 +280,31 @@ impl Model for DagRunModel {
         .row_highlight_style(DEFAULT_STYLE.reversed());
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
 
-        if let Some(dag_code) = &self.dag_code {
+        if let Some(dag_code) = &self.dag_code.code {
             let area = popup_area(f.area(), 60, 90);
+
             let popup = Block::default()
                 .borders(Borders::ALL)
-                .title("DAG Code")
+                .title("DAG Code - <j> down, <k> up, <q>|<Enter>|<Esc>|<v> close")
                 .border_style(DEFAULT_STYLE)
                 .style(DEFAULT_STYLE)
                 .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
 
-            let code_text = Paragraph::new(dag_code.clone())
+            let code_text = Paragraph::new(code_to_lines(dag_code))
                 .block(popup)
                 .style(DEFAULT_STYLE)
                 .wrap(Wrap { trim: true })
-                .scroll((1, 0));
+                .scroll((self.dag_code.vertical_scroll as u16, 0));
 
             f.render_widget(Clear, area); //this clears out the background
             f.render_widget(code_text, area);
+            f.render_stateful_widget(
+                Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                    .begin_symbol(Some("↑"))
+                    .end_symbol(Some("↓")),
+                area,
+                &mut self.dag_code.vertical_scroll_state,
+            );
         }
     }
 }
@@ -268,4 +317,23 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
     area
+}
+
+fn code_to_lines(dag_code: &str) -> Vec<Line> {
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+    let syntax = ps.find_syntax_by_extension("py").unwrap();
+    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+    let mut lines: Vec<Line> = vec![];
+    for line in LinesWithEndings::from(dag_code) {
+        // LinesWithEndings enables use of newlines mode
+        let line_spans: Vec<ratatui::prelude::Span> = h
+            .highlight_line(line, &ps)
+            .unwrap()
+            .into_iter()
+            .filter_map(|segment| into_span(segment).ok())
+            .collect::<Vec<ratatui::prelude::Span>>();
+        lines.push(Line::from(line_spans));
+    }
+    lines
 }

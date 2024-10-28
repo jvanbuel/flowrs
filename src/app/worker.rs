@@ -119,7 +119,7 @@ impl Worker {
                         let mut app = self.app.lock().unwrap();
                         match dag_code {
                             Ok(dag_code) => {
-                                app.dagruns.dag_code = Some(dag_code);
+                                app.dagruns.dag_code.code = Some(dag_code);
                             }
                             Err(e) => app.dags.errors.push(e),
                         }
