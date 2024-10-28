@@ -68,8 +68,18 @@ impl Worker {
                         }
                     }
                     WorkerMessage::ConfigSelected(idx) => {
-                        let app = self.app.lock().unwrap();
+                        let mut app = self.app.lock().unwrap();
                         self.client = AirFlowClient::from(app.configs.filtered.items[idx].clone());
+                        // TODO: make more DRY
+                        app.dags.all = vec![];
+                        app.dags.filter_dags();
+                        app.dagruns.all = vec![];
+                        app.dagruns.filter_dag_runs();
+                        app.task_instances.all = vec![];
+                        app.task_instances.filter_task_instances();
+                        app.dags.filter.reset();
+                        app.dagruns.filter.reset();
+                        app.task_instances.filter.reset();
                     }
                     WorkerMessage::UpdateDagRuns { dag_id, clear } => {
                         let dag_runs = self.client.list_dagruns(&dag_id).await;

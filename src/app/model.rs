@@ -6,6 +6,7 @@ pub mod config;
 pub mod dagruns;
 pub mod dags;
 pub mod filter;
+pub mod logs;
 pub mod popup;
 pub mod taskinstances;
 
