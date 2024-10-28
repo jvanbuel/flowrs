@@ -479,6 +479,7 @@ dependencies = [
  "indoc",
  "inquire",
  "lazy_static",
+ "left-pad",
  "log",
  "ratatui",
  "reqwest",
@@ -945,6 +946,12 @@ name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
+name = "left-pad"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97235f118becc143458c5f59c34a66dea2cc303f14348c5c7f3072bbf786e62b"
 
 [[package]]
 name = "libc"

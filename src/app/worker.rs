@@ -30,6 +30,9 @@ pub enum WorkerMessage {
     GetDagCode {
         dag_id: String,
     },
+    UpdateDagStats {
+        clear: bool,
+    },
 }
 
 impl Worker {
@@ -130,6 +133,32 @@ impl Worker {
                         match dag_code {
                             Ok(dag_code) => {
                                 app.dagruns.dag_code.code = Some(dag_code);
+                            }
+                            Err(e) => app.dags.errors.push(e),
+                        }
+                    }
+                    WorkerMessage::UpdateDagStats { clear } => {
+                        let dag_ids = {
+                            let app = self.app.lock().unwrap();
+                            let dag_ids = app
+                                .dags
+                                .all
+                                .iter()
+                                .map(|dag| dag.dag_id.clone())
+                                .collect::<Vec<_>>();
+                            dag_ids
+                        };
+                        let dag_ids_str: Vec<&str> = dag_ids.iter().map(|s| s.as_str()).collect();
+                        let dag_stats = self.client.get_dag_stats(dag_ids_str).await;
+                        let mut app = self.app.lock().unwrap();
+                        if clear {
+                            app.dags.dag_stats = Default::default();
+                        }
+                        match dag_stats {
+                            Ok(dag_stats) => {
+                                for dag_stats in dag_stats.dags {
+                                    app.dags.dag_stats.insert(dag_stats.dag_id, dag_stats.stats);
+                                }
                             }
                             Err(e) => app.dags.errors.push(e),
                         }

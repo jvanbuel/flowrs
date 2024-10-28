@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use crate::airflow::config::FlowrsConfig;
+use crate::airflow::model::dagstats::DagStatistic;
 use crate::app::error::Result;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;

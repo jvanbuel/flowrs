@@ -1,5 +1,6 @@
 pub mod dagruns;
 pub mod dags;
+pub mod dagstats;
 pub mod logs;
 pub mod taskinstances;
 

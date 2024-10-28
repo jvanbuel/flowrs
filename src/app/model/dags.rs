@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
@@ -8,6 +10,7 @@ use ratatui::Frame;
 use time::format_description;
 
 use crate::airflow::model::dag::Dag;
+use crate::airflow::model::dagstats::DagStatistic;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
@@ -20,6 +23,7 @@ use tokio::sync::mpsc::Sender;
 
 pub struct DagModel {
     pub all: Vec<Dag>,
+    pub dag_stats: HashMap<String, Vec<DagStatistic>>,
     pub filtered: StatefulTable<Dag>,
     pub filter: Filter,
     #[allow(dead_code)]
@@ -33,6 +37,7 @@ impl DagModel {
     pub fn new() -> Self {
         DagModel {
             all: vec![],
+            dag_stats: HashMap::new(),
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
             popup: PopUp::new(),
@@ -83,6 +88,9 @@ impl Model for DagModel {
                 if let Some(tx_worker) = &self.tx_worker {
                     let _ = tx_worker
                         .send(crate::app::worker::WorkerMessage::UpdateDags)
+                        .await;
+                    let _ = tx_worker
+                        .send(crate::app::worker::WorkerMessage::UpdateDagStats { clear: true })
                         .await;
                 }
                 Some(FlowrsEvent::Tick)
@@ -190,7 +198,7 @@ impl Model for DagModel {
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
-        let headers = ["Active", "Name", "Owners", "Schedule", "Next Run"];
+        let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_cells = headers.iter().map(|h| Cell::from(*h));
         let header = Row::new(header_cells)
             .style(DEFAULT_STYLE.reversed())
@@ -225,6 +233,34 @@ impl Model for DagModel {
                 } else {
                     "None".to_string()
                 }),
+                Line::from(self.dag_stats.get(&item.dag_id).map_or_else(
+                    || vec![Span::styled("None".to_string(), Style::default())],
+                    |stats| {
+                        stats
+                            .iter()
+                            .map(|stat| {
+                                Span::styled(
+                                    left_pad::leftpad(stat.count.to_string(), 7),
+                                    match stat.state.as_str() {
+                                        "success" => Style::default().fg(Color::Green),
+                                        "running" if stat.count > 0 => {
+                                            Style::default().fg(Color::LightGreen)
+                                        }
+                                        "failed" if stat.count > 0 => {
+                                            Style::default().fg(Color::Red)
+                                        }
+                                        "queued" => Style::default().fg(Color::LightBlue),
+                                        "up_for_retry" => Style::default().fg(Color::LightYellow),
+                                        "upstream_failed" => {
+                                            Style::default().fg(Color::Rgb(255, 165, 0))
+                                        }
+                                        _ => Style::default().fg(Color::DarkGray),
+                                    },
+                                )
+                            })
+                            .collect::<Vec<Span>>()
+                    },
+                )),
             ])
             .style(if (idx % 2) == 0 {
                 DEFAULT_STYLE
@@ -236,10 +272,11 @@ impl Model for DagModel {
             rows,
             &[
                 Constraint::Length(7),
-                Constraint::Percentage(40),
+                Constraint::Max(60),
                 Constraint::Max(15),
                 Constraint::Length(10),
-                Constraint::Fill(1),
+                Constraint::Length(20),
+                Constraint::Length(30),
             ],
         )
         .header(header)
