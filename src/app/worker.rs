@@ -15,7 +15,7 @@ pub enum WorkerMessage {
     UpdateDags,
     ToggleDag { dag_id: String, is_paused: bool },
     ConfigSelected(usize),
-    UpdateDagRuns { dag_id: String },
+    UpdateDagRuns { dag_id: String, clear: bool },
 }
 
 impl Worker {
@@ -57,10 +57,12 @@ impl Worker {
                         let app = self.app.lock().unwrap();
                         self.client = AirFlowClient::from(app.configs.filtered.items[idx].clone());
                     }
-                    WorkerMessage::UpdateDagRuns { dag_id } => {
+                    WorkerMessage::UpdateDagRuns { dag_id, clear } => {
                         let dag_runs = self.client.list_dagruns(&dag_id).await;
                         let mut app = self.app.lock().unwrap();
-                        app.dagruns.dag_id = Some(dag_id);
+                        if clear {
+                            app.dagruns.dag_id = Some(dag_id);
+                        }
                         match dag_runs {
                             Ok(dag_runs) => {
                                 app.dagruns.all = dag_runs.dag_runs;

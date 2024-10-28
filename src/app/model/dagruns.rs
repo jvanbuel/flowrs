@@ -86,6 +86,7 @@ impl Model for DagRunModel {
                         let _ = tx_worker
                             .send(crate::app::worker::WorkerMessage::UpdateDagRuns {
                                 dag_id: dag_id.clone(),
+                                clear: false,
                             })
                             .await;
                     }

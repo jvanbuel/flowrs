@@ -144,6 +144,7 @@ impl Model for DagModel {
                                 let _ = tx_worker
                                     .send(WorkerMessage::UpdateDagRuns {
                                         dag_id: selected_dag,
+                                        clear: true,
                                     })
                                     .await;
                             }
