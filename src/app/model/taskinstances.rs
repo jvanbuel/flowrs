@@ -121,6 +121,10 @@ impl Model for TaskInstanceModel {
                             self.filtered.previous();
                             None
                         }
+                        KeyCode::Char('G') => {
+                            self.filtered.state.select_last();
+                            None
+                        }
                         KeyCode::Char('t') => {
                             self.popup.is_open = true;
                             None

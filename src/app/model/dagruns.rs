@@ -3,7 +3,7 @@ use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Row, Table};
+use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap};
 use ratatui::Frame;
 use time::format_description;
 
@@ -110,6 +110,14 @@ impl Model for DagRunModel {
                         _ => {}
                     }
                     None
+                } else if self.dag_code.is_some() {
+                    match key_event.code {
+                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('v') | KeyCode::Enter => {
+                            self.dag_code = None;
+                        }
+                        _ => {}
+                    }
+                    None
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
@@ -118,6 +126,10 @@ impl Model for DagRunModel {
                         }
                         KeyCode::Up | KeyCode::Char('k') => {
                             self.filtered.previous();
+                            None
+                        }
+                        KeyCode::Char('G') => {
+                            self.filtered.state.select_last();
                             None
                         }
                         KeyCode::Char('t') => {
@@ -226,6 +238,25 @@ impl Model for DagRunModel {
         )
         .row_highlight_style(DEFAULT_STYLE.reversed());
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
+
+        if let Some(dag_code) = &self.dag_code {
+            let area = popup_area(f.area(), 60, 90);
+            let popup = Block::default()
+                .borders(Borders::ALL)
+                .title("DAG Code")
+                .border_style(DEFAULT_STYLE)
+                .style(DEFAULT_STYLE)
+                .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
+
+            let code_text = Paragraph::new(dag_code.clone())
+                .block(popup)
+                .style(DEFAULT_STYLE)
+                .wrap(Wrap { trim: true })
+                .scroll((1, 0));
+
+            f.render_widget(Clear, area); //this clears out the background
+            f.render_widget(code_text, area);
+        }
     }
 }
 

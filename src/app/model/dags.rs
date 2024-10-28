@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyModifiers};
 use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
@@ -110,6 +110,10 @@ impl Model for DagModel {
                         }
                         KeyCode::Up | KeyCode::Char('k') => {
                             self.filtered.previous();
+                            None
+                        }
+                        KeyCode::Char('G') => {
+                            self.filtered.state.select_last();
                             None
                         }
                         KeyCode::Char('t') => {
