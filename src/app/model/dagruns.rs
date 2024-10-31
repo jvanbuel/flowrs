@@ -262,9 +262,9 @@ impl Model for DagRunModel {
             Block::default()
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
-                    format!("DAGRuns ({})", dag_id)
+                    format!("DAGRuns ({}) - press <v> to view DAG code", dag_id)
                 } else {
-                    "DAGRuns".to_string()
+                    "DAGRuns press <v> to view DAG code".to_string()
                 })
                 .style(DEFAULT_STYLE),
         )
