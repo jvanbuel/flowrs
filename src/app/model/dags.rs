@@ -19,7 +19,6 @@ use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::model::popup::PopUp;
 use crate::app::worker::WorkerMessage;
-use tokio::sync::mpsc::Sender;
 
 pub struct DagModel {
     pub all: Vec<Dag>,
@@ -29,7 +28,6 @@ pub struct DagModel {
     #[allow(dead_code)]
     pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
-    tx_worker: Option<Sender<WorkerMessage>>,
     ticks: u32,
 }
 
@@ -43,7 +41,6 @@ impl DagModel {
             popup: PopUp::new(),
             errors: vec![],
             ticks: 0,
-            tx_worker: None,
         }
     }
 
@@ -61,10 +58,6 @@ impl DagModel {
         self.filtered.items = filtered_dags.to_vec();
     }
 
-    pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
-        self.tx_worker = Some(tx_worker);
-    }
-
     pub fn current(&mut self) -> Option<&mut Dag> {
         self.filtered
             .state
@@ -77,29 +70,25 @@ impl DagModel {
 }
 
 impl Model for DagModel {
-    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
-        debug!("DagModel::update");
+    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if self.ticks % 10 != 0 {
-                    return Some(FlowrsEvent::Tick);
+                    return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let Some(tx_worker) = &self.tx_worker {
-                    let _ = tx_worker
-                        .send(crate::app::worker::WorkerMessage::UpdateDags)
-                        .await;
-                    let _ = tx_worker
-                        .send(crate::app::worker::WorkerMessage::UpdateDagStats { clear: true })
-                        .await;
-                }
-                Some(FlowrsEvent::Tick)
+                (
+                    Some(FlowrsEvent::Tick),
+                    vec![
+                        WorkerMessage::UpdateDags,
+                        WorkerMessage::UpdateDagStats { clear: true },
+                    ],
+                )
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dags();
-                    None
                 } else if self.popup.is_open {
                     match key_event.code {
                         KeyCode::Enter => {
@@ -110,67 +99,62 @@ impl Model for DagModel {
                         }
                         _ => {}
                     }
-                    None
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
                             self.filtered.next();
-                            None
                         }
                         KeyCode::Up | KeyCode::Char('k') => {
                             self.filtered.previous();
-                            None
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
-                            None
                         }
                         KeyCode::Char('t') => {
                             self.popup.is_open = true;
-                            None
                         }
-                        KeyCode::Char('p') => {
-                            let send_channel = self.tx_worker.clone().unwrap();
-                            match self.current() {
-                                Some(dag) => {
-                                    let _ = send_channel
-                                        .send(WorkerMessage::ToggleDag {
-                                            dag_id: dag.dag_id.clone(),
-                                            is_paused: dag.is_paused,
-                                        })
-                                        .await;
-                                    dag.is_paused = !dag.is_paused;
-                                }
-
-                                None => self
-                                    .errors
-                                    .push(FlowrsError::from(String::from("No dag selected"))),
+                        KeyCode::Char('p') => match self.current() {
+                            Some(dag) => {
+                                dag.is_paused = !dag.is_paused;
+                                return (
+                                    None,
+                                    vec![WorkerMessage::ToggleDag {
+                                        dag_id: dag.dag_id.clone(),
+                                        is_paused: dag.is_paused,
+                                    }],
+                                );
                             }
-                            None
-                        }
+                            None => self
+                                .errors
+                                .push(FlowrsError::from(String::from("No dag selected"))),
+                        },
                         KeyCode::Char('/') => {
                             self.filter.toggle();
                             self.filter_dags();
-                            None
                         }
                         KeyCode::Enter => {
-                            let selected_dag = self.current().map(|dag| dag.dag_id.clone())?;
-                            debug!("Selected dag: {}", selected_dag);
-                            if let Some(tx_worker) = &self.tx_worker {
-                                let _ = tx_worker
-                                    .send(WorkerMessage::UpdateDagRuns {
+                            if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone())
+                            {
+                                debug!("Selected dag: {}", selected_dag);
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::UpdateDagRuns {
                                         dag_id: selected_dag,
                                         clear: true,
-                                    })
-                                    .await;
+                                    }],
+                                );
+                            } else {
+                                self.errors
+                                    .push(FlowrsError::from(String::from("No dag selected")));
                             }
-                            Some(FlowrsEvent::Key(*key_event))
                         }
-                        _ => Some(FlowrsEvent::Key(*key_event)), // if no match, return the event
+                        _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                     }
+                    return (None, vec![]);
                 }
+                (None, vec![])
             }
-            _ => None,
+            _ => (Some(event.clone()), vec![]),
         }
     }
 

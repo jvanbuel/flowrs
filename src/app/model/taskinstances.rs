@@ -1,5 +1,6 @@
+use std::vec;
+
 use crossterm::event::KeyCode;
-use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -16,7 +17,6 @@ use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::model::popup::PopUp;
 use crate::app::worker::WorkerMessage;
-use tokio::sync::mpsc::Sender;
 
 pub struct TaskInstanceModel {
     pub dag_id: Option<String>,
@@ -27,7 +27,6 @@ pub struct TaskInstanceModel {
     #[allow(dead_code)]
     pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
-    tx_worker: Option<Sender<WorkerMessage>>,
     ticks: u32,
 }
 
@@ -42,7 +41,6 @@ impl TaskInstanceModel {
             popup: PopUp::new(),
             errors: vec![],
             ticks: 0,
-            tx_worker: None,
         }
     }
 
@@ -60,10 +58,6 @@ impl TaskInstanceModel {
         self.filtered.items = filtered_task_instances.to_vec();
     }
 
-    pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
-        self.tx_worker = Some(tx_worker);
-    }
-
     #[allow(dead_code)]
     pub fn current(&mut self) -> Option<&mut TaskInstance> {
         self.filtered
@@ -74,33 +68,30 @@ impl TaskInstanceModel {
 }
 
 impl Model for TaskInstanceModel {
-    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
-        debug!("DagRunModel::update");
+    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if self.ticks % 10 != 0 {
-                    return Some(FlowrsEvent::Tick);
+                    return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {
                     log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
-                    if let Some(tx_worker) = &self.tx_worker {
-                        let _ = tx_worker
-                            .send(crate::app::worker::WorkerMessage::UpdateTaskInstances {
-                                dag_id: dag_id.clone(),
-                                dag_run_id: dag_run_id.clone(),
-                                clear: false,
-                            })
-                            .await;
-                    }
+                    return (
+                        Some(FlowrsEvent::Tick),
+                        vec![WorkerMessage::UpdateTaskInstances {
+                            dag_id: dag_id.clone(),
+                            dag_run_id: dag_run_id.clone(),
+                            clear: false,
+                        }],
+                    );
                 }
-                Some(FlowrsEvent::Tick)
+                (Some(FlowrsEvent::Tick), vec![])
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_task_instances();
-                    None
                 } else if self.popup.is_open {
                     match key_event.code {
                         KeyCode::Enter => {
@@ -111,35 +102,30 @@ impl Model for TaskInstanceModel {
                         }
                         _ => {}
                     }
-                    None
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
                             self.filtered.next();
-                            None
                         }
                         KeyCode::Up | KeyCode::Char('k') => {
                             self.filtered.previous();
-                            None
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
-                            None
                         }
                         KeyCode::Char('t') => {
                             self.popup.is_open = true;
-                            None
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
                             self.filter_task_instances();
-                            None
                         }
-                        _ => Some(FlowrsEvent::Key(*key_event)), // if no match, return the event
+                        _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                     }
                 }
+                (None, vec![])
             }
-            _ => None,
+            _ => (Some(event.clone()), vec![]),
         }
     }
 

@@ -43,9 +43,6 @@ pub async fn run_app<B: Backend>(
             .await
     });
 
-    log::info!("Registering worker");
-    app.lock().unwrap().register_worker(tx_worker);
-
     loop {
         terminal.draw(|f| {
             debug!("Drawing UI");
@@ -54,42 +51,45 @@ pub async fn run_app<B: Backend>(
 
         if let Some(event) = events.next().await {
             // First handle panel specific events, and send messages to the event channel
-            let mut app = app.lock().unwrap();
-            let fall_through_event = match app.active_panel {
-                Panel::Config => app.configs.update(&event).await,
-                Panel::Dag => app.dags.update(&event).await,
-                Panel::DAGRun => app.dagruns.update(&event).await,
-                Panel::TaskInstance => app.task_instances.update(&event).await,
+            let (fall_through_event, messages) = {
+                let mut app = app.lock().unwrap();
+                match app.active_panel {
+                    Panel::Config => app.configs.update(&event),
+                    Panel::Dag => app.dags.update(&event),
+                    Panel::DAGRun => app.dagruns.update(&event),
+                    Panel::TaskInstance => app.task_instances.update(&event),
+                }
             };
+
+            for message in messages {
+                tx_worker.clone().send(message).await.unwrap();
+            }
             if fall_through_event.is_none() {
                 continue;
             }
 
             // then handle generic events
-            match event {
-                FlowrsEvent::Tick => {
-                    debug!("Tick event");
-                    app.ticks += 1;
-                }
-                FlowrsEvent::Key(key) => {
-                    // Handle exit key events
-                    if key.modifiers == KeyModifiers::CONTROL {
-                        match key.code {
-                            KeyCode::Char('c') => return Ok(()),
-                            KeyCode::Char('d') => return Ok(()),
-                            _ => {}
-                        }
-                    }
-                    // Handle other key events
+            let mut app = app.lock().unwrap();
+            if let Some(FlowrsEvent::Tick) = fall_through_event {
+                app.ticks += 1;
+            }
+            if let FlowrsEvent::Key(key) = event {
+                // Handle exit key events
+                if key.modifiers == KeyModifiers::CONTROL {
                     match key.code {
-                        KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('?') => unimplemented!(),
-                        KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
-                        KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
+                        KeyCode::Char('c') => return Ok(()),
+                        KeyCode::Char('d') => return Ok(()),
                         _ => {}
                     }
                 }
-                _ => {}
+                // Handle other key events
+                match key.code {
+                    KeyCode::Char('q') => return Ok(()),
+                    KeyCode::Char('?') => unimplemented!(),
+                    KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
+                    KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
+                    _ => {}
+                }
             }
         }
     }

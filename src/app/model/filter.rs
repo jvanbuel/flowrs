@@ -30,13 +30,6 @@ impl Filter {
         self.prefix = None;
     }
 
-    pub fn matches(&self, matchee: &str) -> bool {
-        match &self.prefix {
-            Some(prefix) => matchee.contains(prefix),
-            None => true,
-        }
-    }
-
     pub fn update(&mut self, key_event: &KeyEvent) {
         match key_event.code {
             KeyCode::Esc | KeyCode::Enter => {

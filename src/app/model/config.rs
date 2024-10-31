@@ -5,7 +5,6 @@ use ratatui::style::{Modifier, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
-use tokio::sync::mpsc::Sender;
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
@@ -24,7 +23,6 @@ pub struct ConfigModel {
     pub popup: PopUp,
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
-    pub tx_worker: Option<Sender<WorkerMessage>>,
 }
 
 impl ConfigModel {
@@ -35,7 +33,6 @@ impl ConfigModel {
             filter: Filter::new(),
             popup: PopUp::new(),
             errors: vec![],
-            tx_worker: None,
         }
     }
 
@@ -53,33 +50,25 @@ impl ConfigModel {
         };
         self.filtered.items = filtered_configs;
     }
-
-    pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
-        self.tx_worker = Some(tx_worker);
-    }
 }
 
 impl Model for ConfigModel {
-    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
-        debug!("ConfigModel::update");
+    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         if let FlowrsEvent::Key(key_event) = event {
             if self.filter.enabled {
                 self.filter.update(key_event);
                 self.filter_configs();
-                return None;
+                return (None, vec![]);
             }
             match key_event.code {
                 KeyCode::Down | KeyCode::Char('j') => {
                     self.filtered.next();
-                    return None;
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
                     self.filtered.previous();
-                    return None;
                 }
                 KeyCode::Char('/') => {
                     self.filter.toggle();
-                    return None;
                 }
                 KeyCode::Enter => {
                     let selected_config = self.filtered.state.selected().unwrap_or_default();
@@ -87,19 +76,18 @@ impl Model for ConfigModel {
                         "Selected config: {}",
                         self.filtered.items[selected_config].name
                     );
-                    if let Some(tx_worker) = &self.tx_worker {
-                        let _ = tx_worker
-                            .send(WorkerMessage::ConfigSelected(
-                                self.filtered.state.selected().unwrap_or_default(),
-                            ))
-                            .await;
-                    }
-                    return Some(event.clone());
+
+                    return (
+                        Some(event.clone()),
+                        vec![WorkerMessage::ConfigSelected(
+                            self.filtered.state.selected().unwrap_or_default(),
+                        )],
+                    );
                 }
-                _ => return Some(FlowrsEvent::Key(*key_event)),
+                _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]),
             }
         }
-        None
+        (None, vec![])
     }
 
     fn view(&mut self, f: &mut Frame) {

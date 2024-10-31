@@ -1,6 +1,6 @@
 use ratatui::{widgets::TableState, Frame};
 
-use super::events::custom::FlowrsEvent;
+use super::{events::custom::FlowrsEvent, worker::WorkerMessage};
 
 pub mod config;
 pub mod dagruns;
@@ -11,7 +11,7 @@ pub mod popup;
 pub mod taskinstances;
 
 pub trait Model {
-    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent>;
+    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
     fn view(&mut self, f: &mut Frame);
 }
 

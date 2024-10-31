@@ -1,5 +1,4 @@
 use crossterm::event::KeyCode;
-use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
@@ -24,7 +23,6 @@ use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::model::popup::PopUp;
 use crate::app::worker::WorkerMessage;
-use tokio::sync::mpsc::Sender;
 
 pub struct DagRunModel {
     pub dag_id: Option<String>,
@@ -35,7 +33,6 @@ pub struct DagRunModel {
     #[allow(dead_code)]
     pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
-    tx_worker: Option<Sender<WorkerMessage>>,
     ticks: u32,
 }
 
@@ -57,7 +54,6 @@ impl DagRunModel {
             popup: PopUp::new(),
             errors: vec![],
             ticks: 0,
-            tx_worker: None,
         }
     }
 
@@ -75,11 +71,6 @@ impl DagRunModel {
         self.filtered.items = filtered_dag_runs.to_vec();
     }
 
-    pub(crate) fn register_worker(&mut self, tx_worker: Sender<WorkerMessage>) {
-        self.tx_worker = Some(tx_worker);
-    }
-
-    #[allow(dead_code)]
     pub fn current(&self) -> Option<&DagRun> {
         self.filtered
             .state
@@ -89,32 +80,27 @@ impl DagRunModel {
 }
 
 impl Model for DagRunModel {
-    async fn update(&mut self, event: &FlowrsEvent) -> Option<FlowrsEvent> {
-        debug!("DagRunModel::update");
+    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if self.ticks % 10 != 0 {
-                    return Some(FlowrsEvent::Tick);
+                    return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let Some(dag_id) = &self.dag_id {
-                    log::debug!("Updating dagruns for dag_id: {}", dag_id);
-                    if let Some(tx_worker) = &self.tx_worker {
-                        let _ = tx_worker
-                            .send(crate::app::worker::WorkerMessage::UpdateDagRuns {
-                                dag_id: dag_id.clone(),
-                                clear: false,
-                            })
-                            .await;
-                    }
-                }
-                Some(FlowrsEvent::Tick)
+                let worker_messages = if let Some(dag_id) = &self.dag_id {
+                    vec![WorkerMessage::UpdateDagRuns {
+                        dag_id: dag_id.clone(),
+                        clear: false,
+                    }]
+                } else {
+                    vec![]
+                };
+                return (Some(FlowrsEvent::Tick), worker_messages);
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dag_runs();
-                    None
                 } else if self.popup.is_open {
                     match key_event.code {
                         KeyCode::Enter => {
@@ -125,7 +111,6 @@ impl Model for DagRunModel {
                         }
                         _ => {}
                     }
-                    None
                 } else if self.dag_code.code.is_some() {
                     match key_event.code {
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('v') | KeyCode::Enter => {
@@ -149,62 +134,53 @@ impl Model for DagRunModel {
                         }
                         _ => {}
                     }
-                    None
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
                             self.filtered.next();
-                            None
                         }
                         KeyCode::Up | KeyCode::Char('k') => {
                             self.filtered.previous();
-                            None
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
-                            None
                         }
                         KeyCode::Char('t') => {
                             self.popup.is_open = true;
-                            None
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
                             self.filter_dag_runs();
-                            None
                         }
                         KeyCode::Char('v') => {
                             if let Some(dag_id) = &self.dag_id {
-                                if let Some(tx_worker) = &self.tx_worker {
-                                    let _ = tx_worker
-                                        .send(WorkerMessage::GetDagCode {
-                                            dag_id: dag_id.clone(),
-                                        })
-                                        .await;
-                                }
+                                return (
+                                    None,
+                                    vec![WorkerMessage::GetDagCode {
+                                        dag_id: dag_id.clone(),
+                                    }],
+                                );
                             }
-                            None
                         }
                         KeyCode::Enter => {
                             if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
-                                if let Some(tx_worker) = &self.tx_worker {
-                                    let _ = tx_worker
-                                        .send(WorkerMessage::UpdateTaskInstances {
-                                            dag_id: dag_id.clone(),
-                                            dag_run_id: dag_run.dag_run_id.clone(),
-                                            clear: true,
-                                        })
-                                        .await;
-                                }
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::UpdateTaskInstances {
+                                        dag_id: dag_id.clone(),
+                                        dag_run_id: dag_run.dag_run_id.clone(),
+                                        clear: true,
+                                    }],
+                                );
                             }
-                            Some(FlowrsEvent::Key(*key_event))
                         }
-                        _ => Some(FlowrsEvent::Key(*key_event)), // if no match, return the event
+                        _ => {}
                     }
                 }
             }
-            _ => None,
+            _ => {}
         }
+        (None, vec![])
     }
 
     fn view(&mut self, f: &mut Frame) {
