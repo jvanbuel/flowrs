@@ -180,7 +180,7 @@ impl Model for DagRunModel {
             }
             _ => {}
         }
-        (None, vec![])
+        (Some(event.clone()), vec![])
     }
 
     fn view(&mut self, f: &mut Frame) {
