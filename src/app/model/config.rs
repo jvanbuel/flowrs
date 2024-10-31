@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout};
-use ratatui::style::{Modifier, Stylize};
+use ratatui::style::{Color, Modifier, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
@@ -98,22 +98,32 @@ impl Model for ConfigModel {
 
         let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
-        let headers = ["Name", "Endpoint"];
+        let headers = ["Name", "Endpoint", "Managed"];
         let header_cells = headers.iter().map(|h| Cell::from(*h).style(DEFAULT_STYLE));
 
         let header =
             Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
 
-        let rows = self.filtered.items.iter().map(|item| {
+        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
                 Line::from(item.name.as_str()),
                 Line::from(item.endpoint.as_str()),
+                Line::from(if let Some(managed_service) = &item.managed {
+                    managed_service.to_string()
+                } else {
+                    "None".to_string()
+                }),
             ])
+            .style(if (idx % 2) == 0 {
+                DEFAULT_STYLE
+            } else {
+                DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
+            })
         });
 
         let t = Table::new(
             rows,
-            &[Constraint::Percentage(20), Constraint::Percentage(80)],
+            &[Constraint::Percentage(20), Constraint::Percentage(80), Constraint::Percentage(20)],
         )
         .header(header)
         .block(Block::default().borders(Borders::ALL).title("Config"))

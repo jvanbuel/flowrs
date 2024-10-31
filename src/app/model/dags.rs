@@ -115,12 +115,13 @@ impl Model for DagModel {
                         }
                         KeyCode::Char('p') => match self.current() {
                             Some(dag) => {
-                                dag.is_paused = !dag.is_paused;
+                                let current_state = dag.is_paused;
+                                dag.is_paused = !current_state;
                                 return (
                                     None,
                                     vec![WorkerMessage::ToggleDag {
                                         dag_id: dag.dag_id.clone(),
-                                        is_paused: dag.is_paused,
+                                        is_paused: current_state,
                                     }],
                                 );
                             }
