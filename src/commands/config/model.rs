@@ -11,6 +11,8 @@ pub enum ConfigCommand {
     #[clap(alias = "rm")]
     Remove(RemoveCommand),
     Update(UpdateCommand),
+    #[clap(alias = "ls")]
+    List(ListCommand),
 }
 
 impl ConfigCommand {
@@ -19,6 +21,7 @@ impl ConfigCommand {
             ConfigCommand::Add(cmd) => cmd.run(),
             ConfigCommand::Remove(cmd) => cmd.run(),
             ConfigCommand::Update(cmd) => cmd.run(),
+            ConfigCommand::List(cmd) => cmd.run(),
         }
     }
 }
@@ -32,6 +35,12 @@ pub struct AddCommand {
 #[derive(Parser, Debug)]
 pub struct RemoveCommand {
     pub name: Option<String>,
+    #[clap(short, long)]
+    pub file: Option<String>,
+}
+
+#[derive(Parser, Debug)]
+pub struct ListCommand {
     #[clap(short, long)]
     pub file: Option<String>,
 }

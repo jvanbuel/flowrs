@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
@@ -17,6 +18,17 @@ pub enum ManagedService {
     Gcc,
 }
 
+impl Display for ManagedService {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ManagedService::Conveyor => write!(f, "Conveyor"),
+            ManagedService::Mwaa => write!(f, "MWAA"),
+            ManagedService::Astronomer => write!(f, "Astronomer"),
+            ManagedService::Gcc => write!(f, "Google Cloud Composer"),
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct FlowrsConfig {
     pub servers: Option<Vec<AirflowConfig>>,
@@ -28,6 +40,7 @@ pub struct AirflowConfig {
     pub name: String,
     pub endpoint: String,
     pub auth: AirflowAuth,
+    pub managed: Option<ManagedService>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -166,6 +179,7 @@ password = "airflow"
                     username: "airflow".to_string(),
                     password: "airflow".to_string(),
                 }),
+                managed: None,
             }]),
             managed_services: Some(vec![ManagedService::Conveyor]),
         };

@@ -1,4 +1,4 @@
-use crate::airflow::config::{AirflowAuth, AirflowConfig, TokenCmd};
+use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService, TokenCmd};
 use crate::app::error::Result;
 use log::info;
 use serde::{Deserialize, Serialize};
@@ -39,6 +39,7 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
                 cmd: Some("conveyor auth get --quiet | jq -r .access_token".to_string()),
                 token: None,
             }),
+            managed: Some(ManagedService::Conveyor),
         })
         .collect();
     Ok(servers)

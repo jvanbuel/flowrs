@@ -20,7 +20,7 @@ impl RemoveCommand {
                 .prompt()?,
                 Some(ref name) => name.to_string(),
             };
-            servers.retain(|server| server.name != name);
+            servers.retain(|server| server.name != name && server.managed.is_none());
             config.servers = Some(servers);
             config.to_file(path)?;
 

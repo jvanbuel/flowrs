@@ -32,6 +32,7 @@ impl AddCommand {
                     name,
                     endpoint,
                     auth: AirflowAuth::BasicAuth(BasicAuth { username, password }),
+                    managed: None,
                 }
             }
             ConfigOption::Token(_) => {
@@ -56,6 +57,7 @@ impl AddCommand {
                         cmd,
                         token: Some(token),
                     }),
+                    managed: None,
                 }
             }
         };
@@ -64,7 +66,7 @@ impl AddCommand {
         let mut config = FlowrsConfig::from_file(path)?;
 
         if let Some(mut servers) = config.servers.clone() {
-            servers.retain(|server| server.name != new_config.name);
+            servers.retain(|server| server.name != new_config.name && server.managed.is_none());
             servers.push(new_config);
             config.servers = Some(servers);
         } else {
