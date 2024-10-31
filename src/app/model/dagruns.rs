@@ -115,6 +115,7 @@ impl Model for DagRunModel {
                     match key_event.code {
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('v') | KeyCode::Enter => {
                             self.dag_code.code = None;
+                            return (None, vec![]);
                         }
                         KeyCode::Down | KeyCode::Char('j') => {
                             self.dag_code.vertical_scroll =

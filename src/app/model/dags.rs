@@ -7,13 +7,12 @@ use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table};
 use ratatui::Frame;
-use time::format_description;
+use time::OffsetDateTime;
 
 use crate::airflow::model::dag::Dag;
 use crate::airflow::model::dagstats::DagStatistic;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
-use crate::ui::TIME_FORMAT;
 
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
@@ -211,10 +210,8 @@ impl Model for DagModel {
                         Style::default().fg(Color::LightYellow),
                     ))
                 },
-                Line::from(if let Some(date) = item.next_dagrun {
-                    date.format(&format_description::parse(TIME_FORMAT).unwrap())
-                        .unwrap()
-                        .to_string()
+                Line::from(if let Some(date) = item.next_dagrun_create_after {
+                    convert_datetimeoffset_to_human_readable_remaining_time(date)
                 } else {
                     "None".to_string()
                 }),
@@ -291,4 +288,42 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let [area] = vertical.areas(area);
     let [area] = horizontal.areas(area);
     area
+}
+
+fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -> String {
+    let now = OffsetDateTime::now_utc();
+    let duration = dt.unix_timestamp() - now.unix_timestamp();
+    let duration = if duration < 0 { 0 } else { duration as u64 };
+    let days = duration / (24 * 3600);
+    let hours = (duration % (24 * 3600)) / 3600;
+    let minutes = (duration % 3600) / 60;
+    let seconds = duration % 60;
+
+    match duration {
+        0..=59 => format!("{}s", seconds),
+        60..=3599 => format!("{}m", minutes),
+        3600..=86_399 => format!("{}h {:02}m", hours, minutes),
+        _ => format!("{}d {:02}h {:02}m", days, hours, minutes),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // TODO: This is poor test... should make it deterministic
+    fn test_convert_datetimeoffset_to_human_readable_remaining_time() {
+        let now = OffsetDateTime::now_utc();
+        let dt = now + time::Duration::seconds(60);
+        assert_eq!(
+            convert_datetimeoffset_to_human_readable_remaining_time(dt),
+            "1m"
+        );
+        let dt = now + time::Duration::seconds(3600);
+        assert_eq!(
+            convert_datetimeoffset_to_human_readable_remaining_time(dt),
+            "1h 00m"
+        );
+    }
 }

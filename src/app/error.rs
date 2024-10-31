@@ -1,3 +1,5 @@
+use time::error::IndeterminateOffset;
+
 pub type Result<T> = std::result::Result<T, FlowrsError>;
 
 #[derive(Debug)]
@@ -124,5 +126,11 @@ impl From<serde_json::Error> for FlowrsError {
 impl From<String> for FlowrsError {
     fn from(error: String) -> Self {
         FlowrsError::Generic(error)
+    }
+}
+
+impl From<IndeterminateOffset> for FlowrsError {
+    fn from(error: IndeterminateOffset) -> Self {
+        FlowrsError::Generic(error.to_string())
     }
 }
