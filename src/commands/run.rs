@@ -40,7 +40,7 @@ impl RunCommand {
 
         // create app and run it
         let config = FlowrsConfig::from_file(self.file.as_deref().map(Path::new))?;
-        let app = App::new(config).await?;
+        let app = App::new(config)?;
 
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
 

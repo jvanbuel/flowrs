@@ -39,6 +39,12 @@ pub enum WorkerMessage {
         dag_run_id: String,
         dag_id: String,
     },
+    GetTaskLogs {
+        dag_id: String,
+        dag_run_id: String,
+        task_id: String,
+        task_try: u16,
+    },
 }
 
 impl Worker {
@@ -79,7 +85,7 @@ impl Worker {
                     WorkerMessage::ConfigSelected(idx) => {
                         let mut app = self.app.lock().unwrap();
                         self.client = AirFlowClient::from(app.configs.filtered.items[idx].clone());
-                        // TODO: make more DRY
+                        // TODO: make more DRY, check whether we can just replace app with new App by adding flowrs Config as a field
                         app.dags.all = vec![];
                         app.dags.filter_dags();
                         app.dagruns.all = vec![];
@@ -176,6 +182,29 @@ impl Worker {
                             debug!("Error clearing dag_run: {}", e);
                             let mut app = self.app.lock().unwrap();
                             app.dagruns.errors.push(e);
+                        }
+                    }
+                    WorkerMessage::GetTaskLogs {
+                        dag_id,
+                        dag_run_id,
+                        task_id,
+                        task_try,
+                    } => {
+                        debug!("Getting logs for task: {task_id}, try number {task_try}");
+                        let log = self
+                            .client
+                            .get_task_logs(&dag_id, &dag_run_id, &task_id, task_try)
+                            .await;
+                        let mut app = self.app.lock().unwrap();
+                        match log {
+                            Ok(log) => {
+                                debug!("Got log: {}", log.content);
+                                app.logs.all.push(log);
+                            }
+                            Err(e) => {
+                                debug!("Error getting logs: {}", e);
+                                app.logs.errors.push(e);
+                            }
                         }
                     }
                 }

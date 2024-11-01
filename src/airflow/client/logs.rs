@@ -1,7 +1,6 @@
 use reqwest::Method;
 
 use crate::airflow::model::log::Log;
-use crate::airflow::model::taskinstance::TaskInstance;
 use crate::app::error::Result;
 
 use super::AirFlowClient;
@@ -22,6 +21,8 @@ impl AirFlowClient {
                 )
                 .as_str(),
             )?
+            .query(&[("full_content", "true")])
+            .header("Accept", "application/json") // Important, otherwise will return plain text
             .send()
             .await?;
         let log = reponse.json::<Log>().await?;

@@ -26,5 +26,6 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         Panel::Dag => app.dags.view(f),
         Panel::DAGRun => app.dagruns.view(f),
         Panel::TaskInstance => app.task_instances.view(f),
+        Panel::Logs => app.logs.view(f),
     }
 }

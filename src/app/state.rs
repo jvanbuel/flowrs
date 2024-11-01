@@ -3,15 +3,16 @@ use crate::app::error::Result;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
 
-use super::model::{config::ConfigModel, taskinstances::TaskInstanceModel};
+use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
 
 pub struct App {
     pub dags: DagModel,
     pub configs: ConfigModel,
     pub dagruns: DagRunModel,
+    pub task_instances: TaskInstanceModel,
+    pub logs: LogModel,
     pub ticks: u32,
     pub active_panel: Panel,
-    pub task_instances: TaskInstanceModel,
 }
 
 #[derive(Clone)]
@@ -20,16 +21,18 @@ pub enum Panel {
     Dag,
     DAGRun,
     TaskInstance,
+    Logs,
 }
 
 impl App {
-    pub async fn new(config: FlowrsConfig) -> Result<App> {
+    pub fn new(config: FlowrsConfig) -> Result<App> {
         let servers = config.servers.unwrap().clone();
         Ok(App {
             dags: DagModel::new(),
             configs: ConfigModel::new(servers),
             dagruns: DagRunModel::new(),
             task_instances: TaskInstanceModel::new(),
+            logs: LogModel::new(),
             active_panel: Panel::Dag,
             ticks: 0,
         })
@@ -40,7 +43,8 @@ impl App {
             Panel::Config => self.active_panel = Panel::Dag,
             Panel::Dag => self.active_panel = Panel::DAGRun,
             Panel::DAGRun => self.active_panel = Panel::TaskInstance,
-            Panel::TaskInstance => (),
+            Panel::TaskInstance => self.active_panel = Panel::Logs,
+            Panel::Logs => (),
         }
     }
 
@@ -50,6 +54,7 @@ impl App {
             Panel::Dag => self.active_panel = Panel::Config,
             Panel::DAGRun => self.active_panel = Panel::Dag,
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
+            Panel::Logs => self.active_panel = Panel::TaskInstance,
         }
     }
 }

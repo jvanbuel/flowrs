@@ -104,6 +104,19 @@ impl Model for TaskInstanceModel {
                             self.filter.toggle();
                             self.filter_task_instances();
                         }
+                        KeyCode::Enter => {
+                            if let Some(task_instance) = self.current() {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::GetTaskLogs {
+                                        dag_id: task_instance.dag_id.clone(),
+                                        dag_run_id: task_instance.dag_run_id.clone(),
+                                        task_id: task_instance.task_id.clone(),
+                                        task_try: task_instance.try_number as u16,
+                                    }],
+                                );
+                            }
+                        }
                         _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                     }
                 }

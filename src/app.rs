@@ -58,6 +58,7 @@ pub async fn run_app<B: Backend>(
                     Panel::Dag => app.dags.update(&event),
                     Panel::DAGRun => app.dagruns.update(&event),
                     Panel::TaskInstance => app.task_instances.update(&event),
+                    Panel::Logs => app.logs.update(&event),
                 }
             };
 

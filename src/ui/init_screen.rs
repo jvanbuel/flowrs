@@ -1,8 +1,7 @@
 use crate::ui::constants::ASCII_LOGO;
 use ansi_to_tui::IntoText;
 use ratatui::{
-    layout::{Constraint, Direction, Flex, Layout, Rect},
-    widgets::Paragraph,
+    layout::{Constraint, Flex, Layout, Rect},
     Frame,
 };
 
