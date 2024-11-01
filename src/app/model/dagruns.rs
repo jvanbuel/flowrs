@@ -1,6 +1,6 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Flex, Layout, Offset, Rect};
+use ratatui::layout::{Constraint, Flex, Layout,Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
