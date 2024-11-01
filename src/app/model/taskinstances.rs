@@ -10,12 +10,11 @@ use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
-use crate::ui::constants::{DEFAULT_STYLE, DM_RGB};
+use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
-use crate::app::model::popup::PopUp;
 use crate::app::worker::WorkerMessage;
 
 pub struct TaskInstanceModel {
@@ -25,7 +24,6 @@ pub struct TaskInstanceModel {
     pub filtered: StatefulTable<TaskInstance>,
     pub filter: Filter,
     #[allow(dead_code)]
-    pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
     ticks: u32,
 }
@@ -38,7 +36,6 @@ impl TaskInstanceModel {
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
-            popup: PopUp::new(),
             errors: vec![],
             ticks: 0,
         }
@@ -92,16 +89,6 @@ impl Model for TaskInstanceModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_task_instances();
-                } else if self.popup.is_open {
-                    match key_event.code {
-                        KeyCode::Enter => {
-                            self.popup.is_open = false;
-                        }
-                        KeyCode::Esc => {
-                            self.popup.is_open = false;
-                        }
-                        _ => {}
-                    }
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
@@ -112,9 +99,6 @@ impl Model for TaskInstanceModel {
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
-                        }
-                        KeyCode::Char('t') => {
-                            self.popup.is_open = true;
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();

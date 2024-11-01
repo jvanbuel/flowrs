@@ -13,14 +13,12 @@ use crate::ui::constants::DEFAULT_STYLE;
 
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
-use crate::app::model::popup::PopUp;
 
 pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
     #[allow(dead_code)]
-    pub popup: PopUp,
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
 }
@@ -31,7 +29,6 @@ impl ConfigModel {
             all: configs.clone(),
             filtered: StatefulTable::new(configs),
             filter: Filter::new(),
-            popup: PopUp::new(),
             errors: vec![],
         }
     }
@@ -123,7 +120,11 @@ impl Model for ConfigModel {
 
         let t = Table::new(
             rows,
-            &[Constraint::Percentage(20), Constraint::Percentage(80), Constraint::Percentage(20)],
+            &[
+                Constraint::Percentage(20),
+                Constraint::Percentage(80),
+                Constraint::Percentage(20),
+            ],
         )
         .header(header)
         .block(Block::default().borders(Borders::ALL).title("Config"))

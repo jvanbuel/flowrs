@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
 use super::state::App;
+use log::debug;
 use tokio::sync::mpsc::Receiver;
 
 pub struct Worker {
@@ -11,6 +12,7 @@ pub struct Worker {
     rx_worker: Receiver<WorkerMessage>,
 }
 
+#[derive(Debug)]
 pub enum WorkerMessage {
     ConfigSelected(usize),
     UpdateDags,
@@ -32,6 +34,10 @@ pub enum WorkerMessage {
     },
     UpdateDagStats {
         clear: bool,
+    },
+    ClearDagRun {
+        dag_run_id: String,
+        dag_id: String,
     },
 }
 
@@ -161,6 +167,15 @@ impl Worker {
                                 }
                             }
                             Err(e) => app.dags.errors.push(e),
+                        }
+                    }
+                    WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
+                        debug!("Clearing dag_run: {}", dag_run_id);
+                        let dag_run = self.client.clear_dagrun(&dag_id, &dag_run_id).await;
+                        if let Err(e) = dag_run {
+                            debug!("Error clearing dag_run: {}", e);
+                            let mut app = self.app.lock().unwrap();
+                            app.dagruns.errors.push(e);
                         }
                     }
                 }

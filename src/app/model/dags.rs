@@ -5,7 +5,7 @@ use log::debug;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table};
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use ratatui::Frame;
 use time::OffsetDateTime;
 
@@ -16,7 +16,6 @@ use crate::ui::constants::DEFAULT_STYLE;
 
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
-use crate::app::model::popup::PopUp;
 use crate::app::worker::WorkerMessage;
 
 pub struct DagModel {
@@ -25,7 +24,6 @@ pub struct DagModel {
     pub filtered: StatefulTable<Dag>,
     pub filter: Filter,
     #[allow(dead_code)]
-    pub popup: PopUp,
     pub errors: Vec<FlowrsError>,
     ticks: u32,
 }
@@ -37,7 +35,6 @@ impl DagModel {
             dag_stats: HashMap::new(),
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
-            popup: PopUp::new(),
             errors: vec![],
             ticks: 0,
         }
@@ -88,16 +85,6 @@ impl Model for DagModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dags();
-                } else if self.popup.is_open {
-                    match key_event.code {
-                        KeyCode::Enter => {
-                            self.popup.is_open = false;
-                        }
-                        KeyCode::Esc => {
-                            self.popup.is_open = false;
-                        }
-                        _ => {}
-                    }
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
@@ -110,7 +97,7 @@ impl Model for DagModel {
                             self.filtered.state.select_last();
                         }
                         KeyCode::Char('t') => {
-                            self.popup.is_open = true;
+                            unimplemented!();
                         }
                         KeyCode::Char('p') => match self.current() {
                             Some(dag) => {
@@ -272,16 +259,17 @@ impl Model for DagModel {
         .row_highlight_style(selected_style);
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
 
-        if self.popup.is_open {
-            let block = Block::bordered().title("Popup");
-            let area = popup_area(rects[0], 60, 20);
-            f.render_widget(Clear, area); //this clears out the background
-            f.render_widget(block, area);
-        }
+        // if self.popup.is_open {
+        //     let block = Block::bordered().title("Popup");
+        //     let area = popup_area(rects[0], 60, 20);
+        //     f.render_widget(Clear, area); //this clears out the background
+        //     f.render_widget(block, area);
+        // }
     }
 }
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
+#[allow(dead_code)]
 fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
     let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);

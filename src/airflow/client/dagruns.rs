@@ -27,13 +27,13 @@ impl AirFlowClient {
         Ok(dagruns)
     }
 
-    #[allow(dead_code)]
     pub async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
         let _: Response = self
             .base_api(
                 Method::POST,
                 format!("dags/{dag_id}/dagRuns/{dag_run_id}/clear").as_str(),
             )?
+            .json(&serde_json::json!({"dry_run": false}))
             .send()
             .await?;
         Ok(())
