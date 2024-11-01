@@ -2,7 +2,7 @@ use std::vec;
 
 use crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Cell, Row, Table};
 use ratatui::Frame;
@@ -136,11 +136,11 @@ impl Model for TaskInstanceModel {
             .split(f.area());
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-        let normal_style = Style::default().bg(DM_RGB);
 
         let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
-        let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
-        let header = Row::new(header_cells).style(normal_style.add_modifier(Modifier::BOLD));
+        let header_cells = headers.iter().map(|h| Cell::from(*h));
+        let header =
+            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
 
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
