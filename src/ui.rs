@@ -21,10 +21,13 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     }
     match app.active_panel {
         Panel::Config => {
-            app.configs.view(f);
+            // app.configs.view(f);
+            f.render_stateful_widget(app.configs, f.area(), &mut app.configs.filtered.state);
         }
         Panel::Dag => app.dags.view(f),
-        Panel::DAGRun => app.dagruns.view(f),
+        Panel::DAGRun => {
+            f.render_stateful_widget(app.dagruns, f.area(), &mut app.dagruns.filtered.state)
+        }
         Panel::TaskInstance => app.task_instances.view(f),
         Panel::Logs => app.logs.view(f),
     }

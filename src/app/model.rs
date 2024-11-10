@@ -1,4 +1,4 @@
-use ratatui::{widgets::TableState, Frame};
+use ratatui::widgets::{StatefulWidget, TableState};
 
 use super::{events::custom::FlowrsEvent, worker::WorkerMessage};
 
@@ -10,9 +10,8 @@ pub mod logs;
 pub mod popup;
 pub mod taskinstances;
 
-pub trait Model {
+pub trait Model: StatefulWidget {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
-    fn view(&mut self, f: &mut Frame);
 }
 
 #[derive(Clone)]

@@ -1,11 +1,11 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Flex, Layout,Rect};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
-    Table, Wrap,
+    StatefulWidget, Table, TableState, Widget, Wrap,
 };
 use ratatui::Frame;
 use syntect::easy::HighlightLines;
@@ -192,7 +192,9 @@ impl Model for DagRunModel {
         }
         (Some(event.clone()), vec![])
     }
+}
 
+impl DagRunModel {
     fn view(&mut self, f: &mut Frame) {
         let rects = Layout::default()
             .constraints([Constraint::Percentage(100)].as_ref())
@@ -341,6 +343,165 @@ impl Model for DagRunModel {
             f.render_widget(text, header);
             f.render_widget(yes_text, yes);
             f.render_widget(no_text, no);
+        }
+    }
+}
+
+struct DagRunState {
+    table: TableState,
+    dag_code: ScrollbarState,
+}
+
+impl StatefulWidget for DagRunModel {
+    type State = DagRunState;
+
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer, state: &mut Self::State) {
+        let rects = Layout::default()
+            .constraints([Constraint::Percentage(100)].as_ref())
+            .margin(0)
+            .split(area);
+
+        let normal_style = DEFAULT_STYLE;
+
+        let headers = ["State", "DAG Run ID", "Logical Date", "Type"];
+        let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
+        let header =
+            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+
+        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
+            Row::new(vec![
+                Line::from(match item.state.as_str() {
+                    "success" => Span::styled("■", Style::default().fg(Color::Rgb(0, 128, 0))),
+                    "running" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightGreen)),
+                    "failed" => Span::styled("■", DEFAULT_STYLE.fg(Color::Red)),
+                    "queued" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightBlue)),
+                    _ => Span::styled("■", DEFAULT_STYLE.fg(Color::White)),
+                }),
+                Line::from(Span::styled(
+                    item.dag_run_id.as_str(),
+                    Style::default().add_modifier(Modifier::BOLD),
+                )),
+                Line::from(if let Some(date) = item.logical_date {
+                    date.format(&format_description::parse(TIME_FORMAT).unwrap())
+                        .unwrap()
+                        .to_string()
+                } else {
+                    "None".to_string()
+                }),
+                Line::from(item.run_type.as_str()),
+            ])
+            .style(if (idx % 2) == 0 {
+                DEFAULT_STYLE
+            } else {
+                DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
+            })
+        });
+        let t = Table::new(
+            rows,
+            &[
+                Constraint::Length(7),
+                Constraint::Percentage(20),
+                Constraint::Max(22),
+                Constraint::Length(10),
+            ],
+        )
+        .header(header)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(if let Some(dag_id) = &self.dag_id {
+                    format!("DAGRuns ({}) - press <v> to view DAG code", dag_id)
+                } else {
+                    "DAGRuns press <v> to view DAG code".to_string()
+                })
+                .style(DEFAULT_STYLE),
+        )
+        .row_highlight_style(DEFAULT_STYLE.reversed());
+        StatefulWidget::render(t, rects[0], buf, &mut state.table);
+
+        if let Some(dag_code) = &self.dag_code.code {
+            let area = popup_area(area, 60, 90);
+
+            let popup = Block::default()
+                .borders(Borders::ALL)
+                .title("DAG Code - <j> down, <k> up, <q>|<Enter>|<Esc>|<v> close")
+                .border_style(DEFAULT_STYLE)
+                .style(DEFAULT_STYLE)
+                .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
+
+            let code_text = Paragraph::new(code_to_lines(dag_code))
+                .block(popup)
+                .style(DEFAULT_STYLE)
+                .wrap(Wrap { trim: true })
+                .scroll((self.dag_code.vertical_scroll as u16, 0));
+
+            Clear.render(area, buf); //this clears out the background
+            code_text.render(area, buf);
+
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(Some("↑"))
+                .end_symbol(Some("↓"));
+
+            scrollbar.render(area, buf, &mut state.dag_code);
+        }
+
+        if let Some(popup) = &self.popup {
+            let area = popup_area(area, 50, 50);
+
+            let [_, header, options, _] = Layout::vertical([
+                Constraint::Length(2),
+                Constraint::Length(3),
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ])
+            .flex(Flex::Center)
+            .areas(area);
+
+            let popup_block = Block::default()
+                .borders(Borders::ALL)
+                .title("Clear DAG Run - press <Enter> to confirm, <q>|<Esc> to close")
+                .border_style(DEFAULT_STYLE)
+                .style(DEFAULT_STYLE)
+                .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
+
+            let text = Paragraph::new("Are you sure you want to clear this DAG Run?")
+                .style(DEFAULT_STYLE)
+                .block(Block::default())
+                .centered()
+                .wrap(Wrap { trim: true });
+
+            let [_, yes, _, no, _] = Layout::horizontal([
+                Constraint::Fill(1),
+                Constraint::Length(7),
+                Constraint::Percentage(5),
+                Constraint::Length(7),
+                Constraint::Fill(1),
+            ])
+            .areas(options);
+
+            let yes_text = Paragraph::new("Yes")
+                .style(if popup.confirm {
+                    DEFAULT_STYLE.reversed()
+                } else {
+                    DEFAULT_STYLE
+                })
+                .centered()
+                .block(Block::default().borders(Borders::ALL));
+
+            let no_text = Paragraph::new("No")
+                .style(if !popup.confirm {
+                    DEFAULT_STYLE.reversed()
+                } else {
+                    DEFAULT_STYLE
+                })
+                .centered()
+                .block(Block::default().borders(Borders::ALL));
+
+            Clear.render(area, buf); //this clears out the background
+            popup_block.render(area, buf);
+            text.render(header, buf);
+            yes_text.render(yes, buf);
+            no_text.render(no, buf);
         }
     }
 }

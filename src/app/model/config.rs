@@ -1,9 +1,10 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Layout};
+use ratatui::buffer::Buffer;
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Cell, Row, Table};
+use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, TableState};
 use ratatui::Frame;
 
 use crate::airflow::config::AirflowConfig;
@@ -86,7 +87,9 @@ impl Model for ConfigModel {
         }
         (None, vec![])
     }
+}
 
+impl ConfigModel {
     fn view(&mut self, f: &mut Frame) {
         let rects = Layout::default()
             .constraints([Constraint::Percentage(100)].as_ref())
@@ -131,5 +134,49 @@ impl Model for ConfigModel {
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
         f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
+    }
+}
+
+impl StatefulWidget for ConfigModel {
+    type State = TableState;
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
+
+        let headers = ["Name", "Endpoint", "Managed"];
+        let header_cells = headers.iter().map(|h| Cell::from(*h).style(DEFAULT_STYLE));
+
+        let header =
+            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+
+        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
+            Row::new(vec![
+                Line::from(item.name.as_str()),
+                Line::from(item.endpoint.as_str()),
+                Line::from(if let Some(managed_service) = &item.managed {
+                    managed_service.to_string()
+                } else {
+                    "None".to_string()
+                }),
+            ])
+            .style(if (idx % 2) == 0 {
+                DEFAULT_STYLE
+            } else {
+                DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
+            })
+        });
+
+        let t = Table::new(
+            rows,
+            &[
+                Constraint::Percentage(20),
+                Constraint::Percentage(80),
+                Constraint::Percentage(20),
+            ],
+        )
+        .header(header)
+        .block(Block::default().borders(Borders::ALL).title("Config"))
+        .style(DEFAULT_STYLE)
+        .row_highlight_style(selected_style);
+        StatefulWidget::render(t, area, buf, state);
     }
 }
