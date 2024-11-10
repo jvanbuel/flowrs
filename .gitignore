@@ -8,3 +8,4 @@ dags
 .vscode
 
 flowrs-debug*
+*.gif
