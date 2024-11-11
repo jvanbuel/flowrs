@@ -1,6 +1,6 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
@@ -19,7 +19,8 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
-use super::popup::ClearDagRunPopup;
+use super::popup::popup_area;
+use super::popup::{ClearDagRunPopup, MarkDagRunPopup};
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
@@ -33,8 +34,14 @@ pub struct DagRunModel {
     pub marked: Vec<usize>,
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
-    pub popup: Option<ClearDagRunPopup>,
+    pub popup: Option<DagRunPopUp>,
     ticks: u32,
+}
+
+pub enum DagRunPopUp {
+    Clear(ClearDagRunPopup),
+    Mark(MarkDagRunPopup),
+    Trigger,
 }
 
 #[derive(Default)]
@@ -110,17 +117,36 @@ impl Model for DagRunModel {
                     self.filter.update(key_event);
                     self.filter_dag_runs();
                 } else if let Some(popup) = &mut self.popup {
-                    let (key_event, messages) = popup.update(event);
-                    debug!("Popup messages: {:?}", messages);
-                    if let Some(FlowrsEvent::Key(key_event)) = &key_event {
-                        match key_event.code {
-                            KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
-                                self.popup = None;
+                    match popup {
+                        DagRunPopUp::Clear(popup) => {
+                            let (key_event, messages) = popup.update(event);
+                            debug!("Popup messages: {:?}", messages);
+                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+                                match key_event.code {
+                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.popup = None;
+                                    }
+                                    _ => {}
+                                }
                             }
-                            _ => {}
+                            return (None, messages);
                         }
+                        DagRunPopUp::Mark(popup) => {
+                            let (key_event, messages) = popup.update(event);
+                            debug!("Popup messages: {:?}", messages);
+                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+                                match key_event.code {
+                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.popup = None;
+                                        self.marked = vec![];
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            return (None, messages);
+                        }
+                        DagRunPopUp::Trigger => {}
                     }
-                    return (None, messages);
                 } else if self.dag_code.code.is_some() {
                     match key_event.code {
                         KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('v') | KeyCode::Enter => {
@@ -162,6 +188,11 @@ impl Model for DagRunModel {
                         KeyCode::Char('m') => {
                             if let Some(index) = self.filtered.state.selected() {
                                 self.marked.push(index);
+
+                                self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
+                                    self.current().unwrap().dag_run_id.clone(),
+                                    self.current().unwrap().dag_id.clone(),
+                                )));
                             }
                         }
                         KeyCode::Char('M') => {
@@ -188,10 +219,12 @@ impl Model for DagRunModel {
                             }
                         }
                         KeyCode::Char('c') => {
-                            self.popup = Some(ClearDagRunPopup::new(
-                                self.current().unwrap().dag_run_id.clone(),
-                                self.dag_id.clone().unwrap(),
-                            ));
+                            if let (Some(dag_run), Some(dag_id)) = (self.current(), &self.dag_id) {
+                                self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
+                                    dag_run.dag_run_id.clone(),
+                                    dag_id.clone(),
+                                )));
+                            }
                         }
                         KeyCode::Enter => {
                             if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
@@ -308,75 +341,16 @@ impl Widget for &mut DagRunModel {
             scrollbar.render(area, buf, &mut self.dag_code.vertical_scroll_state);
         }
 
-        if let Some(popup) = &self.popup {
-            let area = popup_area(area, 50, 50);
-
-            let [_, header, options, _] = Layout::vertical([
-                Constraint::Length(2),
-                Constraint::Length(3),
-                Constraint::Length(3),
-                Constraint::Min(1),
-            ])
-            .flex(Flex::Center)
-            .areas(area);
-
-            let popup_block = Block::default()
-                .borders(Borders::ALL)
-                .title("Clear DAG Run - press <Enter> to confirm, <q>|<Esc> to close")
-                .border_style(DEFAULT_STYLE)
-                .style(DEFAULT_STYLE)
-                .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
-
-            let text = Paragraph::new("Are you sure you want to clear this DAG Run?")
-                .style(DEFAULT_STYLE)
-                .block(Block::default())
-                .centered()
-                .wrap(Wrap { trim: true });
-
-            let [_, yes, _, no, _] = Layout::horizontal([
-                Constraint::Fill(1),
-                Constraint::Length(7),
-                Constraint::Percentage(5),
-                Constraint::Length(7),
-                Constraint::Fill(1),
-            ])
-            .areas(options);
-
-            let yes_text = Paragraph::new("Yes")
-                .style(if popup.confirm {
-                    DEFAULT_STYLE.reversed()
-                } else {
-                    DEFAULT_STYLE
-                })
-                .centered()
-                .block(Block::default().borders(Borders::ALL));
-
-            let no_text = Paragraph::new("No")
-                .style(if !popup.confirm {
-                    DEFAULT_STYLE.reversed()
-                } else {
-                    DEFAULT_STYLE
-                })
-                .centered()
-                .block(Block::default().borders(Borders::ALL));
-
-            Clear.render(area, buf); //this clears out the background
-            popup_block.render(area, buf);
-            text.render(header, buf);
-            yes_text.render(yes, buf);
-            no_text.render(no, buf);
+        match &mut self.popup {
+            Some(DagRunPopUp::Clear(popup)) => {
+                popup.render(area, buf);
+            }
+            Some(DagRunPopUp::Mark(popup)) => {
+                popup.render(area, buf);
+            }
+            _ => (),
         }
     }
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-#[allow(dead_code)]
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
 }
 
 fn code_to_lines(dag_code: &str) -> Vec<Line> {

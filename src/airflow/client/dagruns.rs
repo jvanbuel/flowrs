@@ -27,6 +27,18 @@ impl AirFlowClient {
         Ok(dagruns)
     }
 
+    pub async fn mark_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()> {
+        let _: Response = self
+            .base_api(
+                Method::PATCH,
+                format!("dags/{dag_id}/dagRuns/{dag_run_id}").as_str(),
+            )?
+            .json(&serde_json::json!({"state": status}))
+            .send()
+            .await?;
+        Ok(())
+    }
+
     pub async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
         let _: Response = self
             .base_api(

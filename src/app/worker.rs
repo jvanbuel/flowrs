@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
-use super::state::App;
+use super::{model::popup::MarkState, state::App};
 use log::debug;
 use tokio::sync::mpsc::Receiver;
 
@@ -44,6 +44,11 @@ pub enum WorkerMessage {
         dag_run_id: String,
         task_id: String,
         task_try: u16,
+    },
+    MarkDagRun {
+        dag_run_id: String,
+        dag_id: String,
+        status: MarkState,
     },
 }
 
@@ -205,6 +210,22 @@ impl Worker {
                                 debug!("Error getting logs: {}", e);
                                 app.logs.errors.push(e);
                             }
+                        }
+                    }
+                    WorkerMessage::MarkDagRun {
+                        dag_run_id,
+                        dag_id,
+                        status,
+                    } => {
+                        debug!("Marking dag_run: {}", dag_run_id);
+                        let dag_run = self
+                            .client
+                            .mark_dag_run(&dag_id, &dag_run_id, &status.to_string())
+                            .await;
+                        if let Err(e) = dag_run {
+                            debug!("Error marking dag_run: {}", e);
+                            let mut app = self.app.lock().unwrap();
+                            app.dagruns.errors.push(e);
                         }
                     }
                 }

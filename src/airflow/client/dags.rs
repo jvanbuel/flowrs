@@ -20,6 +20,15 @@ impl AirFlowClient {
         }
     }
 
+    // pub async fn get_dag_details(&self, dag_id: &str) -> Result<()> {
+    //     let r = self
+    //         .base_api(Method::GET, &format!("dags/{dag_id}/details"))?
+    //         .build()?;
+    //     let response = self.client.execute(r).await?;
+    //     let _ = response.text().await?;
+    //     Ok(())
+    // }
+
     pub async fn toggle_dag(&self, dag_id: &str, is_paused: bool) -> Result<()> {
         let _: Response = self
             .base_api(Method::PATCH, &format!("dags/{dag_id}"))?
