@@ -5,7 +5,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, TableState};
+use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
@@ -61,6 +61,12 @@ impl TaskInstanceModel {
             .state
             .selected()
             .map(|i| &mut self.filtered.items[i])
+    }
+}
+
+impl Default for TaskInstanceModel {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -126,9 +132,8 @@ impl Model for TaskInstanceModel {
         }
     }
 }
-impl StatefulWidget for TaskInstanceModel {
-    type State = TableState;
-    fn render(self, area: Rect, buffer: &mut Buffer, state: &mut Self::State) {
+impl Widget for &mut TaskInstanceModel {
+    fn render(self, area: Rect, buffer: &mut Buffer) {
         let rects = Layout::default()
             .constraints([Constraint::Percentage(100)].as_ref())
             .margin(0)
@@ -192,7 +197,7 @@ impl StatefulWidget for TaskInstanceModel {
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
 
-        t.render(rects[0], buffer, state);
+        StatefulWidget::render(t, rects[0], buffer, &mut self.filtered.state);
     }
 }
 

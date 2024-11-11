@@ -88,8 +88,8 @@ impl Model for ConfigModel {
     }
 }
 
-impl Widget for ConfigModel {
-    fn render(mut self, area: Rect, buf: &mut Buffer) {
+impl Widget for &mut ConfigModel {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
         let headers = ["Name", "Endpoint", "Managed"];

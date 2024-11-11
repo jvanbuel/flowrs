@@ -5,7 +5,7 @@ use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
-    StatefulWidget, Table, TableState, Widget, Wrap,
+    StatefulWidget, Table, Widget, Wrap,
 };
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
@@ -76,6 +76,12 @@ impl DagRunModel {
             .state
             .selected()
             .map(|i| &self.filtered.items[i])
+    }
+}
+
+impl Default for DagRunModel {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -193,15 +199,8 @@ impl Model for DagRunModel {
     }
 }
 
-pub struct DagRunState {
-    pub table: TableState,
-    pub dag_code: ScrollbarState,
-}
-
-impl StatefulWidget for DagRunModel {
-    type State = DagRunState;
-
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer, state: &mut Self::State) {
+impl Widget for &mut DagRunModel {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let rects = Layout::default()
             .constraints([Constraint::Percentage(100)].as_ref())
             .margin(0)
@@ -263,7 +262,7 @@ impl StatefulWidget for DagRunModel {
                 .style(DEFAULT_STYLE),
         )
         .row_highlight_style(DEFAULT_STYLE.reversed());
-        StatefulWidget::render(t, rects[0], buf, &mut state.table);
+        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 
         if let Some(dag_code) = &self.dag_code.code {
             let area = popup_area(area, 60, 90);
@@ -288,7 +287,7 @@ impl StatefulWidget for DagRunModel {
                 .begin_symbol(Some("↑"))
                 .end_symbol(Some("↓"));
 
-            scrollbar.render(area, buf, &mut state.dag_code);
+            scrollbar.render(area, buf, &mut self.dag_code.vertical_scroll_state);
         }
 
         if let Some(popup) = &self.popup {

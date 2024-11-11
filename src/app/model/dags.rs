@@ -7,7 +7,7 @@ use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, Borders, Cell, Paragraph, Row, StatefulWidget, Table, TableState, Widget,
+    Block, Borders, Cell, Paragraph, Row, StatefulWidget, Table, Widget,
 };
 use time::OffsetDateTime;
 
@@ -64,6 +64,12 @@ impl DagModel {
     }
     pub fn get_dag_by_id(&self, dag_id: &str) -> Option<&Dag> {
         self.all.iter().find(|dag| dag.dag_id == dag_id)
+    }
+}
+
+impl Default for DagModel {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -148,10 +154,8 @@ impl Model for DagModel {
     }
 }
 
-impl StatefulWidget for DagModel {
-    type State = TableState;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl Widget for &mut DagModel {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
@@ -264,7 +268,7 @@ impl StatefulWidget for DagModel {
         )
         .row_highlight_style(selected_style);
 
-        StatefulWidget::render(t, rects[0], buf, state);
+        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
     }
 }
 

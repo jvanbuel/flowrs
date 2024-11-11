@@ -52,3 +52,9 @@ impl Filter {
         }
     }
 }
+
+impl Default for Filter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
