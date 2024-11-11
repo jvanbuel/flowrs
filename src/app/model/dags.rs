@@ -2,11 +2,13 @@ use std::collections::HashMap;
 
 use crossterm::event::KeyCode;
 use log::debug;
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
-use ratatui::Frame;
+use ratatui::widgets::{
+    Block, Borders, Cell, Paragraph, Row, StatefulWidget, Table, TableState, Widget,
+};
 use time::OffsetDateTime;
 
 use crate::airflow::model::dag::Dag;
@@ -144,30 +146,34 @@ impl Model for DagModel {
             _ => (Some(event.clone()), vec![]),
         }
     }
+}
 
-    fn view(&mut self, f: &mut Frame) {
+impl StatefulWidget for DagModel {
+    type State = TableState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
-                .split(f.area());
+                .split(area);
 
             let filter = self.filter.prefix().clone();
 
             let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
                 .block(Block::default().borders(Borders::ALL).title("filter"))
                 .set_style(DEFAULT_STYLE);
-            f.render_widget(paragraph, rects[1]);
+
+            Widget::render(paragraph, rects[1], buf);
 
             rects
         } else {
             Layout::default()
                 .constraints([Constraint::Percentage(100)].as_ref())
                 .margin(0)
-                .split(f.area())
+                .split(area)
         };
-
-        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
+        let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_cells = headers.iter().map(|h| Cell::from(*h));
@@ -257,14 +263,8 @@ impl Model for DagModel {
                 .style(DEFAULT_STYLE),
         )
         .row_highlight_style(selected_style);
-        f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
 
-        // if self.popup.is_open {
-        //     let block = Block::bordered().title("Popup");
-        //     let area = popup_area(rects[0], 60, 20);
-        //     f.render_widget(Clear, area); //this clears out the background
-        //     f.render_widget(block, area);
-        // }
+        StatefulWidget::render(t, rects[0], buf, state);
     }
 }
 

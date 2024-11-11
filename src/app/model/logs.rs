@@ -1,9 +1,10 @@
 use crossterm::event::KeyCode;
 use ratatui::{
-    layout::{Constraint, Layout},
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Text},
-    widgets::{Block, Borders, Paragraph, Tabs, Wrap},
+    widgets::{Block, Borders, Paragraph, Tabs, Widget, Wrap},
 };
 use regex::Regex;
 
@@ -82,6 +83,9 @@ impl Model for LogModel {
 
         (None, vec![])
     }
+}
+
+impl LogModel {
     fn view(&mut self, f: &mut ratatui::Frame) {
         let area = f.area();
 
@@ -135,6 +139,60 @@ impl Model for LogModel {
 
             // Render the selected log's content
             f.render_widget(paragraph, chunks[1]);
+        }
+    }
+}
+
+impl Widget for LogModel {
+    fn render(self, area: Rect, buffer: &mut Buffer) {
+        if self.all.is_empty() {
+            Paragraph::new("No logs available")
+                .block(Block::default().borders(Borders::ALL).title("Logs"))
+                .render(area, buffer);
+            return;
+        }
+
+        let tab_titles = (0..self.all.len())
+            .map(|i| format!("Task {}", i + 1))
+            .collect::<Vec<String>>();
+
+        let tabs = Tabs::new(tab_titles)
+            .block(Block::default().title("Logs").borders(Borders::ALL))
+            .select(self.current % self.all.len())
+            .highlight_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+            .style(Style::default().fg(Color::White));
+
+        // Render the tabs
+        tabs.render(area, buffer);
+
+        // Define the layout for content under the tabs
+        let chunks = Layout::default()
+            .constraints([Constraint::Length(3), Constraint::Min(0)])
+            .split(area);
+
+        if let Some(log) = self.all.get(self.current % self.all.len()) {
+            let mut content = Text::default();
+            let fragments = parse_content(&log.content);
+            // This works but is extremely ugly. TODO: refactor, and test
+            for (_, log_fragment) in fragments {
+                let replaced_log = log_fragment.replace("\\n", "\n");
+                let lines: Vec<String> = replaced_log.lines().map(|s| s.to_string()).collect();
+                for line in lines {
+                    content.push_line(Line::raw(line));
+                }
+            }
+
+            let paragraph = Paragraph::new(content)
+                .block(Block::default().borders(Borders::ALL).title("Log Content"))
+                .wrap(Wrap { trim: true })
+                .style(Style::default().fg(Color::White));
+
+            // Render the selected log's content
+            paragraph.render(chunks[1], buffer);
         }
     }
 }

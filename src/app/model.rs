@@ -1,4 +1,4 @@
-use ratatui::widgets::{StatefulWidget, TableState};
+use ratatui::widgets::TableState;
 
 use super::{events::custom::FlowrsEvent, worker::WorkerMessage};
 
@@ -10,7 +10,7 @@ pub mod logs;
 pub mod popup;
 pub mod taskinstances;
 
-pub trait Model: StatefulWidget {
+pub trait Model {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
 }
 

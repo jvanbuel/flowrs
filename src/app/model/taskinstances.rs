@@ -1,11 +1,11 @@
 use std::vec;
 
 use crossterm::event::KeyCode;
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Row, Table};
-use ratatui::Frame;
+use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, TableState};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
@@ -125,12 +125,14 @@ impl Model for TaskInstanceModel {
             _ => (Some(event.clone()), vec![]),
         }
     }
-
-    fn view(&mut self, f: &mut Frame) {
+}
+impl StatefulWidget for TaskInstanceModel {
+    type State = TableState;
+    fn render(self, area: Rect, buffer: &mut Buffer, state: &mut Self::State) {
         let rects = Layout::default()
             .constraints([Constraint::Percentage(100)].as_ref())
             .margin(0)
-            .split(f.area());
+            .split(area);
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
@@ -190,7 +192,7 @@ impl Model for TaskInstanceModel {
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
 
-        f.render_stateful_widget(t, rects[0], &mut self.filtered.state);
+        t.render(rects[0], buffer, state);
     }
 }
 
