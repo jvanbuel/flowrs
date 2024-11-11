@@ -30,6 +30,7 @@ pub struct DagRunModel {
     pub all: Vec<DagRun>,
     pub filtered: StatefulTable<DagRun>,
     pub filter: Filter,
+    pub marked: Vec<usize>,
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
     pub popup: Option<ClearDagRunPopup>,
@@ -51,6 +52,7 @@ impl DagRunModel {
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
+            marked: vec![],
             errors: vec![],
             popup: None,
             ticks: 0,
@@ -99,7 +101,7 @@ impl Model for DagRunModel {
                         clear: false,
                     }]
                 } else {
-                    vec![]
+                    Vec::default()
                 };
                 return (Some(FlowrsEvent::Tick), worker_messages);
             }
@@ -156,6 +158,20 @@ impl Model for DagRunModel {
                         }
                         KeyCode::Char('t') => {
                             unimplemented!();
+                        }
+                        KeyCode::Char('m') => {
+                            if let Some(index) = self.filtered.state.selected() {
+                                self.marked.push(index);
+                            }
+                        }
+                        KeyCode::Char('M') => {
+                            if let Some(index) = self.filtered.state.selected() {
+                                if self.marked.contains(&index) {
+                                    self.marked.retain(|&i| i != index);
+                                } else {
+                                    self.marked.push(index);
+                                }
+                            }
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -235,7 +251,9 @@ impl Widget for &mut DagRunModel {
                 }),
                 Line::from(item.run_type.as_str()),
             ])
-            .style(if (idx % 2) == 0 {
+            .style(if self.marked.contains(&idx) {
+                DEFAULT_STYLE.bg(Color::Rgb(255, 255, 224))
+            } else if (idx % 2) == 0 {
                 DEFAULT_STYLE
             } else {
                 DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
