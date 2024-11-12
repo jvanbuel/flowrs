@@ -86,6 +86,14 @@ impl DagRunModel {
             .selected()
             .map(|i| &self.filtered.items[i])
     }
+
+    pub fn mark_dag_run(&mut self, dag_run_id: &str, status: &str) {
+        self.filtered.items.iter_mut().for_each(|dag_run| {
+            if dag_run.dag_run_id == dag_run_id {
+                dag_run.state = status.to_string();
+            }
+        });
+    }
 }
 
 impl Default for DagRunModel {

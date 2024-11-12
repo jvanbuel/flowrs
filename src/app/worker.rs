@@ -218,6 +218,11 @@ impl Worker {
                         status,
                     } => {
                         debug!("Marking dag_run: {}", dag_run_id);
+                        {
+                            // Update the local state before sending the request; this way, the UI will update immediately
+                            let mut app = self.app.lock().unwrap();
+                            app.dagruns.mark_dag_run(&dag_run_id, &status.to_string());
+                        }
                         let dag_run = self
                             .client
                             .mark_dag_run(&dag_id, &dag_run_id, &status.to_string())
