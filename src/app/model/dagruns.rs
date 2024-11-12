@@ -19,6 +19,7 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
+use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{filter::Filter, Model, StatefulTable};
@@ -38,11 +39,7 @@ pub struct DagRunModel {
     ticks: u32,
 }
 
-pub enum DagRunPopUp {
-    Clear(ClearDagRunPopup),
-    Mark(MarkDagRunPopup),
-    Trigger,
-}
+
 
 #[derive(Default)]
 pub struct DagCodeWidget {

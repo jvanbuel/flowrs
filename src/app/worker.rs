@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
+use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
 use super::{model::popup::dagruns::mark::MarkState, state::App};
 use log::debug;
 use tokio::sync::mpsc::Receiver;
@@ -49,6 +50,17 @@ pub enum WorkerMessage {
         dag_run_id: String,
         dag_id: String,
         status: MarkState,
+    },
+    ClearTaskInstance {
+        task_id: String,
+        dag_id: String,
+        dag_run_id: String,
+    },
+    MarkTaskInstance {
+        task_id: String,
+        dag_id: String,
+        dag_run_id: String,
+        status: taskMarkState,
     },
 }
 
@@ -228,6 +240,45 @@ impl Worker {
                     debug!("Error marking dag_run: {}", e);
                     let mut app = self.app.lock().unwrap();
                     app.dagruns.errors.push(e);
+                }
+            }
+            WorkerMessage::ClearTaskInstance {
+                task_id,
+                dag_id,
+                dag_run_id,
+            } => {
+                debug!("Clearing task_instance: {}", task_id);
+                let task_instance = self
+                    .client
+                    .clear_task_instance(&dag_id, &dag_run_id, &task_id)
+                    .await;
+                if let Err(e) = task_instance {
+                    debug!("Error clearing task_instance: {}", e);
+                    let mut app = self.app.lock().unwrap();
+                    app.task_instances.errors.push(e);
+                }
+            }
+            WorkerMessage::MarkTaskInstance {
+                task_id,
+                dag_id,
+                dag_run_id,
+                status,
+            } => {
+                debug!("Marking task_instance: {}", task_id);
+                {
+                    // Update the local state before sending the request; this way, the UI will update immediately
+                    let mut app = self.app.lock().unwrap();
+                    app.task_instances
+                        .mark_task_instance(&task_id, &status.to_string());
+                }
+                let task_instance = self
+                    .client
+                    .mark_task_instance(&dag_id, &dag_run_id, &task_id, &status.to_string())
+                    .await;
+                if let Err(e) = task_instance {
+                    debug!("Error marking task_instance: {}", e);
+                    let mut app = self.app.lock().unwrap();
+                    app.task_instances.errors.push(e);
                 }
             }
         }

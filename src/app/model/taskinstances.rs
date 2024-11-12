@@ -1,6 +1,7 @@
 use std::vec;
 
 use crossterm::event::KeyCode;
+use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
@@ -13,6 +14,9 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
+use super::popup::taskinstances::clear::ClearTaskInstancePopup;
+use super::popup::taskinstances::mark::MarkTaskInstancePopup;
+use super::popup::taskinstances::TaskInstancePopUp;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
@@ -25,6 +29,8 @@ pub struct TaskInstanceModel {
     pub filter: Filter,
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
+    pub popup: Option<TaskInstancePopUp>,
+    pub marked: Vec<usize>,
     ticks: u32,
 }
 
@@ -37,6 +43,8 @@ impl TaskInstanceModel {
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
             errors: vec![],
+            popup: None,
+            marked: vec![],
             ticks: 0,
         }
     }
@@ -61,6 +69,13 @@ impl TaskInstanceModel {
             .state
             .selected()
             .map(|i| &mut self.filtered.items[i])
+    }
+    pub fn mark_task_instance(&mut self, task_id: &str, status: &str) {
+        self.filtered.items.iter_mut().for_each(|task_instance| {
+            if task_instance.task_id == task_id {
+                task_instance.state = status.to_string();
+            }
+        });
     }
 }
 
@@ -95,6 +110,36 @@ impl Model for TaskInstanceModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_task_instances();
+                } else if let Some(popup) = &mut self.popup {
+                    match popup {
+                        TaskInstancePopUp::Clear(popup) => {
+                            let (key_event, messages) = popup.update(event);
+                            debug!("Popup messages: {:?}", messages);
+                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+                                match key_event.code {
+                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.popup = None;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            return (None, messages);
+                        }
+                        TaskInstancePopUp::Mark(popup) => {
+                            let (key_event, messages) = popup.update(event);
+                            debug!("Popup messages: {:?}", messages);
+                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+                                match key_event.code {
+                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.popup = None;
+                                        self.marked = vec![];
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            return (None, messages);
+                        }
+                    }
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
@@ -105,6 +150,43 @@ impl Model for TaskInstanceModel {
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
+                        }
+                        KeyCode::Char('m') => {
+                            if let Some(index) = self.filtered.state.selected() {
+                                self.marked.push(index);
+
+                                let dag_id = self.current().unwrap().dag_id.clone();
+                                let dag_run_id = self.current().unwrap().dag_run_id.clone();
+
+                                self.popup =
+                                    Some(TaskInstancePopUp::Mark(MarkTaskInstancePopup::new(
+                                        self.marked
+                                            .iter()
+                                            .map(|i| self.filtered.items[*i].task_id.clone())
+                                            .collect(),
+                                        &dag_id,
+                                        &dag_run_id,
+                                    )));
+                            }
+                        }
+                        KeyCode::Char('M') => {
+                            if let Some(index) = self.filtered.state.selected() {
+                                if self.marked.contains(&index) {
+                                    self.marked.retain(|&i| i != index);
+                                } else {
+                                    self.marked.push(index);
+                                }
+                            }
+                        }
+                        KeyCode::Char('c') => {
+                            if let Some(task_instance) = self.current() {
+                                self.popup =
+                                    Some(TaskInstancePopUp::Clear(ClearTaskInstancePopup::new(
+                                        &task_instance.dag_run_id,
+                                        &task_instance.dag_id,
+                                        &task_instance.task_id,
+                                    )));
+                            }
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -172,7 +254,9 @@ impl Widget for &mut TaskInstanceModel {
                 }),
                 Line::from(format!("{:?}", item.try_number)),
             ])
-            .style(if (idx % 2) == 0 {
+            .style(if self.marked.contains(&idx) {
+                DEFAULT_STYLE.bg(Color::Rgb(255, 255, 224))
+            } else if (idx % 2) == 0 {
                 DEFAULT_STYLE
             } else {
                 DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
@@ -198,6 +282,16 @@ impl Widget for &mut TaskInstanceModel {
         .row_highlight_style(selected_style);
 
         StatefulWidget::render(t, rects[0], buffer, &mut self.filtered.state);
+
+        match &mut self.popup {
+            Some(TaskInstancePopUp::Clear(popup)) => {
+                popup.render(area, buffer);
+            }
+            Some(TaskInstancePopUp::Mark(popup)) => {
+                popup.render(area, buffer);
+            }
+            _ => (),
+        }
     }
 }
 
