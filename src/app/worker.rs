@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
-use super::{model::popup::MarkState, state::App};
+use super::{model::popup::dagruns::mark::MarkState, state::App};
 use log::debug;
 use tokio::sync::mpsc::Receiver;
 

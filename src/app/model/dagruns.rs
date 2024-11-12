@@ -20,7 +20,7 @@ use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
 use super::popup::popup_area;
-use super::popup::{ClearDagRunPopup, MarkDagRunPopup};
+use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
