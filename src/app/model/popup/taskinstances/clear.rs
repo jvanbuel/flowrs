@@ -91,12 +91,12 @@ impl Widget for &mut ClearTaskInstancePopup {
 
         let popup_block = Block::default()
             .borders(Borders::ALL)
-            .title("Clear DAG Run - press <Enter> to confirm, <q>|<Esc> to close")
+            .title("Clear Task Instance - press <Enter> to confirm, <q>|<Esc> to close")
             .border_style(DEFAULT_STYLE)
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
 
-        let text = Paragraph::new("Are you sure you want to clear this DAG Run?")
+        let text = Paragraph::new("Are you sure you want to clear this Task Instance?")
             .style(DEFAULT_STYLE)
             .block(Block::default())
             .centered()

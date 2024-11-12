@@ -1,6 +1,6 @@
 use crate::app::error::Result;
 
-use log::info;
+use log::{debug, info};
 use reqwest::{Method, Response};
 
 use crate::airflow::model::taskinstance::TaskInstanceList;
@@ -59,25 +59,21 @@ impl AirFlowClient {
         dag_run_id: &str,
         task_id: &str,
     ) -> Result<()> {
-        let _: Response = self
-            .base_api(
-                Method::POST,
-                &format!(
-                    "dags/{dag_id}/clearTaskInstances/{task_id}",
-                    dag_id = dag_id,
-                    task_id = task_id,
-                ),
-            )?
+        let resp: Response = self
+            .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))?
             .json(&serde_json::json!(
                 {
                     "dry_run": false,
-                    "task_ids": [task_id],
+                    "task_ids": [task_id,],
                     "dag_run_id": dag_run_id,
-                    "include_downstream": true
+                    "include_downstream": true,
+                    "only_failed": false,
+                    "reset_dag_runs": true,
                 }
             ))
             .send()
             .await?;
+        debug!("{:?}", resp);
         Ok(())
     }
 }
