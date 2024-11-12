@@ -133,10 +133,10 @@ impl Widget for &mut ClearDagRunPopup {
 }
 
 pub struct MarkDagRunPopup {
-    pub dag_run_id: String,
     pub dag_id: String,
     pub status: MarkState,
     pub confirm: bool,
+    pub marked: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Display)]
@@ -150,12 +150,12 @@ pub enum MarkState {
 }
 
 impl MarkDagRunPopup {
-    pub fn new(dag_run_id: String, dag_id: String) -> Self {
+    pub fn new(marked: Vec<String>, dag_id: String) -> Self {
         MarkDagRunPopup {
-            dag_run_id,
             dag_id,
             status: MarkState::Success,
             confirm: false,
+            marked,
         }
     }
 
@@ -184,11 +184,19 @@ impl Model for MarkDagRunPopup {
                     // On Enter, we always return the key event, so the parent can close the popup
                     return (
                         Some(FlowrsEvent::Key(*key_event)),
-                        vec![WorkerMessage::MarkDagRun {
-                            dag_run_id: self.dag_run_id.clone(),
-                            dag_id: self.dag_id.clone(),
-                            status: self.status.clone(),
-                        }],
+                        // vec![WorkerMessage::MarkDagRun {
+                        //     dag_run_id: self.dag_run_id.clone(),
+                        //     dag_id: self.dag_id.clone(),
+                        //     status: self.status.clone(),
+                        // }],
+                        self.marked
+                            .iter()
+                            .map(|i| WorkerMessage::MarkDagRun {
+                                dag_run_id: i.to_string(),
+                                dag_id: self.dag_id.to_string(),
+                                status: self.status.clone(),
+                            })
+                            .collect(),
                     );
                 }
                 KeyCode::Char('j') | KeyCode::Down | KeyCode::Char('h') | KeyCode::Left => {

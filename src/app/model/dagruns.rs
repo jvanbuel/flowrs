@@ -190,7 +190,10 @@ impl Model for DagRunModel {
                                 self.marked.push(index);
 
                                 self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
-                                    self.current().unwrap().dag_run_id.clone(),
+                                    self.marked
+                                        .iter()
+                                        .map(|i| self.filtered.items[*i].dag_run_id.clone())
+                                        .collect(),
                                     self.current().unwrap().dag_id.clone(),
                                 )));
                             }
