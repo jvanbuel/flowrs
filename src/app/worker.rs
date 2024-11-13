@@ -62,6 +62,9 @@ pub enum WorkerMessage {
         dag_run_id: String,
         status: taskMarkState,
     },
+    TriggerDagRun {
+        dag_id: String,
+    },
 }
 
 impl Worker {
@@ -271,6 +274,15 @@ impl Worker {
                     debug!("Error marking task_instance: {}", e);
                     let mut app = self.app.lock().unwrap();
                     app.task_instances.errors.push(e);
+                }
+            }
+            WorkerMessage::TriggerDagRun { dag_id } => {
+                debug!("Triggering dag_run: {}", dag_id);
+                let dag_run = self.client.trigger_dag_run(&dag_id).await;
+                if let Err(e) = dag_run {
+                    debug!("Error triggering dag_run: {}", e);
+                    let mut app = self.app.lock().unwrap();
+                    app.dagruns.errors.push(e);
                 }
             }
         }

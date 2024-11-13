@@ -1,3 +1,4 @@
+use log::debug;
 use reqwest::{Method, Response};
 
 use crate::airflow::model::dagrun::DagRunList;
@@ -48,6 +49,17 @@ impl AirFlowClient {
             .json(&serde_json::json!({"dry_run": false}))
             .send()
             .await?;
+        Ok(())
+    }
+
+    pub async fn trigger_dag_run(&self, dag_id: &str) -> Result<()> {
+        let resp: Response = self
+            .base_api(Method::POST, format!("dags/{dag_id}/dagRuns").as_str())?
+            .json(&serde_json::json!({}))
+            .send()
+            .await?;
+
+        debug!("{:?}", resp);
         Ok(())
     }
 }

@@ -19,6 +19,7 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
+use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
@@ -38,8 +39,6 @@ pub struct DagRunModel {
     pub popup: Option<DagRunPopUp>,
     ticks: u32,
 }
-
-
 
 #[derive(Default)]
 pub struct DagCodeWidget {
@@ -122,6 +121,7 @@ impl Model for DagRunModel {
                     self.filter.update(key_event);
                     self.filter_dag_runs();
                 } else if let Some(popup) = &mut self.popup {
+                    // TODO: refactor this, should be all the same
                     match popup {
                         DagRunPopUp::Clear(popup) => {
                             let (key_event, messages) = popup.update(event);
@@ -150,7 +150,19 @@ impl Model for DagRunModel {
                             }
                             return (None, messages);
                         }
-                        DagRunPopUp::Trigger => {}
+                        DagRunPopUp::Trigger(popup) => {
+                            let (key_event, messages) = popup.update(event);
+                            debug!("Popup messages: {:?}", messages);
+                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+                                match key_event.code {
+                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.popup = None;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            return (None, messages);
+                        }
                     }
                 } else if self.dag_code.code.is_some() {
                     match key_event.code {
@@ -188,7 +200,9 @@ impl Model for DagRunModel {
                             self.filtered.state.select_last();
                         }
                         KeyCode::Char('t') => {
-                            unimplemented!();
+                            self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
+                                self.dag_id.clone().unwrap(),
+                            )));
                         }
                         KeyCode::Char('m') => {
                             if let Some(index) = self.filtered.state.selected() {
@@ -354,6 +368,9 @@ impl Widget for &mut DagRunModel {
                 popup.render(area, buf);
             }
             Some(DagRunPopUp::Mark(popup)) => {
+                popup.render(area, buf);
+            }
+            Some(DagRunPopUp::Trigger(popup)) => {
                 popup.render(area, buf);
             }
             _ => (),
