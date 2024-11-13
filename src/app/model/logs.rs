@@ -4,7 +4,10 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Text},
-    widgets::{Block, Borders, Paragraph, Tabs, Widget, Wrap},
+    widgets::{
+        Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
+        Tabs, Widget, Wrap,
+    },
 };
 use regex::Regex;
 
@@ -25,6 +28,8 @@ pub struct LogModel {
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
     ticks: u32,
+    vertical_scroll: usize,
+    vertical_scroll_state: ScrollbarState,
 }
 
 impl LogModel {
@@ -38,6 +43,8 @@ impl LogModel {
             current: 0,
             errors: vec![],
             ticks: 0,
+            vertical_scroll: 0,
+            vertical_scroll_state: ScrollbarState::default(),
         }
     }
 }
@@ -73,13 +80,23 @@ impl Model for LogModel {
                 return (Some(FlowrsEvent::Tick), vec![]);
             }
             FlowrsEvent::Key(key) => match key.code {
-                KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('l') => {
+                KeyCode::Char('l') => {
                     self.current += 1;
                 }
-                KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('h') => {
+                KeyCode::Char('h') => {
                     if self.current > 0 {
                         self.current -= 1;
                     }
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    self.vertical_scroll = self.vertical_scroll.saturating_add(1);
+                    self.vertical_scroll_state =
+                        self.vertical_scroll_state.position(self.vertical_scroll)
+                }
+                KeyCode::Up | KeyCode::Char('k') => {
+                    self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
+                    self.vertical_scroll_state =
+                        self.vertical_scroll_state.position(self.vertical_scroll)
                 }
 
                 _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
@@ -137,10 +154,17 @@ impl Widget for &mut LogModel {
             let paragraph = Paragraph::new(content)
                 .block(Block::default().borders(Borders::ALL).title("Log Content"))
                 .wrap(Wrap { trim: true })
-                .style(Style::default().fg(Color::White));
+                .style(Style::default().fg(Color::White))
+                .scroll((self.vertical_scroll as u16, 0));
 
             // Render the selected log's content
             paragraph.render(chunks[1], buffer);
+
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(Some("↑"))
+                .end_symbol(Some("↓"));
+
+            scrollbar.render(chunks[1], buffer, &mut self.vertical_scroll_state);
         }
     }
 }
