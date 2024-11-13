@@ -4,6 +4,7 @@ use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
 use super::{model::popup::dagruns::mark::MarkState, state::App};
+use futures::future::join_all;
 use log::debug;
 use tokio::sync::mpsc::Receiver;
 
@@ -200,19 +201,24 @@ impl Worker {
                 task_try,
             } => {
                 debug!("Getting logs for task: {task_id}, try number {task_try}");
-                let log = self
-                    .client
-                    .get_task_logs(&dag_id, &dag_run_id, &task_id, task_try)
-                    .await;
+                let logs = join_all(
+                    (1..=task_try)
+                        .map(|i| self.client.get_task_logs(&dag_id, &dag_run_id, &task_id, i))
+                        .collect::<Vec<_>>(),
+                )
+                .await;
+
                 let mut app = self.app.lock().unwrap();
-                match log {
-                    Ok(log) => {
-                        debug!("Got log: {}", log.content);
-                        app.logs.all.push(log);
-                    }
-                    Err(e) => {
-                        debug!("Error getting logs: {}", e);
-                        app.logs.errors.push(e);
+                app.logs.all.clear();
+                for log in logs {
+                    match log {
+                        Ok(log) => {
+                            app.logs.all.push(log);
+                        }
+                        Err(e) => {
+                            debug!("Error getting logs: {}", e);
+                            app.logs.errors.push(e);
+                        }
                     }
                 }
             }

@@ -55,7 +55,7 @@ impl TaskInstanceModel {
             Some(prefix) => &self
                 .all
                 .iter()
-                .filter(|dagrun| dagrun.dag_run_id.contains(prefix))
+                .filter(|task_instance| task_instance.task_id.contains(prefix))
                 .cloned()
                 .collect::<Vec<TaskInstance>>(),
             None => &self.all,

@@ -507,6 +507,7 @@ dependencies = [
  "custom_error",
  "dirs",
  "env_logger",
+ "futures",
  "indoc",
  "inquire",
  "lazy_static",

@@ -73,10 +73,10 @@ impl Model for LogModel {
                 return (Some(FlowrsEvent::Tick), vec![]);
             }
             FlowrsEvent::Key(key) => match key.code {
-                KeyCode::Down | KeyCode::Char('j') => {
+                KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('l') => {
                     self.current += 1;
                 }
-                KeyCode::Up | KeyCode::Char('k') => {
+                KeyCode::Down | KeyCode::Char('j') | KeyCode::Char('h') => {
                     if self.current > 0 {
                         self.current -= 1;
                     }
