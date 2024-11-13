@@ -100,16 +100,7 @@ impl Worker {
             WorkerMessage::ConfigSelected(idx) => {
                 let mut app = self.app.lock().unwrap();
                 self.client = AirFlowClient::from(app.configs.filtered.items[idx].clone());
-                // TODO: make more DRY, check whether we can just replace app with new App by adding flowrs Config as a field
-                app.dags.all = vec![];
-                app.dags.filter_dags();
-                app.dagruns.all = vec![];
-                app.dagruns.filter_dag_runs();
-                app.task_instances.all = vec![];
-                app.task_instances.filter_task_instances();
-                app.dags.filter.reset();
-                app.dagruns.filter.reset();
-                app.task_instances.filter.reset();
+                *app = App::new(app.config.clone()).unwrap();
             }
             WorkerMessage::UpdateDagRuns { dag_id, clear } => {
                 let dag_runs = self.client.list_dagruns(&dag_id).await;
@@ -134,6 +125,7 @@ impl Worker {
                 let mut app = self.app.lock().unwrap();
                 if clear {
                     app.task_instances.dag_run_id = Some(dag_run_id);
+                    app.task_instances.dag_id = Some(dag_id);
                 }
                 match task_instances {
                     Ok(task_instances) => {

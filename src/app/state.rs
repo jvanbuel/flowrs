@@ -6,6 +6,7 @@ use crate::app::model::dags::DagModel;
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
 
 pub struct App {
+    pub config: FlowrsConfig,
     pub dags: DagModel,
     pub configs: ConfigModel,
     pub dagruns: DagRunModel,
@@ -25,11 +26,12 @@ pub enum Panel {
 }
 
 impl App {
-    pub fn new(config: FlowrsConfig) -> Result<App> {
-        let servers = config.servers.unwrap().clone();
+    pub fn new(config: FlowrsConfig) -> Result<Self> {
+        let servers = &config.clone().servers.unwrap();
         Ok(App {
+            config,
             dags: DagModel::new(),
-            configs: ConfigModel::new(servers),
+            configs: ConfigModel::new(servers.to_vec()),
             dagruns: DagRunModel::new(),
             task_instances: TaskInstanceModel::new(),
             logs: LogModel::new(),

@@ -93,6 +93,9 @@ impl Model for TaskInstanceModel {
                 if self.ticks % 10 != 0 {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
+                debug!("Updating task instances");
+                debug!("Dag ID: {:?}", self.dag_id);
+                debug!("Dag Run ID: {:?}", self.dag_run_id);
                 if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {
                     log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
                     return (
