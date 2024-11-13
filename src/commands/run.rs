@@ -28,7 +28,9 @@ pub struct RunCommand {
 impl RunCommand {
     pub async fn run(&self) -> Result<()> {
         // setup logging
-        setup_logging(Some("debug"))?;
+        if let Ok(log_level) = std::env::var("FLOWRS_LOG") {
+            setup_logging(&log_level)?;
+        }
 
         // setup panic hook
         std::panic::set_hook(Box::new(move |panic| {
@@ -50,20 +52,18 @@ impl RunCommand {
     }
 }
 
-fn setup_logging(debug: Option<&str>) -> Result<()> {
+fn setup_logging(log_level: &str) -> Result<()> {
     let log_file = format!(
         "./flowrs-debug-{}.log",
         chrono::Local::now().format("%Y%m%d%H%M%S")
     );
-    let log_level = debug
-        .map(|level| match level.to_lowercase().as_str() {
-            "debug" => LevelFilter::Debug,
-            "trace" => LevelFilter::Trace,
-            "warn" => LevelFilter::Warn,
-            "error" => LevelFilter::Error,
-            _ => LevelFilter::Info,
-        })
-        .unwrap_or_else(|| LevelFilter::Info);
+    let log_level = match log_level.to_lowercase().as_str() {
+        "debug" => LevelFilter::Debug,
+        "trace" => LevelFilter::Trace,
+        "warn" => LevelFilter::Warn,
+        "error" => LevelFilter::Error,
+        _ => LevelFilter::Info,
+    };
 
     WriteLogger::init(
         log_level,
