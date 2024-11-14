@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
@@ -272,10 +272,27 @@ impl Model for DagRunModel {
 
 impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        let rects = Layout::default()
-            .constraints([Constraint::Percentage(100)].as_ref())
-            .margin(0)
-            .split(area);
+        let rects = if self.filter.is_enabled() {
+            let rects = Layout::default()
+                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
+                .margin(0)
+                .split(area);
+
+            let filter = self.filter.prefix().clone();
+
+            let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
+                .block(Block::default().borders(Borders::ALL).title("filter"))
+                .set_style(DEFAULT_STYLE);
+
+            Widget::render(paragraph, rects[1], buf);
+
+            rects
+        } else {
+            Layout::default()
+                .constraints([Constraint::Percentage(100)].as_ref())
+                .margin(0)
+                .split(area)
+        };
 
         let normal_style = DEFAULT_STYLE;
 

@@ -4,9 +4,9 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
@@ -219,10 +219,27 @@ impl Model for TaskInstanceModel {
 }
 impl Widget for &mut TaskInstanceModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let rects = Layout::default()
-            .constraints([Constraint::Percentage(100)].as_ref())
-            .margin(0)
-            .split(area);
+        let rects = if self.filter.is_enabled() {
+            let rects = Layout::default()
+                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
+                .margin(0)
+                .split(area);
+
+            let filter = self.filter.prefix().clone();
+
+            let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
+                .block(Block::default().borders(Borders::ALL).title("filter"))
+                .set_style(DEFAULT_STYLE);
+
+            Widget::render(paragraph, rects[1], buffer);
+
+            rects
+        } else {
+            Layout::default()
+                .constraints([Constraint::Percentage(100)].as_ref())
+                .margin(0)
+                .split(area)
+        };
 
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
