@@ -72,7 +72,7 @@ impl Model for MarkTaskInstancePopup {
                         self.marked
                             .iter()
                             .map(|i| WorkerMessage::MarkTaskInstance {
-                                dag_run_id: i.to_string(),
+                                dag_run_id: self.dag_run_id.to_string(),
                                 dag_id: self.dag_id.to_string(),
                                 task_id: i.to_string(),
                                 status: self.status.clone(),

@@ -42,14 +42,15 @@ impl AirFlowClient {
         task_id: &str,
         status: &str,
     ) -> Result<()> {
-        let _: Response = self
+        let resp: Response = self
             .base_api(
                 Method::PATCH,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",),
             )?
-            .json(&serde_json::json!({"state": status, "dry_run": false}))
+            .json(&serde_json::json!({"new_state": status, "dry_run": false}))
             .send()
             .await?;
+        debug!("{:?}", resp);
         Ok(())
     }
 
