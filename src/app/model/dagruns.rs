@@ -345,7 +345,7 @@ impl Widget for &mut DagRunModel {
             Block::default()
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
-                    format!("DAGRuns ({}) - press <v> to view DAG code", dag_id)
+                    format!("DAGRuns ({}) - press <v> to view DAG code, <t> to trigger DAG, <c> to clear DAG run, <m> to mark DAG run, <M> to mark multiple", dag_id)
                 } else {
                     "DAGRuns press <v> to view DAG code".to_string()
                 })

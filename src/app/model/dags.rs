@@ -104,9 +104,6 @@ impl Model for DagModel {
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
                         }
-                        KeyCode::Char('t') => {
-                            unimplemented!();
-                        }
                         KeyCode::Char('p') => match self.current() {
                             Some(dag) => {
                                 let current_state = dag.is_paused;
@@ -262,7 +259,7 @@ impl Widget for &mut DagModel {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("DAGs - Press <p> to toggle pause")
+                .title("DAGs - Press <p> to toggle pause, </> to filter")
                 .border_style(DEFAULT_STYLE)
                 .style(DEFAULT_STYLE),
         )

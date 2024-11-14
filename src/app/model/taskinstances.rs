@@ -296,7 +296,7 @@ impl Widget for &mut TaskInstanceModel {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("TaskInstances"),
+                .title("TaskInstances - press </> to filter, <c> to clear, <m> to mark, <M> to mark multiple"),
         )
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
