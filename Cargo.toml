@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
 license = "MIT"
+repository = "https://github.com/jvanbuel/flowrs"
 authors = ["janvanbuel@hotmail.com"]
 
 [dependencies]
@@ -43,4 +44,9 @@ url = "2.5.3"
 
 [dev-dependencies]
 mockito = "1.5.0"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
