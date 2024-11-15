@@ -496,7 +496,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "flowrs"
+name = "flowrs-tui"
 version = "0.1.0"
 dependencies = [
  "ansi-to-tui",
