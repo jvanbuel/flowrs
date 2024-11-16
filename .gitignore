@@ -3,7 +3,7 @@ target
 flowrs
 logs
 plugins
-dags
+dags/**
 .DS_Store
 .vscode
 
