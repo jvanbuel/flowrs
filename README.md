@@ -1,5 +1,4 @@
-![flowrs_logo](https://github.com/jvanbuel/flowrs/assets/16427728/347483fc-e393-4af2-8121-60b50bf17c57)
-
+![flowrs_logo](./image/README/1683789045509.png)
 
 Flowrs is a TUI application for Apache Airflow. It allows you to monitor, inspect and trigger Airflow DAGs from the comforts of your terminal. It is written with the Rust [ratatui](https://github.com/tui-rs-revival/ratatui) framework, using `crossterm` as the backend.
 
@@ -17,7 +16,7 @@ Alternatively, you can build `flowrs` from source by cloning the repository and 
 
 ```bash
 git clone git@github.com:jvanbuel/flowrs.git
-cargo install --path . 
+cargo install --path .
 ```
 
 ## Usage
@@ -25,7 +24,6 @@ cargo install --path .
 You can register an Airflow server instance with the `flowrs config add` command:
 
 ![flowrs config add demo](./vhs/add_config.gif)
-
 
 This creates an entry in a `~/.flowrs` configuration file. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` starting screen.
 
