@@ -3,6 +3,7 @@
 Flowrs is a TUI application for Apache Airflow. It allows you to monitor, inspect and trigger Airflow DAGs from the comforts of your terminal. It is written with the Rust [ratatui](https://github.com/tui-rs-revival/ratatui) framework, using `crossterm` as the backend.
 
 ![flowrs demo](./vhs/flowrs.gif)
+
 ## Installation
 
 You can install `flowrs` via Homebrew if you're on macOS / Linux / WSL2:
@@ -44,7 +45,7 @@ Only basic authentication and bearer token authentication are currently supporte
 To enable a managed service, add it to the `managed_services` section in the configuration file, e.g.:
 
 ```toml
-[managed_services] = ["Conveyor"]
+managed_services = ["Conveyor"]
 ```
 
 `flowrs` will then on startup try to find and connect to all the Airflow instances that are managed by the specified service.
