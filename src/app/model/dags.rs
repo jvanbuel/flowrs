@@ -244,11 +244,11 @@ impl Widget for &mut DagModel {
         let t = Table::new(
             rows,
             &[
-                Constraint::Length(7),
-                Constraint::Max(60),
-                Constraint::Max(15),
+                Constraint::Length(6),
+                Constraint::Fill(2),
+                Constraint::Max(20),
                 Constraint::Length(10),
-                Constraint::Length(20),
+                Constraint::Length(10),
                 Constraint::Length(30),
             ],
         )
