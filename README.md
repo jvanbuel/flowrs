@@ -27,4 +27,21 @@ You can register an Airflow server instance with the `flowrs config add` command
 
 This creates an entry in a `~/.flowrs` configuration file. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` starting screen.
 
-Currently only basic authentication and token authenication (via third-party OAuth2 plugins, e.g. `apache-airflow-providers-google`) are supported
+Only basic authentication and bearer token authentication are currently supported. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
+
+### Managed services
+
+`flowrs` supports the following managed services:
+
+- [x] Conveyor
+- [ ] Google Cloud Composer
+- [ ] Amazon Managed Workflows for Apache Airflow (MWAA)
+- [ ] Astronomer
+
+To enable a managed service, add it to the `managed_services` section in the configuration file, e.g.:
+
+```toml
+[managed_services] = ["Conveyor"]
+```
+
+`flowrs` will then on startup try to find and connect to all the Airflow instances that are managed by the specified service.
