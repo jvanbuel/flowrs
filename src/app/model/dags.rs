@@ -12,9 +12,11 @@ use time::OffsetDateTime;
 use crate::airflow::model::dag::Dag;
 use crate::airflow::model::dagstats::DagStatistic;
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
+use super::popup::commands_help::CommandPopUp;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
@@ -26,6 +28,7 @@ pub struct DagModel {
     pub filter: Filter,
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
+    commands: Option<CommandPopUp<'static, 2>>,
     ticks: u32,
 }
 
@@ -38,6 +41,7 @@ impl DagModel {
             filter: Filter::new(),
             errors: vec![],
             ticks: 0,
+            commands: None,
         }
     }
 
@@ -92,6 +96,13 @@ impl Model for DagModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dags();
+                } else if let Some(_commands) = &mut self.commands {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
+                            self.commands = None;
+                        }
+                        _ => (),
+                    }
                 } else {
                     match key_event.code {
                         KeyCode::Down | KeyCode::Char('j') => {
@@ -122,6 +133,9 @@ impl Model for DagModel {
                         KeyCode::Char('/') => {
                             self.filter.toggle();
                             self.filter_dags();
+                        }
+                        KeyCode::Char('?') => {
+                            self.commands = Some(DAG_COMMAND_POP_UP);
                         }
                         KeyCode::Enter => {
                             if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone())
@@ -263,6 +277,10 @@ impl Widget for &mut DagModel {
         .row_highlight_style(selected_style);
 
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+
+        if let Some(commands) = &self.commands {
+            commands.render(area, buf);
+        }
     }
 }
 

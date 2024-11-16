@@ -1,5 +1,7 @@
+pub mod commands_help;
 pub mod dagruns;
 pub mod taskinstances;
+pub mod dags;
 
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 

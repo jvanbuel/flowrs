@@ -3,6 +3,7 @@ use mark::MarkDagRunPopup;
 use trigger::TriggerDagRunPopUp;
 
 pub mod clear;
+pub mod commands;
 pub mod mark;
 pub mod trigger;
 

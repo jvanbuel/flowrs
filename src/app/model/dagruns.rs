@@ -20,6 +20,8 @@ use crate::ui::common::create_headers;
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
 use crate::ui::TIME_FORMAT;
 
+use super::popup::commands_help::CommandPopUp;
+use super::popup::dagruns::commands::DAGRUN_COMMAND_POP_UP;
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
@@ -38,6 +40,7 @@ pub struct DagRunModel {
     #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
     pub popup: Option<DagRunPopUp>,
+    pub commands: Option<CommandPopUp<'static, 6>>,
     ticks: u32,
 }
 
@@ -59,6 +62,7 @@ impl DagRunModel {
             marked: vec![],
             errors: vec![],
             popup: None,
+            commands: None,
             ticks: 0,
         }
     }
@@ -121,6 +125,13 @@ impl Model for DagRunModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dag_runs();
+                } else if let Some(_commands) = &mut self.commands {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
+                            self.commands = None;
+                        }
+                        _ => (),
+                    }
                 } else if let Some(popup) = &mut self.popup {
                     // TODO: refactor this, should be all the same
                     match popup {
@@ -226,6 +237,9 @@ impl Model for DagRunModel {
                                     self.marked.push(index);
                                 }
                             }
+                        }
+                        KeyCode::Char('?') => {
+                            self.commands = Some(DAGRUN_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -398,6 +412,10 @@ impl Widget for &mut DagRunModel {
                 popup.render(area, buf);
             }
             _ => (),
+        }
+
+        if let Some(commands) = &self.commands {
+            commands.render(area, buf);
         }
     }
 }

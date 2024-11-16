@@ -86,7 +86,6 @@ pub async fn run_app<B: Backend>(
                 // Handle other key events
                 match key.code {
                     KeyCode::Char('q') => return Ok(()),
-                    KeyCode::Char('?') => unimplemented!(),
                     KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
                     KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
                     _ => {}

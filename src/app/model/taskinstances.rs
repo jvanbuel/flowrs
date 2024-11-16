@@ -1,5 +1,7 @@
 use std::vec;
 
+use super::popup::commands_help::CommandPopUp;
+use super::popup::taskinstances::commands::TASK_COMMAND_POP_UP;
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
@@ -32,6 +34,7 @@ pub struct TaskInstanceModel {
     pub errors: Vec<FlowrsError>,
     pub popup: Option<TaskInstancePopUp>,
     pub marked: Vec<usize>,
+    commands: Option<CommandPopUp<'static, 4>>,
     ticks: u32,
 }
 
@@ -46,6 +49,7 @@ impl TaskInstanceModel {
             errors: vec![],
             popup: None,
             marked: vec![],
+            commands: None,
             ticks: 0,
         }
     }
@@ -94,9 +98,6 @@ impl Model for TaskInstanceModel {
                 if self.ticks % 10 != 0 {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                debug!("Updating task instances");
-                debug!("Dag ID: {:?}", self.dag_id);
-                debug!("Dag Run ID: {:?}", self.dag_run_id);
                 if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {
                     log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
                     return (
@@ -114,6 +115,13 @@ impl Model for TaskInstanceModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_task_instances();
+                } else if let Some(_commands) = &mut self.commands {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
+                            self.commands = None;
+                        }
+                        _ => (),
+                    }
                 } else if let Some(popup) = &mut self.popup {
                     match popup {
                         TaskInstancePopUp::Clear(popup) => {
@@ -191,6 +199,9 @@ impl Model for TaskInstanceModel {
                                         &task_instance.task_id,
                                     )));
                             }
+                        }
+                        KeyCode::Char('?') => {
+                            self.commands = Some(TASK_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -310,6 +321,10 @@ impl Widget for &mut TaskInstanceModel {
                 popup.render(area, buffer);
             }
             _ => (),
+        }
+
+        if let Some(commands) = &self.commands {
+            commands.render(area, buffer);
         }
     }
 }
