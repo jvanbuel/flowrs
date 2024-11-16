@@ -27,7 +27,7 @@ impl<const N: usize> Widget for &CommandPopUp<'_, N> {
         let text = Text::from_iter(
             self.commands
                 .iter()
-                .map(|c| format!("{}: {} - {}", c.key_binding, c.name, c.description)),
+                .map(|c| format!("<{}>: {} - {}", c.key_binding, c.name, c.description)),
         );
 
         let command_paragraph = Paragraph::new(text).wrap(Wrap { trim: true }).block(popup);

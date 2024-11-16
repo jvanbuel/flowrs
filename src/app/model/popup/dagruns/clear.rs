@@ -88,7 +88,7 @@ impl Widget for &mut ClearDagRunPopup {
 
         let popup_block = Block::default()
             .borders(Borders::ALL)
-            .title("Clear DAG Run - press <Enter> to confirm, <q>|<Esc> to close")
+            .title("Clear DAG Run")
             .border_style(DEFAULT_STYLE)
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));

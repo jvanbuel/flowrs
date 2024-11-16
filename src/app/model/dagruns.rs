@@ -366,9 +366,9 @@ impl Widget for &mut DagRunModel {
             Block::default()
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
-                    format!("DAGRuns ({}) - press <v> to view DAG code, <t> to trigger DAG, <c> to clear DAG run, <m> to mark DAG run, <M> to mark multiple", dag_id)
+                    format!("DAGRuns ({}) - press <?> to see available commands", dag_id)
                 } else {
-                    "DAGRuns press <v> to view DAG code".to_string()
+                    "DAGRuns".to_string()
                 })
                 .style(DEFAULT_STYLE),
         )
@@ -380,7 +380,7 @@ impl Widget for &mut DagRunModel {
 
             let popup = Block::default()
                 .borders(Borders::ALL)
-                .title("DAG Code - <j> down, <k> up, <q>|<Enter>|<Esc>|<v> close")
+                .title("DAG Code")
                 .border_style(DEFAULT_STYLE)
                 .style(DEFAULT_STYLE)
                 .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));

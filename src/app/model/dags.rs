@@ -270,7 +270,7 @@ impl Widget for &mut DagModel {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("DAGs - Press <p> to toggle pause, </> to filter")
+                .title("DAGs - Press <?> to see available commands")
                 .border_style(DEFAULT_STYLE)
                 .style(DEFAULT_STYLE),
         )

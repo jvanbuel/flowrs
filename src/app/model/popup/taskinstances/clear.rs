@@ -91,7 +91,7 @@ impl Widget for &mut ClearTaskInstancePopup {
 
         let popup_block = Block::default()
             .borders(Borders::ALL)
-            .title("Clear Task Instance - press <Enter> to confirm, <q>|<Esc> to close")
+            .title("Clear Task Instance")
             .border_style(DEFAULT_STYLE)
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));

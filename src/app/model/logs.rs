@@ -153,7 +153,7 @@ impl Widget for &mut LogModel {
             }
 
             let paragraph = Paragraph::new(content)
-                .block(Block::default().borders(Borders::ALL).title("Log Content"))
+                .block(Block::default().borders(Borders::ALL).title("Content"))
                 .wrap(Wrap { trim: true })
                 .style(Style::default().fg(Color::White))
                 .scroll((self.vertical_scroll as u16, 0));

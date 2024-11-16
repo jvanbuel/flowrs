@@ -116,7 +116,7 @@ impl Widget for &mut MarkDagRunPopup {
 
         let popup_block = Block::default()
             .borders(Borders::ALL)
-            .title("Mark DAG Run - press <Enter> to confirm, <q>|<Esc> to close")
+            .title("Mark DAG Run")
             .border_style(DEFAULT_STYLE)
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));

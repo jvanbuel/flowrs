@@ -114,7 +114,7 @@ impl Widget for &mut MarkTaskInstancePopup {
 
         let popup_block = Block::default()
             .borders(Borders::ALL)
-            .title("Mark Task Instance - press <Enter> to confirm, <q>|<Esc> to close")
+            .title("Mark Task Instance")
             .border_style(DEFAULT_STYLE)
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));

@@ -305,9 +305,11 @@ impl Widget for &mut TaskInstanceModel {
             ],
         )
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title(
-            "TaskInstances - press </> to filter, <c> to clear, <m> to mark, <M> to mark multiple",
-        ))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("TaskInstances - Press <?> to see available commands"),
+        )
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
 
