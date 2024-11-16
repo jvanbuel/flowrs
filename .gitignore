@@ -1,0 +1,10 @@
+target
+.flowrs
+flowrs
+logs
+plugins
+dags/**
+.DS_Store
+.vscode
+
+flowrs-debug*

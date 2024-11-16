@@ -1,0 +1,56 @@
+[package]
+name = "flowrs-tui"
+version = "0.1.0"
+edition = "2021"
+description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
+license = "MIT"
+repository = "https://github.com/jvanbuel/flowrs"
+authors = ["janvanbuel@hotmail.com"]
+
+[[bin]]
+name = "flowrs"
+path = "src/main.rs"
+
+[dependencies]
+ansi-to-tui = { version = "7.0.0" }
+backtrace = "0.3.73"
+chrono = "0.4.38"
+clap = { version = "^4.5", features = ["derive", "env"] }
+crossterm = "0.28.1"
+custom_error = "1.9.2"
+dirs = "5.0.1"
+env_logger = "0.11.5"
+futures = "0.3.31"
+indoc = "2.0.5"
+inquire = "0.7.5"
+lazy_static = "1.5.0"
+left-pad = "1.0.1"
+log = "0.4.22"
+ratatui = { version = "0.29.0", features = ["unstable-widget-ref"] }
+regex = "1.11.1"
+reqwest = { version = "0.12.9", features = ["json", "rustls-tls"] }
+rstest = "0.23.0"
+serde = { version = "1.0.214", features = ["derive"] }
+serde_json = "1.0.132"
+simplelog = "0.12.2"
+strum = "0.26.3"
+syntect = "5.2.0"
+syntect-tui = "3.0.5"
+time = { version = "0.3.36", features = [
+  "serde",
+  "serde-human-readable",
+  "parsing",
+  "macros",
+] }
+tokio = { version = "1.41.1", features = ["full"] }
+toml = "0.8.19"
+url = "2.5.3"
+
+[dev-dependencies]
+mockito = "1.5.0"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
