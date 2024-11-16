@@ -3,15 +3,15 @@ use std::vec;
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
-use ratatui::text::{Line, Span};
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::style::{Modifier, Style, Styled, Stylize};
+use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
-use crate::ui::common::create_headers;
+use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
 use crate::ui::TIME_FORMAT;
 
@@ -265,15 +265,13 @@ impl Widget for &mut TaskInstanceModel {
                     "None".to_string()
                 }),
                 Line::from(match item.state.as_str() {
-                    "success" => state_to_color(item, AirflowStateColor::Success.into()),
-                    "running" => state_to_color(item, AirflowStateColor::Running.into()),
-                    "failed" => state_to_color(item, AirflowStateColor::Failed.into()),
-                    "queued" => state_to_color(item, AirflowStateColor::Queued.into()),
-                    "up_for_retry" => state_to_color(item, AirflowStateColor::UpForRetry.into()),
-                    "upstream_failed" => {
-                        state_to_color(item, AirflowStateColor::UpstreamFailed.into())
-                    }
-                    _ => state_to_color(item, AirflowStateColor::None.into()),
+                    "success" => state_to_colored_square(AirflowStateColor::Success),
+                    "running" => state_to_colored_square(AirflowStateColor::Running),
+                    "failed" => state_to_colored_square(AirflowStateColor::Failed),
+                    "queued" => state_to_colored_square(AirflowStateColor::Queued),
+                    "up_for_retry" => state_to_colored_square(AirflowStateColor::UpForRetry),
+                    "upstream_failed" => state_to_colored_square(AirflowStateColor::UpstreamFailed),
+                    _ => state_to_colored_square(AirflowStateColor::None),
                 }),
                 Line::from(format!("{:?}", item.try_number)),
             ])
@@ -314,18 +312,4 @@ impl Widget for &mut TaskInstanceModel {
             _ => (),
         }
     }
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-#[allow(dead_code)]
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
-}
-
-fn state_to_color(item: &TaskInstance, color: Color) -> Span {
-    Span::styled(item.state.as_str(), Style::default().fg(color))
 }
