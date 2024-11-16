@@ -1,46 +1,44 @@
 Set Shell zsh
 Set Width 1600
 Set Height 900
-Sleep 1.5s
-Sleep 500ms
-Type "cargo run"
+Require flowrs
+
+Sleep 1s
+Type "flowrs"
+Sleep 2s
 Enter
 Sleep 5s
-Type "j"
-Sleep 500ms
-Type "jjj"
-Sleep 500ms
-Type "/bash"
-Sleep 500ms
-Enter
-Sleep 1.5s
-Enter
-Sleep 1.5s
 Type "jjjj"
-Sleep 1.5s
+Sleep 1s
+Type "/bash"
+Sleep 1s
+Enter
+Sleep 2s
+Enter
+Sleep 2s
+Type "jjjj"
+Sleep 2s
 Type "c"
-Sleep 500ms
+Sleep 1s
 Type "h"
-Sleep 500ms
+Sleep 2s
 Enter
-Sleep 2.5s
-Type "j"
-Sleep 500ms
-Type "jjj"
+Sleep 3s
+Type "jjjj"
 Enter
-Sleep 1s
-Type "jjj"
-Sleep 1s
+Sleep 2s
+Type "jjjj"
+Sleep 2s
 Enter
-Sleep 4s
+Sleep 5s
 Escape
-Sleep 1s
+Sleep 2s
 Escape
-Sleep 1s
+Sleep 2s
 Escape
-Sleep 1s
+Sleep 2s
 Escape
-Sleep 1.5s
+Sleep 2s
 Type "q"
-Sleep 1.5s
+Sleep 2s
 

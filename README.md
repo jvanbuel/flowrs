@@ -2,6 +2,7 @@
 
 Flowrs is a TUI application for Apache Airflow. It allows you to monitor, inspect and trigger Airflow DAGs from the comforts of your terminal. It is written with the Rust [ratatui](https://github.com/tui-rs-revival/ratatui) framework, using `crossterm` as the backend.
 
+![flowrs demo](./vhs/flowrs.gif)
 ## Installation
 
 You can install `flowrs` via Homebrew if you're on macOS / Linux / WSL2:
@@ -18,6 +19,8 @@ Alternatively, you can build `flowrs` from source by cloning the repository and 
 git clone git@github.com:jvanbuel/flowrs.git
 cargo install --path .
 ```
+
+## Features
 
 ## Usage
 
