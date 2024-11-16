@@ -7,6 +7,325 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0](https://github.com/jvanbuel/flowrs/releases/tag/v0.1.0) - 2024-11-16
+
+### Added
+
+- add custom errors
+- change logo
+- add next dag run to dag ui
+- remove chrono, use time instead
+- tweak taskinstance ui
+- tweak taskinstance ui
+- add task intances:
+- filter dags
+- use run command as default
+- add dagrun status to ui
+- add dagruns ui
+- add dagrun to model
+- add control-c kill switch
+- change to ratatui
+- add config panel
+- add multiple panels
+- toggle dags
+- add ascii art
+- show dags in ui
+- add dag listing
+- add docker-compose for tests
+- config add/remove/update commands
+
+### Fixed
+
+- fix bug renaming of crate
+- fix marking of task instances
+- fix logs
+- fix token issue
+- fix tests
+- adding token cmd
+- configure panic hook
+- datetime formatting
+- typo in readme
+- filter dags after every refresh
+- keep separate list of all dags next to filtered dags
+- keep filter when not showing filter box
+- broken schedule_interval
+
+### Other
+
+- add flowrs config add documentation
+- spacing of dagruns
+- spacing of dags
+- spacing task instances widget
+- clippy
+- uniformize colors
+- refactor and center table headers
+- add cargo-dist release action
+- rename crate
+- add changelog
+- add release-plz config
+- instructions in block border
+- add filter to UI for dagruns and task instances
+- allow log scrolling
+- add triggering of dagrun
+- make logging configurable via env variable
+- refresh task instances correctly
+- non-working task clearing
+- add marking of state
+- small refactor
+- update local state when marking dagruns
+- small refactor
+- mark all selected
+- first version of marking dagruns
+- mark dagruns
+- add ascii logo generation to makefile
+- Merge pull request [#233](https://github.com/jvanbuel/flowrs/pull/233) from jvanbuel/dependabot/cargo/tokio-1.41.1
+- Merge pull request [#234](https://github.com/jvanbuel/flowrs/pull/234) from jvanbuel/dependabot/cargo/url-2.5.3
+- refactor
+- tmp
+- implement widget traits
+- add vhs tape
+- Merge pull request [#230](https://github.com/jvanbuel/flowrs/pull/230) from jvanbuel/dependabot/cargo/reqwest-0.12.9
+- *(deps)* bump serde from 1.0.213 to 1.0.214
+- show logs
+- add mockito tests
+- --amend
+- clear dagrun implementation
+- change headers task instances
+- make next schedule timestamps human readable
+- small fix
+- refactor
+- refactor
+- add instruction to dagruns header
+- list configs
+- add dag stats
+- tmp
+- dirty refactor
+- small refactor
+- speed up filtering
+- add syntax highlighting for DAG code
+- add keybinding for going to last item of stateful table
+- add dag code fetching
+- add task instances
+- only clear dagruns when changing dags
+- add dagruns
+- *(deps)* bump ratatui from 0.28.1 to 0.29.0
+- Merge pull request [#226](https://github.com/jvanbuel/flowrs/pull/226) from jvanbuel/dependabot/cargo/tokio-1.41.0
+- Merge pull request [#228](https://github.com/jvanbuel/flowrs/pull/228) from jvanbuel/dependabot/cargo/serde-1.0.213
+- *(deps)* bump ansi-to-tui from 6.0.0 to 7.0.0
+- improve event handling
+- add worker thread
+- Merge pull request [#224](https://github.com/jvanbuel/flowrs/pull/224) from jvanbuel/dependabot/cargo/serde_json-1.0.132
+- *(deps)* bump crossterm from 0.27.0 to 0.28.1
+- simplify
+- refactor
+- refactor
+- refactor
+- refactor
+- update ratatui
+- Merge pull request [#215](https://github.com/jvanbuel/flowrs/pull/215) from jvanbuel/dependabot/cargo/reqwest-0.12.7
+- *(deps)* bump reqwest from 0.12.5 to 0.12.7
+- Merge pull request [#220](https://github.com/jvanbuel/flowrs/pull/220) from jvanbuel/dependabot/cargo/ansi-to-tui-6.0.0
+- *(deps)* bump serde from 1.0.209 to 1.0.210
+- Merge pull request [#216](https://github.com/jvanbuel/flowrs/pull/216) from jvanbuel/dependabot/cargo/serde-1.0.209
+- Merge pull request [#217](https://github.com/jvanbuel/flowrs/pull/217) from jvanbuel/dependabot/cargo/tokio-1.40.0
+- *(deps)* bump quinn-proto from 0.11.3 to 0.11.8
+- *(deps)* bump toml from 0.8.16 to 0.8.19
+- Merge pull request [#208](https://github.com/jvanbuel/flowrs/pull/208) from jvanbuel/dependabot/cargo/clap-4.5.13
+- Merge pull request [#212](https://github.com/jvanbuel/flowrs/pull/212) from jvanbuel/dependabot/cargo/serde-1.0.208
+- *(deps)* bump tokio from 1.39.2 to 1.39.3
+- add new logo
+- tmp
+- *(deps)* bump toml from 0.8.15 to 0.8.16
+- Merge pull request [#204](https://github.com/jvanbuel/flowrs/pull/204) from jvanbuel/dependabot/cargo/clap-4.5.11
+- Merge pull request [#203](https://github.com/jvanbuel/flowrs/pull/203) from jvanbuel/dependabot/cargo/env_logger-0.11.5
+- Merge pull request [#201](https://github.com/jvanbuel/flowrs/pull/201) from jvanbuel/dependabot/cargo/tokio-1.39.2
+- *(deps)* bump serde_json from 1.0.120 to 1.0.121
+- *(deps)* bump toml from 0.8.14 to 0.8.15
+- Merge pull request [#199](https://github.com/jvanbuel/flowrs/pull/199) from jvanbuel/dependabot/cargo/tokio-1.38.1
+- *(deps)* bump openssl from 0.10.63 to 0.10.66
+- add support for conveyor environments
+- improve config tests
+- small refactor
+- tmp
+- tmp
+- *(deps)* bump clap from 4.5.8 to 4.5.9
+- restyle
+- disable mousecapture on shutdown
+- add squares instead of text for DAGrun status
+- refactor filter DAG
+- add event thread
+- update UI
+- toggle immediately DAGs in UI
+- hard exit
+- Merge pull request [#189](https://github.com/jvanbuel/flowrs/pull/189) from jvanbuel/dependabot/cargo/ratatui-0.27.0
+- Merge pull request [#192](https://github.com/jvanbuel/flowrs/pull/192) from jvanbuel/dependabot/cargo/serde-1.0.204
+- *(deps)* bump serde from 1.0.203 to 1.0.204
+- Merge pull request [#191](https://github.com/jvanbuel/flowrs/pull/191) from jvanbuel/dependabot/cargo/log-0.4.22
+- *(deps)* bump serde_json from 1.0.117 to 1.0.120
+- *(deps)* bump reqwest from 0.12.4 to 0.12.5
+- Merge pull request [#185](https://github.com/jvanbuel/flowrs/pull/185) from jvanbuel/dependabot/cargo/strum-0.26.3
+- Merge pull request [#186](https://github.com/jvanbuel/flowrs/pull/186) from jvanbuel/dependabot/cargo/lazy_static-1.5.0
+- *(deps)* bump url from 2.5.1 to 2.5.2
+- Merge pull request [#182](https://github.com/jvanbuel/flowrs/pull/182) from jvanbuel/dependabot/cargo/clap-4.5.7
+- *(deps)* bump url from 2.5.0 to 2.5.1
+- Merge pull request [#181](https://github.com/jvanbuel/flowrs/pull/181) from jvanbuel/dependabot/cargo/toml-0.8.14
+- *(deps)* bump toml from 0.8.13 to 0.8.14
+- *(deps)* bump tokio from 1.37.0 to 1.38.0
+- Merge pull request [#177](https://github.com/jvanbuel/flowrs/pull/177) from jvanbuel/dependabot/cargo/serde-1.0.203
+- *(deps)* bump ratatui from 0.26.2 to 0.26.3
+- *(deps)* bump serde_json from 1.0.116 to 1.0.117
+- Merge pull request [#175](https://github.com/jvanbuel/flowrs/pull/175) from jvanbuel/dependabot/cargo/serde-1.0.202
+- *(deps)* bump toml from 0.8.12 to 0.8.13
+- Merge pull request [#170](https://github.com/jvanbuel/flowrs/pull/170) from jvanbuel/dependabot/cargo/inquire-0.7.5
+- *(deps)* bump serde from 1.0.198 to 1.0.201
+- Merge pull request [#167](https://github.com/jvanbuel/flowrs/pull/167) from jvanbuel/dependabot/cargo/serde-1.0.198
+- *(deps)* bump ratatui from 0.26.1 to 0.26.2
+- Merge pull request [#168](https://github.com/jvanbuel/flowrs/pull/168) from jvanbuel/dependabot/cargo/serde_json-1.0.116
+- *(deps)* bump reqwest from 0.12.3 to 0.12.4
+- *(deps)* bump rustls from 0.22.2 to 0.22.4
+- *(deps)* bump time from 0.3.34 to 0.3.36
+- *(deps)* bump reqwest from 0.12.2 to 0.12.3
+- *(deps)* bump h2 from 0.4.3 to 0.4.4
+- Merge pull request [#158](https://github.com/jvanbuel/flowrs/pull/158) from jvanbuel/dependabot/cargo/clap-4.5.4
+- Merge pull request [#159](https://github.com/jvanbuel/flowrs/pull/159) from jvanbuel/dependabot/cargo/serde_json-1.0.115
+- Merge pull request [#160](https://github.com/jvanbuel/flowrs/pull/160) from jvanbuel/dependabot/cargo/tokio-1.37.0
+- *(deps)* bump reqwest from 0.12.1 to 0.12.2
+- Merge pull request [#155](https://github.com/jvanbuel/flowrs/pull/155) from jvanbuel/dependabot/cargo/toml-0.8.12
+- Merge pull request [#156](https://github.com/jvanbuel/flowrs/pull/156) from jvanbuel/dependabot/cargo/inquire-0.7.4
+- *(deps)* bump reqwest from 0.11.26 to 0.12.1
+- Merge pull request [#151](https://github.com/jvanbuel/flowrs/pull/151) from jvanbuel/dependabot/cargo/clap-4.5.3
+- Merge pull request [#152](https://github.com/jvanbuel/flowrs/pull/152) from jvanbuel/dependabot/cargo/reqwest-0.11.26
+- Merge pull request [#153](https://github.com/jvanbuel/flowrs/pull/153) from jvanbuel/dependabot/cargo/toml-0.8.11
+- Merge pull request [#154](https://github.com/jvanbuel/flowrs/pull/154) from jvanbuel/dependabot/cargo/inquire-0.7.2
+- *(deps)* bump inquire from 0.7.0 to 0.7.2
+- Merge pull request [#149](https://github.com/jvanbuel/flowrs/pull/149) from jvanbuel/dependabot/cargo/env_logger-0.11.3
+- Merge pull request [#146](https://github.com/jvanbuel/flowrs/pull/146) from jvanbuel/dependabot/cargo/mio-0.8.11
+- *(deps)* bump reqwest from 0.11.24 to 0.11.25
+- Merge pull request [#144](https://github.com/jvanbuel/flowrs/pull/144) from jvanbuel/dependabot/cargo/serde-1.0.197
+- *(deps)* bump log from 0.4.20 to 0.4.21
+- Merge pull request [#141](https://github.com/jvanbuel/flowrs/pull/141) from jvanbuel/dependabot/cargo/env_logger-0.11.2
+- *(deps)* bump env_logger from 0.11.1 to 0.11.2
+- Merge pull request [#142](https://github.com/jvanbuel/flowrs/pull/142) from jvanbuel/dependabot/cargo/inquire-0.7.0
+- *(deps)* bump serde_json from 1.0.113 to 1.0.114
+- tmp
+- update tests
+- flowrs config from file
+- refactor
+- refactor
+- update deps
+- *(deps)* bump tokio from 1.35.1 to 1.36.0
+- Merge pull request [#135](https://github.com/jvanbuel/flowrs/pull/135) from jvanbuel/dependabot/cargo/ratatui-0.26.0
+- Merge pull request [#136](https://github.com/jvanbuel/flowrs/pull/136) from jvanbuel/dependabot/cargo/clap-4.5.0
+- *(deps)* bump toml from 0.8.9 to 0.8.10
+- *(deps)* bump serde from 1.0.195 to 1.0.196
+- *(deps)* bump serde_json from 1.0.111 to 1.0.113
+- Merge pull request [#132](https://github.com/jvanbuel/flowrs/pull/132) from jvanbuel/dependabot/cargo/time-0.3.34
+- Merge pull request [#133](https://github.com/jvanbuel/flowrs/pull/133) from jvanbuel/dependabot/cargo/reqwest-0.11.24
+- *(deps)* bump toml from 0.8.8 to 0.8.9
+- *(deps)* bump clap from 4.4.16 to 4.4.18
+- *(deps)* bump h2 from 0.3.18 to 0.3.24
+- *(deps)* bump clap from 4.4.13 to 4.4.16
+- *(deps)* bump serde_json from 1.0.108 to 1.0.111
+- Merge pull request [#123](https://github.com/jvanbuel/flowrs/pull/123) from jvanbuel/dependabot/cargo/clap-4.4.13
+- *(deps)* bump serde from 1.0.193 to 1.0.195
+- Merge pull request [#118](https://github.com/jvanbuel/flowrs/pull/118) from jvanbuel/dependabot/cargo/time-0.3.31
+- *(deps)* bump reqwest from 0.11.22 to 0.11.23
+- Merge pull request [#120](https://github.com/jvanbuel/flowrs/pull/120) from jvanbuel/dependabot/cargo/tokio-1.35.1
+- Merge pull request [#121](https://github.com/jvanbuel/flowrs/pull/121) from jvanbuel/dependabot/cargo/ratatui-0.25.0
+- *(deps)* bump clap from 4.4.11 to 4.4.12
+- *(deps)* bump zerocopy from 0.7.20 to 0.7.31
+- Merge pull request [#115](https://github.com/jvanbuel/flowrs/pull/115) from jvanbuel/dependabot/cargo/tokio-1.35.0
+- *(deps)* bump clap from 4.4.10 to 4.4.11
+- Merge pull request [#113](https://github.com/jvanbuel/flowrs/pull/113) from jvanbuel/dependabot/cargo/openssl-0.10.60
+- *(deps)* bump clap from 4.4.8 to 4.4.10
+- small refactor
+- Merge pull request [#110](https://github.com/jvanbuel/flowrs/pull/110) from jvanbuel/dependabot/cargo/tokio-1.34.0
+- Merge pull request [#111](https://github.com/jvanbuel/flowrs/pull/111) from jvanbuel/dependabot/cargo/url-2.5.0
+- *(deps)* bump serde from 1.0.192 to 1.0.193
+- *(deps)* bump serde_json from 1.0.107 to 1.0.108
+- Merge pull request [#102](https://github.com/jvanbuel/flowrs/pull/102) from jvanbuel/dependabot/cargo/ratatui-0.24.0
+- Merge pull request [#107](https://github.com/jvanbuel/flowrs/pull/107) from jvanbuel/dependabot/cargo/clap-4.4.8
+- Merge pull request [#108](https://github.com/jvanbuel/flowrs/pull/108) from jvanbuel/dependabot/cargo/toml-0.8.8
+- *(deps)* bump serde from 1.0.189 to 1.0.192
+- *(deps)* bump rustix from 0.37.3 to 0.37.25
+- *(deps)* bump time from 0.3.29 to 0.3.30
+- Merge pull request [#98](https://github.com/jvanbuel/flowrs/pull/98) from jvanbuel/dependabot/cargo/serde-1.0.189
+- *(deps)* bump tokio from 1.32.0 to 1.33.0
+- Merge pull request [#95](https://github.com/jvanbuel/flowrs/pull/95) from jvanbuel/dependabot/cargo/toml-0.8.2
+- *(deps)* bump reqwest from 0.11.20 to 0.11.22
+- clippy
+- Merge pull request [#93](https://github.com/jvanbuel/flowrs/pull/93) from jvanbuel/dependabot/cargo/clap-4.4.6
+- *(deps)* bump toml from 0.8.0 to 0.8.1
+- Merge pull request [#91](https://github.com/jvanbuel/flowrs/pull/91) from jvanbuel/dependabot/cargo/time-0.3.29
+- *(deps)* bump clap from 4.4.3 to 4.4.4
+- Merge pull request [#88](https://github.com/jvanbuel/flowrs/pull/88) from jvanbuel/dependabot/cargo/serde_json-1.0.107
+- Merge pull request [#89](https://github.com/jvanbuel/flowrs/pull/89) from jvanbuel/dependabot/cargo/toml-0.8.0
+- *(deps)* bump clap from 4.4.2 to 4.4.3
+- Merge pull request [#83](https://github.com/jvanbuel/flowrs/pull/83) from jvanbuel/dependabot/cargo/url-2.4.1
+- Merge pull request [#84](https://github.com/jvanbuel/flowrs/pull/84) from jvanbuel/dependabot/cargo/ratatui-0.23.0
+- deprecated Spans to Line
+- popup
+- Merge pull request [#81](https://github.com/jvanbuel/flowrs/pull/81) from jvanbuel/dependabot/cargo/clap-4.4.0
+- *(deps)* bump serde from 1.0.185 to 1.0.188
+- Merge pull request [#79](https://github.com/jvanbuel/flowrs/pull/79) from jvanbuel/dependabot/cargo/reqwest-0.11.20
+- *(deps)* bump time from 0.3.25 to 0.3.28
+- *(deps)* bump serde_json from 1.0.104 to 1.0.105
+- Merge pull request [#76](https://github.com/jvanbuel/flowrs/pull/76) from jvanbuel/dependabot/cargo/clap-4.3.23
+- Merge pull request [#77](https://github.com/jvanbuel/flowrs/pull/77) from jvanbuel/dependabot/cargo/serde-1.0.185
+- *(deps)* bump tokio from 1.31.0 to 1.32.0
+- Merge pull request [#73](https://github.com/jvanbuel/flowrs/pull/73) from jvanbuel/dependabot/cargo/tokio-1.31.0
+- *(deps)* bump clap from 4.3.19 to 4.3.21
+- Merge pull request [#70](https://github.com/jvanbuel/flowrs/pull/70) from jvanbuel/dependabot/cargo/crossterm-0.27.0
+- Merge pull request [#71](https://github.com/jvanbuel/flowrs/pull/71) from jvanbuel/dependabot/cargo/time-0.3.25
+- *(deps)* bump serde from 1.0.179 to 1.0.183
+- *(deps)* bump serde_json from 1.0.103 to 1.0.104
+- *(deps)* bump time from 0.3.23 to 0.3.24
+- *(deps)* bump serde from 1.0.175 to 1.0.179
+- *(deps)* bump serde from 1.0.171 to 1.0.175
+- Merge pull request [#64](https://github.com/jvanbuel/flowrs/pull/64) from jvanbuel/dependabot/cargo/clap-4.3.19
+- *(deps)* bump ratatui from 0.21.0 to 0.22.0
+- *(deps)* bump serde_json from 1.0.100 to 1.0.103
+- Merge pull request [#62](https://github.com/jvanbuel/flowrs/pull/62) from jvanbuel/dependabot/cargo/clap-4.3.12
+- *(deps)* bump time from 0.3.22 to 0.3.23
+- Merge pull request [#56](https://github.com/jvanbuel/flowrs/pull/56) from jvanbuel/dependabot/cargo/serde_json-1.0.100
+- *(deps)* bump tokio from 1.28.2 to 1.29.1
+- Merge pull request [#57](https://github.com/jvanbuel/flowrs/pull/57) from jvanbuel/dependabot/cargo/serde-1.0.171
+- Merge pull request [#58](https://github.com/jvanbuel/flowrs/pull/58) from jvanbuel/dependabot/cargo/clap-4.3.11
+- *(deps)* bump toml from 0.7.4 to 0.7.6
+- *(deps)* bump serde_json from 1.0.96 to 1.0.99
+- *(deps)* bump serde from 1.0.163 to 1.0.164
+- Merge pull request [#47](https://github.com/jvanbuel/flowrs/pull/47) from jvanbuel/dependabot/cargo/url-2.4.0
+- Merge pull request [#46](https://github.com/jvanbuel/flowrs/pull/46) from jvanbuel/dependabot/cargo/time-0.3.22
+- Merge pull request [#52](https://github.com/jvanbuel/flowrs/pull/52) from jvanbuel/dependabot/cargo/openssl-0.10.55
+- *(deps)* bump clap from 4.3.1 to 4.3.10
+- Merge pull request [#44](https://github.com/jvanbuel/flowrs/pull/44) from jvanbuel/dependabot/cargo/ratatui-0.21.0
+- *(deps)* bump ratatui from 0.20.1 to 0.21.0
+- Merge pull request [#45](https://github.com/jvanbuel/flowrs/pull/45) from jvanbuel/dependabot/cargo/clap-4.3.1
+- Merge pull request [#42](https://github.com/jvanbuel/flowrs/pull/42) from jvanbuel/dependabot/cargo/toml-0.7.4
+- *(deps)* bump toml from 0.7.3 to 0.7.4
+- Update README.md
+- Merge pull request [#38](https://github.com/jvanbuel/flowrs/pull/38) from jvanbuel/dependabot/cargo/tokio-1.28.1
+- *(deps)* bump serde from 1.0.162 to 1.0.163
+- Update README.md
+- Merge pull request [#19](https://github.com/jvanbuel/flowrs/pull/19) from jvanbuel/dependabot/cargo/time-0.3.21
+- Merge pull request [#20](https://github.com/jvanbuel/flowrs/pull/20) from jvanbuel/dependabot/cargo/inquire-0.6.2
+- clippy
+- *(deps)* bump dirs from 5.0.0 to 5.0.1
+- *(deps)* bump crossterm from 0.25.0 to 0.26.1
+- Merge pull request [#14](https://github.com/jvanbuel/flowrs/pull/14) from jvanbuel/dependabot/cargo/tokio-1.28.0
+- Merge pull request [#16](https://github.com/jvanbuel/flowrs/pull/16) from jvanbuel/dependabot/cargo/clap-4.2.7
+- *(deps)* bump reqwest from 0.11.16 to 0.11.17
+- Create dependabot.yml
+- use second thread to call API
+- handle key events per panel
+- dag ui
+- ui module
+- play a bit with ui
+- separate commands
+- begin list dag implementation
+- add image
+- initial commit
+
 ## [0.1.0](https://github.com/jvanbuel/flowrs/releases/tag/v0.1.0) - 2024-11-15
 
 ### Added
