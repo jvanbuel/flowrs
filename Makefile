@@ -3,6 +3,7 @@
 
 build:
 	cargo build --release && cp target/release/flowrs .
+	cp flowrs /usr/local/bin/flowrs
 
 
 logo:
