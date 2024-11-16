@@ -341,10 +341,10 @@ impl Widget for &mut DagRunModel {
         let t = Table::new(
             rows,
             &[
-                Constraint::Length(7),
-                Constraint::Percentage(20),
-                Constraint::Max(22),
-                Constraint::Length(10),
+                Constraint::Length(6),
+                Constraint::Fill(1),
+                Constraint::Length(20),
+                Constraint::Length(11),
             ],
         )
         .header(header)
