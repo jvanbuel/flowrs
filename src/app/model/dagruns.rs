@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
+use ratatui::style::{Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
@@ -17,7 +17,7 @@ use time::format_description;
 use crate::airflow::model::dagrun::DagRun;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
-use crate::ui::constants::DEFAULT_STYLE;
+use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
 use crate::ui::TIME_FORMAT;
 
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
@@ -303,11 +303,19 @@ impl Widget for &mut DagRunModel {
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
                 Line::from(match item.state.as_str() {
-                    "success" => Span::styled("■", Style::default().fg(Color::Rgb(0, 128, 0))),
-                    "running" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightGreen)),
-                    "failed" => Span::styled("■", DEFAULT_STYLE.fg(Color::Red)),
-                    "queued" => Span::styled("■", DEFAULT_STYLE.fg(Color::LightBlue)),
-                    _ => Span::styled("■", DEFAULT_STYLE.fg(Color::White)),
+                    "success" => {
+                        Span::styled("■", Style::default().fg(AirflowStateColor::Success.into()))
+                    }
+                    "running" => {
+                        Span::styled("■", DEFAULT_STYLE.fg(AirflowStateColor::Running.into()))
+                    }
+                    "failed" => {
+                        Span::styled("■", DEFAULT_STYLE.fg(AirflowStateColor::Failed.into()))
+                    }
+                    "queued" => {
+                        Span::styled("■", DEFAULT_STYLE.fg(AirflowStateColor::Queued.into()))
+                    }
+                    _ => Span::styled("■", DEFAULT_STYLE.fg(AirflowStateColor::None.into())),
                 }),
                 Line::from(Span::styled(
                     item.dag_run_id.as_str(),
@@ -323,11 +331,11 @@ impl Widget for &mut DagRunModel {
                 Line::from(item.run_type.as_str()),
             ])
             .style(if self.marked.contains(&idx) {
-                DEFAULT_STYLE.bg(Color::Rgb(255, 255, 224))
+                DEFAULT_STYLE.bg(MARKED_COLOR)
             } else if (idx % 2) == 0 {
                 DEFAULT_STYLE
             } else {
-                DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
+                DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
             })
         });
         let t = Table::new(

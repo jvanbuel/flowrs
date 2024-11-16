@@ -14,6 +14,7 @@ use regex::Regex;
 use crate::{
     airflow::model::log::Log,
     app::{error::FlowrsError, events::custom::FlowrsEvent, worker::WorkerMessage},
+    ui::constants::DM_RGB,
 };
 
 use super::Model;
@@ -129,7 +130,7 @@ impl Widget for &mut LogModel {
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
             )
-            .style(Style::default().fg(Color::White));
+            .style(Style::default().fg(DM_RGB));
 
         // Render the tabs
         tabs.render(area, buffer);

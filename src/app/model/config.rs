@@ -2,14 +2,14 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
-use ratatui::style::{Color, Modifier, Stylize};
+use ratatui::style::{Modifier, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::WorkerMessage;
-use crate::ui::constants::DEFAULT_STYLE;
+use crate::ui::constants::{ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
@@ -112,7 +112,7 @@ impl Widget for &mut ConfigModel {
             .style(if (idx % 2) == 0 {
                 DEFAULT_STYLE
             } else {
-                DEFAULT_STYLE.bg(Color::Rgb(33, 34, 35))
+                DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
             })
         });
 
