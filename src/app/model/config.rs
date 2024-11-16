@@ -4,7 +4,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
@@ -13,6 +13,7 @@ use crate::ui::constants::DEFAULT_STYLE;
 
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::error::FlowrsError;
+use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
@@ -93,10 +94,10 @@ impl Widget for &mut ConfigModel {
         let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
         let headers = ["Name", "Endpoint", "Managed"];
-        let header_cells = headers.iter().map(|h| Cell::from(*h).style(DEFAULT_STYLE));
+        let header_row = create_headers(headers);
 
         let header =
-            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+            Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
 
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![

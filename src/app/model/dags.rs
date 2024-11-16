@@ -6,14 +6,13 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, Borders, Cell, Paragraph, Row, StatefulWidget, Table, Widget,
-};
+use ratatui::widgets::{Block, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
 use crate::airflow::model::dag::Dag;
 use crate::airflow::model::dagstats::DagStatistic;
 use crate::app::events::custom::FlowrsEvent;
+use crate::ui::common::create_headers;
 use crate::ui::constants::DEFAULT_STYLE;
 
 use super::{filter::Filter, Model, StatefulTable};
@@ -177,8 +176,8 @@ impl Widget for &mut DagModel {
         let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
-        let header_cells = headers.iter().map(|h| Cell::from(*h));
-        let header = Row::new(header_cells)
+        let header_row = create_headers(headers);
+        let header = Row::new(header_row)
             .style(DEFAULT_STYLE.reversed())
             .add_modifier(Modifier::BOLD);
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {

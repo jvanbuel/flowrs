@@ -4,6 +4,7 @@ use ratatui::widgets::Widget;
 use ratatui::Frame;
 use std::sync::{Arc, Mutex};
 
+pub mod common;
 pub mod constants;
 mod init_screen;
 

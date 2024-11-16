@@ -6,11 +6,12 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
+use crate::ui::common::create_headers;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
@@ -244,9 +245,9 @@ impl Widget for &mut TaskInstanceModel {
         let selected_style = Style::default().add_modifier(Modifier::REVERSED);
 
         let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
-        let header_cells = headers.iter().map(|h| Cell::from(*h));
+        let header_row = create_headers(headers);
         let header =
-            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+            Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
 
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
@@ -293,11 +294,9 @@ impl Widget for &mut TaskInstanceModel {
             ],
         )
         .header(header)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("TaskInstances - press </> to filter, <c> to clear, <m> to mark, <M> to mark multiple"),
-        )
+        .block(Block::default().borders(Borders::ALL).title(
+            "TaskInstances - press </> to filter, <c> to clear, <m> to mark, <M> to mark multiple",
+        ))
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
 

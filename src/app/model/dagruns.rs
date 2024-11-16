@@ -4,7 +4,7 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, Borders, Cell, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
+    Block, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
     StatefulWidget, Table, Widget, Wrap,
 };
 use syntect::easy::HighlightLines;
@@ -16,6 +16,7 @@ use time::format_description;
 
 use crate::airflow::model::dagrun::DagRun;
 use crate::app::events::custom::FlowrsEvent;
+use crate::ui::common::create_headers;
 use crate::ui::constants::DEFAULT_STYLE;
 use crate::ui::TIME_FORMAT;
 
@@ -294,12 +295,10 @@ impl Widget for &mut DagRunModel {
                 .split(area)
         };
 
-        let normal_style = DEFAULT_STYLE;
-
         let headers = ["State", "DAG Run ID", "Logical Date", "Type"];
-        let header_cells = headers.iter().map(|h| Cell::from(*h).style(normal_style));
+        let header_row = create_headers(headers);
         let header =
-            Row::new(header_cells).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+            Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
 
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
