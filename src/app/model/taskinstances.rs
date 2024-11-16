@@ -286,10 +286,10 @@ impl Widget for &mut TaskInstanceModel {
         let t = Table::new(
             rows,
             &[
-                Constraint::Percentage(15),
-                Constraint::Percentage(15),
+                Constraint::Fill(1),
+                Constraint::Min(19),
                 Constraint::Length(20),
-                Constraint::Length(15),
+                Constraint::Length(5),
                 Constraint::Length(5),
             ],
         )
