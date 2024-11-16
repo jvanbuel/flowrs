@@ -2,7 +2,7 @@
 
 
 build:
-	cargo build --release && cp target/debug/flowrs .
+	cargo build --release && cp target/release/flowrs .
 
 
 logo:

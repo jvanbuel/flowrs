@@ -24,7 +24,7 @@ cargo install --path .
 
 You can register an Airflow server instance with the `flowrs config add` command:
 
-TODO: Add example of prompt
+
 
 This creates an entry in a `~/.flowrs` configuration file. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` starting screen.
 

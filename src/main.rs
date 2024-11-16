@@ -19,7 +19,7 @@ lazy_static::lazy_static! {
 use app::error::Result;
 
 #[derive(Parser)]
-#[clap(name = "flowrs", version, about, before_help=ASCII_LOGO)]
+#[clap(name="flowrs", bin_name="flowrs", version, about, before_help=ASCII_LOGO)]
 struct FlowrsApp {
     #[clap(subcommand)]
     command: Option<FlowrsCommand>,

@@ -7,6 +7,10 @@ license = "MIT"
 repository = "https://github.com/jvanbuel/flowrs"
 authors = ["janvanbuel@hotmail.com"]
 
+[[bin]]
+name = "flowrs"
+path = "src/main.rs"
+
 [dependencies]
 ansi-to-tui = { version = "7.0.0" }
 backtrace = "0.3.73"
