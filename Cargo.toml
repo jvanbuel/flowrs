@@ -12,6 +12,10 @@ authors = ["janvanbuel@hotmail.com"]
 name = "flowrs"
 path = "src/main.rs"
 
+
+[package.metadata.dist]
+formula = "flowrs"
+
 [dependencies]
 ansi-to-tui = { version = "7.0.0" }
 backtrace = "0.3.73"
