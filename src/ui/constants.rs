@@ -15,6 +15,25 @@ pub const MARKED_COLOR: Color = Color::Rgb(255, 255, 224);
 
 pub const ASCII_LOGO: &str = include_str!("logo/logo.ascii");
 
+pub const ROTATING_LOGO: [&str; 16] = [
+    include_str!("../../image/rotation/ascii/0.ascii"),
+    include_str!("../../image/rotation/ascii/1.ascii"),
+    include_str!("../../image/rotation/ascii/2.ascii"),
+    include_str!("../../image/rotation/ascii/3.ascii"),
+    include_str!("../../image/rotation/ascii/4.ascii"),
+    include_str!("../../image/rotation/ascii/5.ascii"),
+    include_str!("../../image/rotation/ascii/6.ascii"),
+    include_str!("../../image/rotation/ascii/7.ascii"),
+    include_str!("../../image/rotation/ascii/8.ascii"),
+    include_str!("../../image/rotation/ascii/9.ascii"),
+    include_str!("../../image/rotation/ascii/10.ascii"),
+    include_str!("../../image/rotation/ascii/11.ascii"),
+    include_str!("../../image/rotation/ascii/12.ascii"),
+    include_str!("../../image/rotation/ascii/13.ascii"),
+    include_str!("../../image/rotation/ascii/14.ascii"),
+    include_str!("../../image/rotation/ascii/15.ascii"),
+];
+
 pub enum AirflowStateColor {
     Success,
     Failed,

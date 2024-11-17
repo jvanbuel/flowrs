@@ -5,6 +5,7 @@ edition = "2021"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
 license = "MIT"
 repository = "https://github.com/jvanbuel/flowrs"
+homepage = "https://github.com/jvanbuel/flowrs"
 authors = ["janvanbuel@hotmail.com"]
 
 [[bin]]

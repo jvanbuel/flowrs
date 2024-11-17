@@ -6,5 +6,6 @@ plugins
 dags/**
 .DS_Store
 .vscode
+*.tiff
 
 flowrs-debug*

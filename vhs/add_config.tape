@@ -9,7 +9,7 @@ Sleep 1s
 Type "airflow-test"
 Enter
 Sleep 1s
-Type "https://localhost:8080"
+Type "http://localhost:8080"
 Sleep 1s
 Enter
 Sleep 1s
