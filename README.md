@@ -8,20 +8,22 @@ Flowrs is a TUI application for [Apache Airflow](https://airflow.apache.org/). I
 
 You can install `flowrs` via Homebrew if you're on macOS / Linux / WSL2:
 
-`brew install jvanbuel/flowrs`
+```
+brew tap jvanbuel/flowrs
+brew install flowrs
+```
 
 or by downloading the binary directly from GitHub:
 
-`curl -s ....`
-
-Alternatively, you can build `flowrs` from source by cloning the repository and install the project with `cargo`:
-
 ```bash
-git clone git@github.com:jvanbuel/flowrs.git
-cargo install --path .
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jvanbuel/flowrs/releases/latest/download/flowrs-tui-installer.sh | sh
 ```
 
-## Features
+Alternatively, you can build `flowrs` from source with `cargo`:
+
+```bash
+cargo install flowrs-tui --locked
+```
 
 ## Usage
 
