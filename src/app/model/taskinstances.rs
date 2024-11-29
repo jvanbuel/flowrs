@@ -34,7 +34,7 @@ pub struct TaskInstanceModel {
     pub errors: Vec<FlowrsError>,
     pub popup: Option<TaskInstancePopUp>,
     pub marked: Vec<usize>,
-    commands: Option<CommandPopUp<'static, 4>>,
+    commands: Option<CommandPopUp<'static, 3>>,
     ticks: u32,
 }
 
