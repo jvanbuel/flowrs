@@ -129,6 +129,7 @@ impl Model for DagRunModel {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
                             self.commands = None;
+                            return (None, vec![]);
                         }
                         _ => (),
                     }

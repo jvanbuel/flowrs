@@ -20,7 +20,6 @@ pub struct ConfigModel {
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
     #[allow(dead_code)]
-    #[allow(dead_code)]
     pub errors: Vec<FlowrsError>,
 }
 
