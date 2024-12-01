@@ -22,14 +22,52 @@ pub struct AirFlowClient {
 impl AirFlowClient {
     pub fn new(config: AirflowConfig) -> Result<Self> {
         let client = reqwest::Client::builder()
-            // .http1_title_case_headers()
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(10))
+            .cookie_store(true)
             .use_rustls_tls()
             .build()?;
         Ok(Self { client, config })
     }
 
-    pub fn base_api(&self, method: Method, endpoint: &str) -> Result<reqwest::RequestBuilder> {
+    pub async fn initalize(mut self) -> Result<Self> {
+        if let AirflowAuth::Session { initalized } = &self.config.auth {
+            if !initalized {
+                let aws_sdk_config =
+                    aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+                let client = aws_sdk_mwaa::Client::new(&aws_sdk_config);
+                let web_ui_token = client
+                    .create_web_login_token()
+                    .set_name(Some(self.config.name.clone()))
+                    .send()
+                    .await
+                    .expect("Failed to get MWAA web login token");
+
+                let mwaa_url = format!(
+                    "https://{}/aws_mwaa/login",
+                    web_ui_token
+                        .clone()
+                        .web_server_hostname
+                        .expect("Failed to get MWAA web server hostname")
+                );
+
+                let _ = self
+                    .client
+                    .post(mwaa_url)
+                    .form(&[("token", web_ui_token.clone().web_token.unwrap())])
+                    .send()
+                    .await?;
+
+                self.config.auth = AirflowAuth::Session { initalized: true };
+            }
+        }
+        Ok(self)
+    }
+
+    pub async fn base_api(
+        &self,
+        method: Method,
+        endpoint: &str,
+    ) -> Result<reqwest::RequestBuilder> {
         let base_url = Url::parse(&self.config.endpoint)?;
         let url = base_url.join(format!("api/v1/{endpoint}").as_str())?;
 
@@ -59,9 +97,12 @@ impl AirFlowClient {
                     Err(FlowrsError::ConfigError(ConfigError::NoTokenOrCmd))
                 }
             }
-            AirflowAuth::Session => {
+            AirflowAuth::Session { initalized: _ } => {
                 info!("🔑 Session Auth");
-                unimplemented!()
+                // TODO: pass client via Session enum?
+                // Reference: https://docs.aws.amazon.com/mwaa/latest/userguide/access-mwaa-apache-airflow-rest-api.html#create-web-server-session-token
+
+                Ok(self.client.request(method, url))
             }
         }
     }
@@ -95,6 +136,11 @@ mod tests {
         let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
         let client = AirFlowClient::new(config.servers.unwrap()[0].clone()).unwrap();
 
-        let _ = client.base_api(Method::GET, "config").unwrap().send().await;
+        let _ = client
+            .base_api(Method::GET, "config")
+            .await
+            .unwrap()
+            .send()
+            .await;
     }
 }

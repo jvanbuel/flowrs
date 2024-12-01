@@ -6,7 +6,7 @@ use super::AirFlowClient;
 impl AirFlowClient {
     pub async fn get_dag_stats(&self, dag_ids: Vec<&str>) -> Result<DagStatsResponse> {
         let response = self
-            .base_api(Method::GET, "dagStats")?
+            .base_api(Method::GET, "dagStats").await?
             .query(&[("dag_ids", dag_ids.join(","))])
             .send()
             .await?;

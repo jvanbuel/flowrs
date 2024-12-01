@@ -17,7 +17,7 @@ impl AirFlowClient {
             .base_api(
                 Method::GET,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"),
-            )?
+            ).await?
             .send()
             .await?;
         let daglist: TaskInstanceList = response.json::<TaskInstanceList>().await?;
@@ -28,7 +28,7 @@ impl AirFlowClient {
     #[allow(dead_code)]
     pub async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
         let response: Response = self
-            .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")?
+            .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances").await?
             .send()
             .await?;
         let daglist: TaskInstanceList = response.json::<TaskInstanceList>().await?;
@@ -46,7 +46,7 @@ impl AirFlowClient {
             .base_api(
                 Method::PATCH,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",),
-            )?
+            ).await?
             .json(&serde_json::json!({"new_state": status, "dry_run": false}))
             .send()
             .await?;
@@ -61,7 +61,7 @@ impl AirFlowClient {
         task_id: &str,
     ) -> Result<()> {
         let resp: Response = self
-            .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))?
+            .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances")).await?
             .json(&serde_json::json!(
                 {
                     "dry_run": false,

@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use crate::airflow::config::AirflowConfig;
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
@@ -102,8 +103,16 @@ impl Worker {
                 }
             }
             WorkerMessage::ConfigSelected(idx) => {
+                let config: AirflowConfig;
+                {
+                    let app = self.app.lock().unwrap();
+                    config = app.configs.filtered.items[idx].clone();
+                }
+                self.client = AirFlowClient::from(config)
+                    .initalize()
+                    .await
+                    .expect("Error initializing client");
                 let mut app = self.app.lock().unwrap();
-                self.client = AirFlowClient::from(app.configs.filtered.items[idx].clone());
                 *app = App::new(app.config.clone()).unwrap();
             }
             WorkerMessage::UpdateDagRuns { dag_id, clear } => {

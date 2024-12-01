@@ -48,7 +48,7 @@ pub struct AirflowConfig {
 pub enum AirflowAuth {
     Basic(BasicAuth),
     Token(TokenCmd),
-    Session,
+    Session { initalized: bool },
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -84,21 +84,16 @@ impl FlowrsConfig {
         } else {
             let services = config.managed_services.clone().unwrap();
             for service in services {
-                let managed_servers: Vec<AirflowConfig>;
-                match service {
-                    ManagedService::Conveyor => {
-                        managed_servers = get_conveyor_environment_servers()?;
-                    }
-                    ManagedService::Mwaa => {
-                        managed_servers = get_mwaa_environment_servers().await?;
-                    }
+                let managed_servers = match service {
+                    ManagedService::Conveyor => get_conveyor_environment_servers()?,
+                    ManagedService::Mwaa => get_mwaa_environment_servers().await?,
                     ManagedService::Astronomer => {
                         todo!();
                     }
                     ManagedService::Gcc => {
                         todo!();
                     }
-                }
+                };
                 if config.servers.is_none() {
                     config.servers = Some(managed_servers);
                 } else {

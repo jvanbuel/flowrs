@@ -1,5 +1,5 @@
 use crate::app::error::Result;
-use log::error;
+use log::{debug, error};
 use reqwest::{Method, Response};
 
 use super::AirFlowClient;
@@ -7,7 +7,8 @@ use crate::airflow::model::dag::DagList;
 
 impl AirFlowClient {
     pub async fn list_dags(&self) -> Result<DagList> {
-        let r = self.base_api(Method::GET, "dags")?.build()?;
+        debug!("Listing dags");
+        let r = self.base_api(Method::GET, "dags").await?.build()?;
         let response = self.client.execute(r).await?;
 
         let daglist = response.json::<DagList>().await;
@@ -20,18 +21,10 @@ impl AirFlowClient {
         }
     }
 
-    // pub async fn get_dag_details(&self, dag_id: &str) -> Result<()> {
-    //     let r = self
-    //         .base_api(Method::GET, &format!("dags/{dag_id}/details"))?
-    //         .build()?;
-    //     let response = self.client.execute(r).await?;
-    //     let _ = response.text().await?;
-    //     Ok(())
-    // }
-
     pub async fn toggle_dag(&self, dag_id: &str, is_paused: bool) -> Result<()> {
         let _: Response = self
-            .base_api(Method::PATCH, &format!("dags/{dag_id}"))?
+            .base_api(Method::PATCH, &format!("dags/{dag_id}"))
+            .await?
             .query(&[("update_mask", "is_paused")])
             .json(&serde_json::json!({"is_paused": !is_paused}))
             .send()
@@ -41,7 +34,8 @@ impl AirFlowClient {
 
     pub async fn get_dag_code(&self, file_token: &String) -> Result<String> {
         let r = self
-            .base_api(Method::GET, &format!("dagSources/{file_token}"))?
+            .base_api(Method::GET, &format!("dagSources/{file_token}"))
+            .await?
             .build()?;
         let response = self.client.execute(r).await?;
         let code = response.text().await?;

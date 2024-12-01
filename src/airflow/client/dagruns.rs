@@ -9,7 +9,8 @@ use super::AirFlowClient;
 impl AirFlowClient {
     pub async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
         let response: Response = self
-            .base_api(Method::GET, format!("dags/{dag_id}/dagRuns").as_str())?
+            .base_api(Method::GET, format!("dags/{dag_id}/dagRuns").as_str())
+            .await?
             .query(&[("order_by", "-execution_date")])
             .send()
             .await?;
@@ -20,7 +21,8 @@ impl AirFlowClient {
     #[allow(dead_code)]
     pub async fn list_all_dagruns(&self) -> Result<DagRunList> {
         let response: Response = self
-            .base_api(Method::POST, "dags/~/dagRuns/list")?
+            .base_api(Method::POST, "dags/~/dagRuns/list")
+            .await?
             .json(&serde_json::json!({"page_limit": 200}))
             .send()
             .await?;
@@ -33,7 +35,8 @@ impl AirFlowClient {
             .base_api(
                 Method::PATCH,
                 format!("dags/{dag_id}/dagRuns/{dag_run_id}").as_str(),
-            )?
+            )
+            .await?
             .json(&serde_json::json!({"state": status}))
             .send()
             .await?;
@@ -45,7 +48,8 @@ impl AirFlowClient {
             .base_api(
                 Method::POST,
                 format!("dags/{dag_id}/dagRuns/{dag_run_id}/clear").as_str(),
-            )?
+            )
+            .await?
             .json(&serde_json::json!({"dry_run": false}))
             .send()
             .await?;
@@ -54,7 +58,7 @@ impl AirFlowClient {
 
     pub async fn trigger_dag_run(&self, dag_id: &str) -> Result<()> {
         let resp: Response = self
-            .base_api(Method::POST, format!("dags/{dag_id}/dagRuns").as_str())?
+            .base_api(Method::POST, format!("dags/{dag_id}/dagRuns").as_str()).await?
             .json(&serde_json::json!({}))
             .send()
             .await?;

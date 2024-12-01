@@ -20,7 +20,7 @@ impl AirFlowClient {
                     "dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{task_try}",
                 )
                 .as_str(),
-            )?
+            ).await?
             .query(&[("full_content", "true")])
             .header("Accept", "application/json") // Important, otherwise will return plain text
             .send()

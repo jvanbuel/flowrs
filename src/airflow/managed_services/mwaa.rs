@@ -42,13 +42,17 @@ pub async fn get_mwaa_environment_servers() -> Result<Vec<AirflowConfig>> {
         })
         .map(|env| AirflowConfig {
             name: env.name.expect("Failed to get MWAA environment name"),
-            endpoint: env
-                .webserver_url
-                .expect("Failed to get MWAA environment webserver URL"),
-            auth: AirflowAuth::Session,
+            endpoint: format!(
+                "https://{}",
+                env.webserver_url
+                    .expect("Failed to get MWAA environment webserver URL")
+            ),
+            auth: AirflowAuth::Session{ initalized: false },
             managed: Some(ManagedService::Mwaa),
         })
         .collect();
+
+    debug!("MWAA environments: {:?}", mwaa_envs);
 
     Ok(mwaa_envs)
 }
