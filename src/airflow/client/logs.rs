@@ -69,7 +69,7 @@ mod tests {
         let airflow_config = AirflowConfig {
             name: "test".to_string(),
             endpoint: server.url(),
-            auth: AirflowAuth::BasicAuth(BasicAuth {
+            auth: AirflowAuth::Basic(BasicAuth {
                 username: "airflow".to_string(),
                 password: "airflow".to_string(),
             }),

@@ -12,7 +12,7 @@ use crate::{
 };
 
 impl AddCommand {
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         let name = inquire::Text::new("name").prompt()?;
         let endpoint = inquire::Text::new("endpoint")
             .with_validator(validate_endpoint)
@@ -31,7 +31,7 @@ impl AddCommand {
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::BasicAuth(BasicAuth { username, password }),
+                    auth: AirflowAuth::Basic(BasicAuth { username, password }),
                     managed: None,
                 }
             }
@@ -53,7 +53,7 @@ impl AddCommand {
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::TokenAuth(TokenCmd {
+                    auth: AirflowAuth::Token(TokenCmd {
                         cmd,
                         token: Some(token),
                     }),
@@ -63,7 +63,7 @@ impl AddCommand {
         };
 
         let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let mut config = FlowrsConfig::from_file(path).await?;
 
         if let Some(mut servers) = config.servers.clone() {
             servers.retain(|server| server.name != new_config.name && server.managed.is_none());

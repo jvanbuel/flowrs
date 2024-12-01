@@ -5,9 +5,9 @@ use crate::airflow::config::FlowrsConfig;
 use crate::app::error::Result;
 
 impl ListCommand {
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let config = FlowrsConfig::from_file(path)?;
+        let config = FlowrsConfig::from_file(path).await?;
         let servers = config.servers.unwrap_or_default();
 
         if servers.is_empty() {

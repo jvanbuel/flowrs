@@ -36,7 +36,7 @@ impl FlowrsApp {
     pub async fn run(&self) -> Result<()> {
         match &self.command {
             Some(FlowrsCommand::Run(cmd)) => cmd.run().await,
-            Some(FlowrsCommand::Config(cmd)) => cmd.run(),
+            Some(FlowrsCommand::Config(cmd)) => cmd.run().await,
             None => RunCommand { file: None }.run().await,
         }
     }

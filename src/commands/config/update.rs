@@ -13,9 +13,9 @@ use crate::{
 use crate::app::error::Result;
 
 impl UpdateCommand {
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let mut config = FlowrsConfig::from_file(path).await?;
 
         if config.servers.is_none() {
             println!("❌ No servers found in config file");
@@ -59,7 +59,7 @@ impl UpdateCommand {
                     .with_display_toggle_enabled()
                     .prompt()?;
 
-                airflow_config.auth = AirflowAuth::BasicAuth(BasicAuth { username, password });
+                airflow_config.auth = AirflowAuth::Basic(BasicAuth { username, password });
             }
             ConfigOption::Token(_) => {
                 let cmd = Some(inquire::Text::new("cmd").prompt()?);
@@ -73,7 +73,7 @@ impl UpdateCommand {
                 } else {
                     token = inquire::Text::new("token").prompt()?;
                 }
-                airflow_config.auth = AirflowAuth::TokenAuth(TokenCmd {
+                airflow_config.auth = AirflowAuth::Token(TokenCmd {
                     cmd,
                     token: Some(token),
                 });

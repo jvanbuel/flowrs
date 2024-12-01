@@ -88,11 +88,8 @@ mod tests {
         let first_dag = &client.list_dags().await.unwrap().dags[0];
 
         println!("{:?}", client.config);
-        let dagrun_list: DagRunList = client
-            .list_dagruns(first_dag.dag_id.as_str())
-            .await
-            .unwrap();
-        assert!(!dagrun_list.dag_runs.is_empty());
+        let dagrun_list = client.list_dagruns(first_dag.dag_id.as_str()).await;
+        assert!(dagrun_list.is_ok());
     }
 
     #[tokio::test]

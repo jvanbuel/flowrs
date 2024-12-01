@@ -18,6 +18,9 @@ formula = "flowrs"
 
 [dependencies]
 ansi-to-tui = { version = "7.0.0" }
+aws-config = "1.5.10"
+aws-sdk-mwaa = "1.54.0"
+aws-smithy-runtime-api = "1.7.3"
 backtrace = "0.3.73"
 chrono = "0.4.38"
 clap = { version = "^4.5", features = ["derive", "env"] }

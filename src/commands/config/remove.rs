@@ -7,9 +7,9 @@ use crate::airflow::config::FlowrsConfig;
 use crate::app::error::Result;
 
 impl RemoveCommand {
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let mut config = FlowrsConfig::from_file(path).await?;
 
         if let Some(mut servers) = config.servers.clone() {
             let name = match self.name {

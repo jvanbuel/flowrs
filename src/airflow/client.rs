@@ -34,14 +34,14 @@ impl AirFlowClient {
         let url = base_url.join(format!("api/v1/{endpoint}").as_str())?;
 
         match &self.config.auth {
-            AirflowAuth::BasicAuth(auth) => {
+            AirflowAuth::Basic(auth) => {
                 info!("🔑 Basic Auth: {}", auth.username);
                 Ok(self
                     .client
                     .request(method, url)
                     .basic_auth(&auth.username, Some(&auth.password)))
             }
-            AirflowAuth::TokenAuth(token) => {
+            AirflowAuth::Token(token) => {
                 info!("🔑 Token Auth: {:?}", token.cmd);
                 if let Some(cmd) = &token.cmd {
                     let output = std::process::Command::new("sh")
@@ -58,6 +58,10 @@ impl AirFlowClient {
                     }
                     Err(FlowrsError::ConfigError(ConfigError::NoTokenOrCmd))
                 }
+            }
+            AirflowAuth::Session => {
+                info!("🔑 Session Auth");
+                unimplemented!()
             }
         }
     }

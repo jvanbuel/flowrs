@@ -16,12 +16,12 @@ pub enum ConfigCommand {
 }
 
 impl ConfigCommand {
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         match self {
-            ConfigCommand::Add(cmd) => cmd.run(),
-            ConfigCommand::Remove(cmd) => cmd.run(),
-            ConfigCommand::Update(cmd) => cmd.run(),
-            ConfigCommand::List(cmd) => cmd.run(),
+            ConfigCommand::Add(cmd) => cmd.run().await,
+            ConfigCommand::Remove(cmd) => cmd.run().await,
+            ConfigCommand::Update(cmd) => cmd.run().await,
+            ConfigCommand::List(cmd) => cmd.run().await,
         }
     }
 }

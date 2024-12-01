@@ -1,3 +1,4 @@
+use aws_sdk_mwaa::{error::SdkError, operation::list_environments::ListEnvironmentsError};
 use time::error::IndeterminateOffset;
 
 pub type Result<T> = std::result::Result<T, FlowrsError>;
@@ -8,6 +9,7 @@ pub enum FlowrsError {
     APIError(reqwest::Error),
     Serde(serde_json::Error),
     Generic(String),
+    MWAAError(String),
 }
 
 #[derive(Debug)]
@@ -61,6 +63,7 @@ impl std::fmt::Display for FlowrsError {
             FlowrsError::APIError(e) => write!(f, "APIError: {}", e),
             FlowrsError::Serde(e) => write!(f, "SerdeError: {}", e),
             FlowrsError::Generic(e) => write!(f, "GenericError: {}", e),
+            FlowrsError::MWAAError(e) => write!(f, "MWAAError: {}", e),
         }
     }
 }
@@ -132,5 +135,11 @@ impl From<String> for FlowrsError {
 impl From<IndeterminateOffset> for FlowrsError {
     fn from(error: IndeterminateOffset) -> Self {
         FlowrsError::Generic(error.to_string())
+    }
+}
+
+impl From<SdkError<ListEnvironmentsError>> for FlowrsError {
+    fn from(error: SdkError<ListEnvironmentsError>) -> Self {
+        FlowrsError::MWAAError(error.to_string())
     }
 }

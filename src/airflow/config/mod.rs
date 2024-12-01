@@ -7,6 +7,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 
 use super::managed_services::conveyor::get_conveyor_environment_servers;
+use crate::airflow::managed_services::mwaa::get_mwaa_environment_servers;
 use crate::app::error::Result;
 use crate::CONFIG_FILE;
 
@@ -45,8 +46,9 @@ pub struct AirflowConfig {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AirflowAuth {
-    BasicAuth(BasicAuth),
-    TokenAuth(TokenCmd),
+    Basic(BasicAuth),
+    Token(TokenCmd),
+    Session,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -62,16 +64,16 @@ pub struct TokenCmd {
 }
 
 impl FlowrsConfig {
-    pub fn from_file(config_path: Option<&Path>) -> Result<Self> {
+    pub async fn from_file(config_path: Option<&Path>) -> Result<Self> {
         let path = match config_path {
             Some(path) => path,
             None => CONFIG_FILE.as_path(),
         };
 
         let toml_config = std::fs::read_to_string(path)?;
-        Self::from_str(&toml_config)
+        Self::from_str(&toml_config).await
     }
-    pub fn from_str(config: &str) -> Result<Self> {
+    pub async fn from_str(config: &str) -> Result<Self> {
         let mut config: FlowrsConfig = toml::from_str(config)?;
 
         info!("Config: {:?}", config);
@@ -82,19 +84,13 @@ impl FlowrsConfig {
         } else {
             let services = config.managed_services.clone().unwrap();
             for service in services {
+                let managed_servers: Vec<AirflowConfig>;
                 match service {
                     ManagedService::Conveyor => {
-                        let conveyor_servers = get_conveyor_environment_servers()?;
-                        if config.servers.is_none() {
-                            config.servers = Some(conveyor_servers);
-                        } else {
-                            let mut existing_servers = config.servers.clone().unwrap();
-                            existing_servers.extend(conveyor_servers);
-                            config.servers = Some(existing_servers);
-                        }
+                        managed_servers = get_conveyor_environment_servers()?;
                     }
                     ManagedService::Mwaa => {
-                        todo!();
+                        managed_servers = get_mwaa_environment_servers().await?;
                     }
                     ManagedService::Astronomer => {
                         todo!();
@@ -102,6 +98,13 @@ impl FlowrsConfig {
                     ManagedService::Gcc => {
                         todo!();
                     }
+                }
+                if config.servers.is_none() {
+                    config.servers = Some(managed_servers);
+                } else {
+                    let mut existing_servers = config.servers.clone().unwrap();
+                    existing_servers.extend(managed_servers);
+                    config.servers = Some(existing_servers);
                 }
             }
             info!("Updated Config: {:?}", config);
@@ -143,9 +146,9 @@ mod tests {
         password = "airflow"
         "#;
 
-    #[test]
-    fn test_get_config() {
-        let result = FlowrsConfig::from_str(TEST_CONFIG).unwrap();
+    #[tokio::test]
+    async fn test_get_config() {
+        let result = FlowrsConfig::from_str(TEST_CONFIG).await.unwrap();
         let servers = result.servers.unwrap();
         assert_eq!(servers.len(), 1);
         assert_eq!(servers[0].name, "test");
@@ -161,9 +164,9 @@ endpoint = "http://localhost:8080"
 username = "airflow"
 password = "airflow"
     "#;
-    #[test]
-    fn test_get_config_conveyor() {
-        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR).unwrap();
+    #[tokio::test]
+    async fn test_get_config_conveyor() {
+        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR).await.unwrap();
         let services = result.managed_services.unwrap();
         assert_eq!(services.len(), 1);
         assert_eq!(services[0], ManagedService::Conveyor);
@@ -175,7 +178,7 @@ password = "airflow"
             servers: Some(vec![AirflowConfig {
                 name: "bla".to_string(),
                 endpoint: "http://localhost:8080".to_string(),
-                auth: AirflowAuth::BasicAuth(BasicAuth {
+                auth: AirflowAuth::Basic(BasicAuth {
                     username: "airflow".to_string(),
                     password: "airflow".to_string(),
                 }),

@@ -35,7 +35,7 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
                 "https://app.conveyordata.com/environments/{}/airflow/",
                 env.name
             ),
-            auth: AirflowAuth::TokenAuth(TokenCmd {
+            auth: AirflowAuth::Token(TokenCmd {
                 cmd: Some("conveyor auth get --quiet | jq -r .access_token".to_string()),
                 token: None,
             }),
