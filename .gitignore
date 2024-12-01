@@ -9,3 +9,7 @@ dags/**
 *.tiff
 
 flowrs-debug*
+
+.terraform
+*.tfstate*
+*.tfvars
