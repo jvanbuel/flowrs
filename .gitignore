@@ -13,3 +13,5 @@ flowrs-debug*
 .terraform
 *.tfstate*
 *.tfvars
+
+integration_infra/mwaa/airflow

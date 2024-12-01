@@ -1,7 +1,8 @@
-resource "aws_mwaa_environment" "example" {
+resource "aws_mwaa_environment" "this" {
   dag_s3_path        = "dags/"
   execution_role_arn = aws_iam_role.this.arn
-  name               = "mwaa-flowrs"
+  name           = var.environment_name
+  webserver_access_mode = "PUBLIC_ONLY" 
 
   network_configuration {
     security_group_ids = [aws_security_group.this.id]
