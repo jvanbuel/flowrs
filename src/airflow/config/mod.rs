@@ -3,14 +3,16 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 
+use clap::ValueEnum;
 use log::info;
 use serde::{Deserialize, Serialize};
+use strum::EnumIter;
 
 use super::managed_services::conveyor::get_conveyor_environment_servers;
 use crate::app::error::Result;
 use crate::CONFIG_FILE;
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, ValueEnum, EnumIter)]
 pub enum ManagedService {
     Conveyor,
     Mwaa,

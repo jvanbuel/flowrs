@@ -1,3 +1,4 @@
+use crate::airflow::config::ManagedService;
 use crate::app::error::Result;
 use clap::Parser;
 use inquire::validator::Validation;
@@ -13,6 +14,8 @@ pub enum ConfigCommand {
     Update(UpdateCommand),
     #[clap(alias = "ls")]
     List(ListCommand),
+    Enable(ManagedServiceCommand),
+    Disable(ManagedServiceCommand),
 }
 
 impl ConfigCommand {
@@ -22,6 +25,8 @@ impl ConfigCommand {
             ConfigCommand::Remove(cmd) => cmd.run(),
             ConfigCommand::Update(cmd) => cmd.run(),
             ConfigCommand::List(cmd) => cmd.run(),
+            ConfigCommand::Enable(cmd) => cmd.run(),
+            ConfigCommand::Disable(cmd) => cmd.disable(),
         }
     }
 }
@@ -56,6 +61,14 @@ pub struct UpdateCommand {
 pub enum ConfigOption {
     BasicAuth,
     Token(Command),
+}
+
+#[derive(Parser, Debug)]
+pub struct ManagedServiceCommand {
+    #[clap(short, long)]
+    pub managed_service: Option<ManagedService>,
+    #[clap(short, long)]
+    pub file: Option<String>,
 }
 
 type Command = Option<String>;
