@@ -36,6 +36,7 @@ pub struct TaskInstanceModel {
     pub marked: Vec<usize>,
     commands: Option<CommandPopUp<'static, 3>>,
     ticks: u32,
+    event_buffer: Vec<FlowrsEvent>,
 }
 
 impl TaskInstanceModel {
@@ -51,6 +52,7 @@ impl TaskInstanceModel {
             marked: vec![],
             commands: None,
             ticks: 0,
+            event_buffer: vec![],
         }
     }
 
@@ -162,6 +164,17 @@ impl Model for TaskInstanceModel {
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
+                        }
+                        KeyCode::Char('g') => {
+                            if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
+                                if key_event.code == KeyCode::Char('g') {
+                                    self.filtered.state.select_first();
+                                } else {
+                                    self.event_buffer.push(FlowrsEvent::Key(key_event));
+                                }
+                            } else {
+                                self.event_buffer.push(FlowrsEvent::Key(*key_event));
+                            }
                         }
                         KeyCode::Char('m') => {
                             if let Some(index) = self.filtered.state.selected() {
