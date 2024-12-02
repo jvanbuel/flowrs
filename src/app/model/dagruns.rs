@@ -42,6 +42,7 @@ pub struct DagRunModel {
     pub popup: Option<DagRunPopUp>,
     pub commands: Option<CommandPopUp<'static, 6>>,
     ticks: u32,
+    event_buffer: Vec<FlowrsEvent>,
 }
 
 #[derive(Default)]
@@ -64,6 +65,7 @@ impl DagRunModel {
             popup: None,
             commands: None,
             ticks: 0,
+            event_buffer: vec![],
         }
     }
 
@@ -211,6 +213,17 @@ impl Model for DagRunModel {
                         }
                         KeyCode::Char('G') => {
                             self.filtered.state.select_last();
+                        }
+                        KeyCode::Char('g') => {
+                            if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
+                                if key_event.code == KeyCode::Char('g') {
+                                    self.filtered.state.select_first();
+                                } else {
+                                    self.event_buffer.push(FlowrsEvent::Key(key_event));
+                                }
+                            } else {
+                                self.event_buffer.push(FlowrsEvent::Key(*key_event));
+                            }
                         }
                         KeyCode::Char('t') => {
                             self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(

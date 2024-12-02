@@ -30,6 +30,7 @@ pub struct DagModel {
     pub errors: Vec<FlowrsError>,
     commands: Option<CommandPopUp<'static, 2>>,
     ticks: u32,
+    event_buffer: Vec<FlowrsEvent>,
 }
 
 impl DagModel {
@@ -42,6 +43,7 @@ impl DagModel {
             errors: vec![],
             ticks: 0,
             commands: None,
+            event_buffer: vec![],
         }
     }
 
@@ -151,6 +153,17 @@ impl Model for DagModel {
                             } else {
                                 self.errors
                                     .push(FlowrsError::from(String::from("No dag selected")));
+                            }
+                        }
+                        KeyCode::Char('g') => {
+                            if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
+                                if key_event.code == KeyCode::Char('g') {
+                                    self.filtered.state.select_first();
+                                } else {
+                                    self.event_buffer.push(FlowrsEvent::Key(key_event));
+                                }
+                            } else {
+                                self.event_buffer.push(FlowrsEvent::Key(*key_event));
                             }
                         }
                         _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
