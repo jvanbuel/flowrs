@@ -51,40 +51,45 @@ impl ConfigModel {
 
 impl Model for ConfigModel {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
-        if let FlowrsEvent::Key(key_event) = event {
-            if self.filter.enabled {
-                self.filter.update(key_event);
-                self.filter_configs();
-                return (None, vec![]);
-            }
-            match key_event.code {
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.filtered.next();
+        match event {
+            FlowrsEvent::Tick => return (Some(FlowrsEvent::Tick), vec![]),
+            FlowrsEvent::Key(key_event) => {
+                if self.filter.enabled {
+                    self.filter.update(key_event);
+                    self.filter_configs();
+                    return (None, vec![]);
                 }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.filtered.previous();
-                }
-                KeyCode::Char('/') => {
-                    self.filter.toggle();
-                }
-                KeyCode::Enter => {
-                    let selected_config = self.filtered.state.selected().unwrap_or_default();
-                    debug!(
-                        "Selected config: {}",
-                        self.filtered.items[selected_config].name
-                    );
+                match key_event.code {
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        self.filtered.next();
+                    }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        self.filtered.previous();
+                    }
+                    KeyCode::Char('/') => {
+                        self.filter.toggle();
+                    }
+                    KeyCode::Enter => {
+                        let selected_config = self.filtered.state.selected().unwrap_or_default();
+                        debug!(
+                            "Selected config: {}",
+                            self.filtered.items[selected_config].name
+                        );
 
-                    return (
-                        Some(event.clone()),
-                        vec![WorkerMessage::ConfigSelected(
-                            self.filtered.state.selected().unwrap_or_default(),
-                        )],
-                    );
+                        return (
+                            Some(event.clone()),
+                            vec![WorkerMessage::ConfigSelected(
+                                self.filtered.state.selected().unwrap_or_default(),
+                            )],
+                        );
+                    }
+                    _ => (),
                 }
-                _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]),
+                return (Some(event.clone()), vec![]);
             }
-        }
-        (None, vec![])
+            _ => (),
+        };
+        (Some(event.clone()), vec![])
     }
 }
 
