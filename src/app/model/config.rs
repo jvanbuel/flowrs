@@ -1,10 +1,10 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect};
-use ratatui::style::{Modifier, Stylize};
+use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::style::{Modifier, Styled, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
@@ -95,6 +95,32 @@ impl Model for ConfigModel {
 
 impl Widget for &mut ConfigModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let rects = if self.filter.is_enabled() {
+            let rects = Layout::default()
+                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
+                .margin(0)
+                .split(area);
+
+            let filter = self.filter.prefix().clone();
+
+            let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
+                .block(
+                    Block::default()
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::ALL)
+                        .title("filter"),
+                )
+                .set_style(DEFAULT_STYLE);
+
+            Widget::render(paragraph, rects[1], buf);
+
+            rects
+        } else {
+            Layout::default()
+                .constraints([Constraint::Percentage(100)].as_ref())
+                .margin(0)
+                .split(area)
+        };
         let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
         let headers = ["Name", "Endpoint", "Managed"];
@@ -137,6 +163,6 @@ impl Widget for &mut ConfigModel {
         )
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
-        StatefulWidget::render(t, area, buf, &mut self.filtered.state);
+        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
     }
 }

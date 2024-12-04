@@ -117,6 +117,7 @@ impl Model for TaskInstanceModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_task_instances();
+                    return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {

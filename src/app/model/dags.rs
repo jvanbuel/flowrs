@@ -98,6 +98,7 @@ impl Model for DagModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dags();
+                    return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
