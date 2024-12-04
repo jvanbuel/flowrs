@@ -1,3 +1,4 @@
+use anyhow::Error;
 use crossterm::event::KeyCode;
 use ratatui::{
     buffer::Buffer,
@@ -13,7 +14,7 @@ use regex::Regex;
 
 use crate::{
     airflow::model::log::Log,
-    app::{error::FlowrsError, events::custom::FlowrsEvent, worker::WorkerMessage},
+    app::{events::custom::FlowrsEvent, worker::WorkerMessage},
     ui::constants::DM_RGB,
 };
 
@@ -27,7 +28,7 @@ pub struct LogModel {
     pub all: Vec<Log>,
     pub current: usize,
     #[allow(dead_code)]
-    pub errors: Vec<FlowrsError>,
+    pub errors: Vec<Error>,
     ticks: u32,
     vertical_scroll: usize,
     vertical_scroll_state: ScrollbarState,

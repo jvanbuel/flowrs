@@ -1,5 +1,6 @@
-use crate::{airflow::model::dagstats::DagStatsResponse, app::error::Result};
+use crate::airflow::model::dagstats::DagStatsResponse;
 use reqwest::Method;
+use anyhow::Result;
 
 use super::AirFlowClient;
 

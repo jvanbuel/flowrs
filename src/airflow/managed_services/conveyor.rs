@@ -1,7 +1,7 @@
 use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService, TokenCmd};
-use crate::app::error::Result;
 use log::info;
 use serde::{Deserialize, Serialize};
+use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ConveyorEnvironment {

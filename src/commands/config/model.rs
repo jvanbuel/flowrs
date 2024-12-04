@@ -1,5 +1,5 @@
 use crate::airflow::config::ManagedService;
-use crate::app::error::Result;
+use anyhow::Result;
 use clap::Parser;
 use inquire::validator::Validation;
 use strum::Display;

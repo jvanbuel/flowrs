@@ -4,7 +4,7 @@ use inquire::Select;
 
 use super::model::RemoveCommand;
 use crate::airflow::config::FlowrsConfig;
-use crate::app::error::Result;
+use anyhow::Result;
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {

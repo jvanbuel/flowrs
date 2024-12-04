@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
 use super::managed_services::conveyor::get_conveyor_environment_servers;
-use crate::app::error::Result;
 use crate::CONFIG_FILE;
+use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, ValueEnum, EnumIter)]
 pub enum ManagedService {

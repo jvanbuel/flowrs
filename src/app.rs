@@ -13,7 +13,6 @@ use worker::{Worker, WorkerMessage};
 
 use crate::{airflow::client::AirFlowClient, ui::draw_ui};
 
-pub mod error;
 pub mod events;
 pub mod model;
 pub mod state;

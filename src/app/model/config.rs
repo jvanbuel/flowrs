@@ -12,15 +12,15 @@ use crate::app::worker::WorkerMessage;
 use crate::ui::constants::{ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::error::FlowrsError;
 use crate::ui::common::create_headers;
+use anyhow::Error;
 
 pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
     #[allow(dead_code)]
-    pub errors: Vec<FlowrsError>,
+    pub errors: Vec<Error>,
 }
 
 impl ConfigModel {

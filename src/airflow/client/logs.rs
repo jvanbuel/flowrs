@@ -1,7 +1,7 @@
 use reqwest::Method;
 
 use crate::airflow::model::log::Log;
-use crate::app::error::Result;
+use anyhow::Result;
 
 use super::AirFlowClient;
 
