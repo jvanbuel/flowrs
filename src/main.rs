@@ -16,7 +16,7 @@ lazy_static::lazy_static! {
     pub static ref CONFIG_FILE: PathBuf = home_dir().unwrap().join(".flowrs");
 }
 
-use app::error::Result;
+use anyhow::Result;
 
 #[derive(Parser)]
 #[clap(name="flowrs", bin_name="flowrs", version, about, before_help=ASCII_LOGO)]

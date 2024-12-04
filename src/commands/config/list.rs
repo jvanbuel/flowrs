@@ -2,7 +2,7 @@ use std::path::Path;
 
 use super::model::ListCommand;
 use crate::airflow::config::FlowrsConfig;
-use crate::app::error::Result;
+use anyhow::Result;
 
 impl ListCommand {
     pub fn run(&self) -> Result<()> {

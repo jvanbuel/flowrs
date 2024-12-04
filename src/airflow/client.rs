@@ -4,14 +4,13 @@ pub mod dagstats;
 pub mod logs;
 pub mod taskinstances;
 
-use crate::app::error::Result;
+use anyhow::Result;
 use std::time::Duration;
 
 use log::info;
 use reqwest::{Method, Url};
 
 use crate::airflow::config::{AirflowAuth, AirflowConfig};
-use crate::app::error::{ConfigError, FlowrsError};
 
 #[derive(Debug, Clone)]
 pub struct AirFlowClient {
@@ -56,7 +55,7 @@ impl AirFlowClient {
                     if let Some(token) = &token.token {
                         return Ok(self.client.request(method, url).bearer_auth(token.trim()));
                     }
-                    Err(FlowrsError::ConfigError(ConfigError::NoTokenOrCmd))
+                    Err(anyhow::anyhow!("Token not found"))
                 }
             }
         }

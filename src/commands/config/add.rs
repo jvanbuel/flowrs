@@ -5,11 +5,11 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::AddCommand;
-use crate::app::error::Result;
 use crate::{
     airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
     commands::config::model::{validate_endpoint, ConfigOption},
 };
+use anyhow::Result;
 
 impl AddCommand {
     pub fn run(&self) -> Result<()> {

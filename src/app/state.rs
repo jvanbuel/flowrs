@@ -1,7 +1,7 @@
 use crate::airflow::config::FlowrsConfig;
-use crate::app::error::Result;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
+use anyhow::Result;
 
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
 

@@ -1,4 +1,4 @@
-use crate::app::error::Result;
+use anyhow::Result;
 use log::error;
 use reqwest::{Method, Response};
 

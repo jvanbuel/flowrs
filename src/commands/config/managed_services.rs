@@ -6,7 +6,7 @@ use strum::IntoEnumIterator;
 use super::model::ManagedServiceCommand;
 use crate::airflow::config::FlowrsConfig;
 use crate::airflow::config::ManagedService;
-use crate::app::error::Result;
+use anyhow::Result;
 
 impl ManagedServiceCommand {
     pub fn run(&self) -> Result<()> {

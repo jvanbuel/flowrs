@@ -21,8 +21,8 @@ use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
+use anyhow::Error;
 
 pub struct TaskInstanceModel {
     pub dag_id: Option<String>,
@@ -31,7 +31,7 @@ pub struct TaskInstanceModel {
     pub filtered: StatefulTable<TaskInstance>,
     pub filter: Filter,
     #[allow(dead_code)]
-    pub errors: Vec<FlowrsError>,
+    pub errors: Vec<Error>,
     pub popup: Option<TaskInstancePopUp>,
     pub marked: Vec<usize>,
     commands: Option<CommandPopUp<'static, 3>>,

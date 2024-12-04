@@ -17,7 +17,8 @@ use simplelog::{Config, WriteLogger};
 
 use crate::airflow::config::FlowrsConfig;
 use crate::app::run_app;
-use crate::app::{error::Result, state::App};
+use crate::app::state::App;
+use anyhow::Result;
 
 #[derive(Parser, Debug)]
 pub struct RunCommand {

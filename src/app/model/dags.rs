@@ -18,8 +18,8 @@ use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STY
 
 use super::popup::commands_help::CommandPopUp;
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
+use anyhow::Error;
 
 pub struct DagModel {
     pub all: Vec<Dag>,
@@ -27,7 +27,7 @@ pub struct DagModel {
     pub filtered: StatefulTable<Dag>,
     pub filter: Filter,
     #[allow(dead_code)]
-    pub errors: Vec<FlowrsError>,
+    pub errors: Vec<Error>,
     commands: Option<CommandPopUp<'static, 2>>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
@@ -130,7 +130,7 @@ impl Model for DagModel {
                             }
                             None => self
                                 .errors
-                                .push(FlowrsError::from(String::from("No dag selected"))),
+                                .push(Error::msg("No DAG selected to pause/resume")),
                         },
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -152,7 +152,7 @@ impl Model for DagModel {
                                 );
                             } else {
                                 self.errors
-                                    .push(FlowrsError::from(String::from("No dag selected")));
+                                    .push(Error::msg("No DAG selected to view DAG Runs"));
                             }
                         }
                         KeyCode::Char('g') => {

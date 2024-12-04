@@ -10,7 +10,7 @@ use crate::{
     commands::config::model::{validate_endpoint, ConfigOption},
 };
 
-use crate::app::error::Result;
+use anyhow::Result;
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {

@@ -2,7 +2,7 @@ use log::debug;
 use reqwest::{Method, Response};
 
 use crate::airflow::model::dagrun::DagRunList;
-use crate::app::error::Result;
+use anyhow::Result;
 
 use super::AirFlowClient;
 

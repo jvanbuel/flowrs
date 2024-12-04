@@ -27,8 +27,8 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::error::FlowrsError;
 use crate::app::worker::WorkerMessage;
+use anyhow::Error;
 
 pub struct DagRunModel {
     pub dag_id: Option<String>,
@@ -38,7 +38,7 @@ pub struct DagRunModel {
     pub filter: Filter,
     pub marked: Vec<usize>,
     #[allow(dead_code)]
-    pub errors: Vec<FlowrsError>,
+    pub errors: Vec<Error>,
     pub popup: Option<DagRunPopUp>,
     pub commands: Option<CommandPopUp<'static, 6>>,
     ticks: u32,
