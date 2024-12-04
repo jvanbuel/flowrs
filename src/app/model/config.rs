@@ -4,7 +4,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Modifier, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
@@ -129,7 +129,12 @@ impl Widget for &mut ConfigModel {
             ],
         )
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title("Config"))
+        .block(
+            Block::default()
+                .border_type(BorderType::Rounded)
+                .borders(Borders::ALL)
+                .title("Config"),
+        )
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
         StatefulWidget::render(t, area, buf, &mut self.filtered.state);

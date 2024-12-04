@@ -4,8 +4,8 @@ use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
-    Block, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation, ScrollbarState,
-    StatefulWidget, Table, Widget, Wrap,
+    Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
+    ScrollbarState, StatefulWidget, Table, Widget, Wrap,
 };
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
@@ -310,7 +310,12 @@ impl Widget for &mut DagRunModel {
             let filter = self.filter.prefix().clone();
 
             let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-                .block(Block::default().borders(Borders::ALL).title("filter"))
+                .block(
+                    Block::default()
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::ALL)
+                        .title("filter"),
+                )
                 .set_style(DEFAULT_STYLE);
 
             Widget::render(paragraph, rects[1], buf);
@@ -378,6 +383,7 @@ impl Widget for &mut DagRunModel {
         .header(header)
         .block(
             Block::default()
+                .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
                     format!("DAGRuns ({}) - press <?> to see available commands", dag_id)
@@ -393,6 +399,7 @@ impl Widget for &mut DagRunModel {
             let area = popup_area(area, 60, 90);
 
             let popup = Block::default()
+                .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
                 .title("DAG Code")
                 .border_style(DEFAULT_STYLE)

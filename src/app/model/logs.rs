@@ -6,8 +6,8 @@ use ratatui::{
     style::{Color, Modifier, Style},
     text::{Line, Text},
     widgets::{
-        Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
-        Tabs, Widget, Wrap,
+        Block, BorderType, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+        StatefulWidget, Tabs, Widget, Wrap,
     },
 };
 use regex::Regex;
@@ -114,7 +114,12 @@ impl Widget for &mut LogModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
         if self.all.is_empty() {
             Paragraph::new("No logs available")
-                .block(Block::default().borders(Borders::ALL).title("Logs"))
+                .block(
+                    Block::default()
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::ALL)
+                        .title("Logs"),
+                )
                 .render(area, buffer);
             return;
         }
@@ -124,7 +129,12 @@ impl Widget for &mut LogModel {
             .collect::<Vec<String>>();
 
         let tabs = Tabs::new(tab_titles)
-            .block(Block::default().title("Logs").borders(Borders::ALL))
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .title("Logs")
+                    .borders(Borders::ALL),
+            )
             .select(self.current % self.all.len())
             .highlight_style(
                 Style::default()
@@ -154,7 +164,12 @@ impl Widget for &mut LogModel {
             }
 
             let paragraph = Paragraph::new(content)
-                .block(Block::default().borders(Borders::ALL).title("Content"))
+                .block(
+                    Block::default()
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::ALL)
+                        .title("Content"),
+                )
                 .wrap(Wrap { trim: true })
                 .style(Style::default().fg(Color::White))
                 .scroll((self.vertical_scroll as u16, 0));

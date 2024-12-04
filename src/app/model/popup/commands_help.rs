@@ -2,7 +2,7 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     text::Text,
-    widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
 
 use super::popup_area;
@@ -20,7 +20,10 @@ pub struct CommandPopUp<'a, const N: usize> {
 impl<const N: usize> Widget for &CommandPopUp<'_, N> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let popup_area = popup_area(area, 80, 80);
-        let popup = Block::default().title(self.title).borders(Borders::ALL);
+        let popup = Block::default()
+            .border_type(BorderType::Rounded)
+            .title(self.title)
+            .borders(Borders::ALL);
 
         Clear.render(popup_area, buf);
 

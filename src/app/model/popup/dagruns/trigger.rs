@@ -3,7 +3,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
     style::{Modifier, Stylize},
-    widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
 
 use crate::{
@@ -84,6 +84,7 @@ impl Widget for &mut TriggerDagRunPopUp {
         .areas(area);
 
         let popup_block = Block::default()
+            .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .title("Trigger DAG Run")
             .border_style(DEFAULT_STYLE)
@@ -92,7 +93,7 @@ impl Widget for &mut TriggerDagRunPopUp {
 
         let text = Paragraph::new("Are you sure you want to trigger a new DAG Run?")
             .style(DEFAULT_STYLE)
-            .block(Block::default())
+            .block(Block::default().border_type(BorderType::Rounded))
             .centered()
             .wrap(Wrap { trim: true });
 
@@ -112,7 +113,11 @@ impl Widget for &mut TriggerDagRunPopUp {
                 DEFAULT_STYLE
             })
             .centered()
-            .block(Block::default().borders(Borders::ALL));
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::ALL),
+            );
 
         let no_text = Paragraph::new("No")
             .style(if !self.confirm {
@@ -121,7 +126,11 @@ impl Widget for &mut TriggerDagRunPopUp {
                 DEFAULT_STYLE
             })
             .centered()
-            .block(Block::default().borders(Borders::ALL));
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::ALL),
+            );
 
         Clear.render(area, buffer); //this clears out the background
         popup_block.render(area, buffer);

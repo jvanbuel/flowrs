@@ -8,7 +8,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Modifier, Style, Styled, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
@@ -253,7 +253,12 @@ impl Widget for &mut TaskInstanceModel {
             let filter = self.filter.prefix().clone();
 
             let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-                .block(Block::default().borders(Borders::ALL).title("filter"))
+                .block(
+                    Block::default()
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::ALL)
+                        .title("filter"),
+                )
                 .set_style(DEFAULT_STYLE);
 
             Widget::render(paragraph, rects[1], buffer);
@@ -320,6 +325,7 @@ impl Widget for &mut TaskInstanceModel {
         .header(header)
         .block(
             Block::default()
+                .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
                 .title("TaskInstances - Press <?> to see available commands"),
         )

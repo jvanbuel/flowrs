@@ -6,7 +6,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Styled, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
 use crate::airflow::model::dag::Dag;
@@ -188,7 +188,12 @@ impl Widget for &mut DagModel {
             let filter = self.filter.prefix().clone();
 
             let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-                .block(Block::default().borders(Borders::ALL).title("filter"))
+                .block(
+                    Block::default()
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::ALL)
+                        .title("filter"),
+                )
                 .set_style(DEFAULT_STYLE);
 
             Widget::render(paragraph, rects[1], buf);
@@ -282,6 +287,7 @@ impl Widget for &mut DagModel {
         .header(header)
         .block(
             Block::default()
+                .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
                 .title("DAGs - Press <?> to see available commands")
                 .border_style(DEFAULT_STYLE)
