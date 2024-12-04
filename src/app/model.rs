@@ -1,4 +1,4 @@
-use ratatui::widgets::TableState;
+use ratatui::widgets::{TableState, Widget};
 
 use super::{events::custom::FlowrsEvent, worker::WorkerMessage};
 
@@ -9,6 +9,7 @@ pub mod filter;
 pub mod logs;
 pub mod popup;
 pub mod taskinstances;
+pub mod filterable_table;
 
 pub trait Model {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
