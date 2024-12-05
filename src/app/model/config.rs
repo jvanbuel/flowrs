@@ -69,6 +69,12 @@ impl Model for ConfigModel {
                     KeyCode::Char('/') => {
                         self.filter.toggle();
                     }
+                    KeyCode::Char('o') => {
+                        let selected_config = self.filtered.state.selected().unwrap_or_default();
+                        let endpoint = &self.filtered.items[selected_config].endpoint;
+                        debug!("Selected config: {}", endpoint);
+                        webbrowser::open(endpoint).unwrap();
+                    }
                     KeyCode::Enter => {
                         let selected_config = self.filtered.state.selected().unwrap_or_default();
                         debug!(

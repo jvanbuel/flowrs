@@ -51,6 +51,7 @@ time = { version = "0.3.36", features = [
 tokio = { version = "1.41.1", features = ["full"] }
 toml = "0.8.19"
 url = "2.5.4"
+webbrowser = "1.0.3"
 
 [dev-dependencies]
 mockito = "1.5.0"
