@@ -1,15 +1,22 @@
 use std::sync::{Arc, Mutex};
 
+use crate::airflow::model::dag;
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
 use super::{model::popup::dagruns::mark::MarkState, state::App};
 use futures::future::join_all;
 use log::debug;
+use ratatui::text::Line;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::ThemeSet;
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
+use syntect_tui::into_span;
 use tokio::sync::mpsc::Receiver;
 
-pub struct Worker {
-    app: Arc<Mutex<App>>,
+pub struct Worker<'a> {
+    app: Arc<Mutex<App<'a>>>,
     client: AirFlowClient,
     rx_worker: Receiver<WorkerMessage>,
 }
@@ -68,9 +75,9 @@ pub enum WorkerMessage {
     },
 }
 
-impl Worker {
+impl<'a> Worker<'a> {
     pub fn new(
-        app: Arc<Mutex<App>>,
+        app: Arc<Mutex<App<'a>>>,
         client: AirFlowClient,
         rx_worker: Receiver<WorkerMessage>,
     ) -> Self {
@@ -155,6 +162,7 @@ impl Worker {
                 match dag_code {
                     Ok(dag_code) => {
                         app.dagruns.dag_code.code = Some(dag_code);
+                        
                     }
                     Err(e) => app.dags.errors.push(e),
                 }
@@ -304,4 +312,23 @@ impl Worker {
             }
         }
     }
+}
+
+fn code_to_lines(dag_code: &str) -> Vec<Line> {
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+    let syntax = ps.find_syntax_by_extension("py").unwrap();
+    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+    let mut lines: Vec<Line> = vec![];
+    for line in LinesWithEndings::from(dag_code) {
+        // LinesWithEndings enables use of newlines mode
+        let line_spans: Vec<ratatui::prelude::Span> = h
+            .highlight_line(line, &ps)
+            .unwrap()
+            .into_iter()
+            .filter_map(|segment| into_span(segment).ok())
+            .collect::<Vec<ratatui::prelude::Span>>();
+        lines.push(Line::from(line_spans));
+    }
+    lines
 }

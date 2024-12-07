@@ -5,11 +5,11 @@ use anyhow::Result;
 
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
 
-pub struct App {
+pub struct App<'a> {
     pub config: FlowrsConfig,
     pub dags: DagModel,
     pub configs: ConfigModel,
-    pub dagruns: DagRunModel,
+    pub dagruns: DagRunModel<'a>,
     pub task_instances: TaskInstanceModel,
     pub logs: LogModel,
     pub ticks: u32,
@@ -25,7 +25,7 @@ pub enum Panel {
     Logs,
 }
 
-impl App {
+impl App<'_> {
     pub fn new(config: FlowrsConfig) -> Result<Self> {
         let servers = &config.clone().servers.unwrap();
         Ok(App {

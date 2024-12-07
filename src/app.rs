@@ -20,7 +20,7 @@ pub mod worker;
 
 pub async fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
-    app: Arc<Mutex<App>>,
+    app: Arc<Mutex<App<'static>>>,
 ) -> io::Result<()> {
     let mut events = EventGenerator::new(200);
     let ui_app = app.clone();

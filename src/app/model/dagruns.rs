@@ -30,9 +30,9 @@ use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::WorkerMessage;
 use anyhow::Error;
 
-pub struct DagRunModel {
+pub struct DagRunModel<'a> {
     pub dag_id: Option<String>,
-    pub dag_code: DagCodeWidget,
+    pub dag_code: DagCodeWidget<'a>,
     pub all: Vec<DagRun>,
     pub filtered: StatefulTable<DagRun>,
     pub filter: Filter,
@@ -46,13 +46,14 @@ pub struct DagRunModel {
 }
 
 #[derive(Default)]
-pub struct DagCodeWidget {
+pub struct DagCodeWidget<'a> {
     pub code: Option<String>,
+    pub lines: Option<Vec<Line<'a>>>,
     pub vertical_scroll: usize,
     pub vertical_scroll_state: ScrollbarState,
 }
 
-impl DagRunModel {
+impl DagRunModel<'_> {
     pub fn new() -> Self {
         DagRunModel {
             dag_id: None,
@@ -99,13 +100,13 @@ impl DagRunModel {
     }
 }
 
-impl Default for DagRunModel {
+impl Default for DagRunModel<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Model for DagRunModel {
+impl Model for DagRunModel<'_> {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
@@ -300,7 +301,7 @@ impl Model for DagRunModel {
     }
 }
 
-impl Widget for &mut DagRunModel {
+impl Widget for &mut DagRunModel<'_> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()
