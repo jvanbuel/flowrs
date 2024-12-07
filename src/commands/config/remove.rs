@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use inquire::Select;
 
@@ -8,8 +8,8 @@ use anyhow::Result;
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {
-        let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(&path)?;
 
         if let Some(mut servers) = config.servers.clone() {
             let name = match self.name {
@@ -22,7 +22,7 @@ impl RemoveCommand {
             };
             servers.retain(|server| server.name != name && server.managed.is_none());
             config.servers = Some(servers);
-            config.to_file(path)?;
+            config.write_to_file()?;
 
             println!("✅ Config '{}' removed successfully!", name);
         };

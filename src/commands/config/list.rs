@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use super::model::ListCommand;
 use crate::airflow::config::FlowrsConfig;
@@ -6,8 +6,8 @@ use anyhow::Result;
 
 impl ListCommand {
     pub fn run(&self) -> Result<()> {
-        let path = self.file.as_ref().map(Path::new);
-        let config = FlowrsConfig::from_file(path)?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let config = FlowrsConfig::from_file(&path)?;
         let servers = config.servers.unwrap_or_default();
 
         if servers.is_empty() {

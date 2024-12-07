@@ -10,7 +10,7 @@ use tokio::sync::mpsc::Receiver;
 
 pub struct Worker {
     app: Arc<Mutex<App>>,
-    client: AirFlowClient,
+    client: Option<AirFlowClient>,
     rx_worker: Receiver<WorkerMessage>,
 }
 
@@ -71,7 +71,7 @@ pub enum WorkerMessage {
 impl Worker {
     pub fn new(
         app: Arc<Mutex<App>>,
-        client: AirFlowClient,
+        client: Option<AirFlowClient>,
         rx_worker: Receiver<WorkerMessage>,
     ) -> Self {
         Worker {
@@ -82,9 +82,16 @@ impl Worker {
     }
 
     pub async fn process_message(&mut self, message: WorkerMessage) {
+        if self.client.is_none() {
+            if let WorkerMessage::ConfigSelected(idx) = message {
+                self.switch_airflow_client(idx);
+            };
+            return;
+        }
+        let client = self.client.as_ref().unwrap();
         match message {
             WorkerMessage::UpdateDags => {
-                let dag_list = self.client.list_dags().await;
+                let dag_list = client.list_dags().await;
                 let mut app = self.app.lock().unwrap();
                 match dag_list {
                     Ok(dag_list) => {
@@ -95,19 +102,17 @@ impl Worker {
                 }
             }
             WorkerMessage::ToggleDag { dag_id, is_paused } => {
-                let dag = self.client.toggle_dag(&dag_id, is_paused).await;
+                let dag = client.toggle_dag(&dag_id, is_paused).await;
                 if let Err(e) = dag {
                     let mut app = self.app.lock().unwrap();
                     app.dags.errors.push(e);
                 }
             }
             WorkerMessage::ConfigSelected(idx) => {
-                let mut app = self.app.lock().unwrap();
-                self.client = AirFlowClient::from(app.configs.filtered.items[idx].clone());
-                *app = App::new(app.config.clone()).unwrap();
+                self.switch_airflow_client(idx);
             }
             WorkerMessage::UpdateDagRuns { dag_id, clear } => {
-                let dag_runs = self.client.list_dagruns(&dag_id).await;
+                let dag_runs = client.list_dagruns(&dag_id).await;
                 let mut app = self.app.lock().unwrap();
                 if clear {
                     app.dagruns.dag_id = Some(dag_id);
@@ -125,7 +130,7 @@ impl Worker {
                 dag_run_id,
                 clear,
             } => {
-                let task_instances = self.client.list_task_instances(&dag_id, &dag_run_id).await;
+                let task_instances = client.list_task_instances(&dag_id, &dag_run_id).await;
                 let mut app = self.app.lock().unwrap();
                 if clear {
                     app.task_instances.dag_run_id = Some(dag_run_id);
@@ -150,7 +155,7 @@ impl Worker {
                         .clone();
                 }
 
-                let dag_code = self.client.get_dag_code(&current_dag.file_token).await;
+                let dag_code = client.get_dag_code(&current_dag.file_token).await;
                 let mut app = self.app.lock().unwrap();
                 match dag_code {
                     Ok(dag_code) => {
@@ -171,7 +176,7 @@ impl Worker {
                     dag_ids
                 };
                 let dag_ids_str: Vec<&str> = dag_ids.iter().map(|s| s.as_str()).collect();
-                let dag_stats = self.client.get_dag_stats(dag_ids_str).await;
+                let dag_stats = client.get_dag_stats(dag_ids_str).await;
                 let mut app = self.app.lock().unwrap();
                 if clear {
                     app.dags.dag_stats = Default::default();
@@ -187,7 +192,7 @@ impl Worker {
             }
             WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
                 debug!("Clearing dag_run: {}", dag_run_id);
-                let dag_run = self.client.clear_dagrun(&dag_id, &dag_run_id).await;
+                let dag_run = client.clear_dagrun(&dag_id, &dag_run_id).await;
                 if let Err(e) = dag_run {
                     debug!("Error clearing dag_run: {}", e);
                     let mut app = self.app.lock().unwrap();
@@ -203,7 +208,7 @@ impl Worker {
                 debug!("Getting logs for task: {task_id}, try number {task_try}");
                 let logs = join_all(
                     (1..=task_try)
-                        .map(|i| self.client.get_task_logs(&dag_id, &dag_run_id, &task_id, i))
+                        .map(|i| client.get_task_logs(&dag_id, &dag_run_id, &task_id, i))
                         .collect::<Vec<_>>(),
                 )
                 .await;
@@ -233,8 +238,7 @@ impl Worker {
                     let mut app = self.app.lock().unwrap();
                     app.dagruns.mark_dag_run(&dag_run_id, &status.to_string());
                 }
-                let dag_run = self
-                    .client
+                let dag_run = client
                     .mark_dag_run(&dag_id, &dag_run_id, &status.to_string())
                     .await;
                 if let Err(e) = dag_run {
@@ -249,8 +253,7 @@ impl Worker {
                 dag_run_id,
             } => {
                 debug!("Clearing task_instance: {}", task_id);
-                let task_instance = self
-                    .client
+                let task_instance = client
                     .clear_task_instance(&dag_id, &dag_run_id, &task_id)
                     .await;
                 if let Err(e) = task_instance {
@@ -272,8 +275,7 @@ impl Worker {
                     app.task_instances
                         .mark_task_instance(&task_id, &status.to_string());
                 }
-                let task_instance = self
-                    .client
+                let task_instance = client
                     .mark_task_instance(&dag_id, &dag_run_id, &task_id, &status.to_string())
                     .await;
                 if let Err(e) = task_instance {
@@ -284,7 +286,7 @@ impl Worker {
             }
             WorkerMessage::TriggerDagRun { dag_id } => {
                 debug!("Triggering dag_run: {}", dag_id);
-                let dag_run = self.client.trigger_dag_run(&dag_id).await;
+                let dag_run = client.trigger_dag_run(&dag_id).await;
                 if let Err(e) = dag_run {
                     debug!("Error triggering dag_run: {}", e);
                     let mut app = self.app.lock().unwrap();
@@ -292,6 +294,16 @@ impl Worker {
                 }
             }
         }
+    }
+
+    pub fn switch_airflow_client(&mut self, idx: usize) {
+        let selected_config = self.app.lock().unwrap().configs.filtered.items[idx].clone();
+        self.client = Some(AirFlowClient::from(&selected_config));
+
+        let mut app = self.app.lock().unwrap();
+        app.config.active_server = Some(selected_config.name.clone());
+        app.ticks = 0;
+        *app = App::new(app.config.clone()).unwrap();
     }
 
     pub async fn run(&mut self) {

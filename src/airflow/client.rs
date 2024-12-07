@@ -62,9 +62,9 @@ impl AirFlowClient {
     }
 }
 
-impl From<AirflowConfig> for AirFlowClient {
-    fn from(config: AirflowConfig) -> Self {
-        Self::new(config).unwrap()
+impl From<&AirflowConfig> for AirFlowClient {
+    fn from(config: &AirflowConfig) -> Self {
+        Self::new(config.clone()).unwrap()
     }
 }
 
