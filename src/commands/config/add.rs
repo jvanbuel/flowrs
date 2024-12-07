@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use inquire::Select;
 use log::info;
@@ -62,8 +62,8 @@ impl AddCommand {
             }
         };
 
-        let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let path = self.file.as_deref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(&path)?;
 
         if let Some(mut servers) = config.servers.clone() {
             servers.retain(|server| server.name != new_config.name && server.managed.is_none());
@@ -73,7 +73,7 @@ impl AddCommand {
             config.servers = Some(vec![new_config]);
         }
 
-        config.to_file(path)?;
+        config.write_to_file()?;
 
         println!("✅ Config added successfully!");
         Ok(())

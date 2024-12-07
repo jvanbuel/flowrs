@@ -1,9 +1,9 @@
 use std::panic::PanicHookInfo;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::{
     fs::File,
     io::{self},
-    path::Path,
 };
 
 use clap::Parser;
@@ -42,7 +42,8 @@ impl RunCommand {
         let mut terminal = ratatui::init();
 
         // create app and run it
-        let config = FlowrsConfig::from_file(self.file.as_deref().map(Path::new))?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let config = FlowrsConfig::from_file(&path)?;
         let app = App::new(config)?;
 
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;

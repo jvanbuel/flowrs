@@ -16,7 +16,7 @@ pub struct App {
     pub active_panel: Panel,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Panel {
     Config,
     Dag,
@@ -27,7 +27,12 @@ pub enum Panel {
 
 impl App {
     pub fn new(config: FlowrsConfig) -> Result<Self> {
-        let servers = &config.clone().servers.unwrap();
+        let servers = &config.clone().servers.unwrap_or_default();
+        let active_server = if let Some(active_server) = &config.active_server {
+            servers.iter().find(|server| server.name == *active_server)
+        } else {
+            None
+        };
         Ok(App {
             config,
             dags: DagModel::new(),
@@ -35,7 +40,10 @@ impl App {
             dagruns: DagRunModel::new(),
             task_instances: TaskInstanceModel::new(),
             logs: LogModel::new(),
-            active_panel: Panel::Dag,
+            active_panel: match active_server {
+                Some(_) => Panel::Dag,
+                None => Panel::Config,
+            },
             ticks: 0,
         })
     }

@@ -84,9 +84,7 @@ impl Model for ConfigModel {
 
                         return (
                             Some(event.clone()),
-                            vec![WorkerMessage::ConfigSelected(
-                                self.filtered.state.selected().unwrap_or_default(),
-                            )],
+                            vec![WorkerMessage::ConfigSelected(selected_config)],
                         );
                     }
                     _ => (),

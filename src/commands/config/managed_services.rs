@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use inquire::Select;
 use strum::IntoEnumIterator;
@@ -19,8 +19,8 @@ impl ManagedServiceCommand {
             }
         };
 
-        let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(&path)?;
 
         match config.managed_services {
             Some(ref mut services) => {
@@ -35,7 +35,7 @@ impl ManagedServiceCommand {
             }
         }
 
-        config.to_file(path)?;
+        config.write_to_file()?;
 
         println!("✅ Managed service added successfully!");
         Ok(())
@@ -51,8 +51,8 @@ impl ManagedServiceCommand {
             }
         };
 
-        let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(&path)?;
 
         if let Some(ref mut services) = config.managed_services {
             if !services.contains(&managed_service) {
@@ -62,7 +62,7 @@ impl ManagedServiceCommand {
             services.retain(|service| service != &managed_service);
         }
 
-        config.to_file(path)?;
+        config.write_to_file()?;
 
         println!("✅ Managed service disabled successfully!");
         Ok(())

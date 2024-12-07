@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::Path;
+use std::path::PathBuf;
 
 use clap::ValueEnum;
 use log::info;
@@ -35,6 +35,9 @@ impl Display for ManagedService {
 pub struct FlowrsConfig {
     pub servers: Option<Vec<AirflowConfig>>,
     pub managed_services: Option<Vec<ManagedService>>,
+    pub active_server: Option<String>,
+    #[serde(skip_serializing)]
+    pub path: Option<PathBuf>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -64,14 +67,16 @@ pub struct TokenCmd {
 }
 
 impl FlowrsConfig {
-    pub fn from_file(config_path: Option<&Path>) -> Result<Self> {
+    pub fn from_file(config_path: &Option<PathBuf>) -> Result<Self> {
         let path = match config_path {
             Some(path) => path,
-            None => CONFIG_FILE.as_path(),
+            None => &CONFIG_FILE.as_path().to_path_buf(),
         };
 
         let toml_config = std::fs::read_to_string(path)?;
-        Self::from_str(&toml_config)
+        let mut config = Self::from_str(&toml_config)?;
+        config.path = Some(path.to_path_buf());
+        Ok(config)
     }
     pub fn from_str(config: &str) -> Result<Self> {
         let mut config: FlowrsConfig = toml::from_str(config)?;
@@ -115,11 +120,11 @@ impl FlowrsConfig {
         toml::to_string(self).map_err(|e| e.into())
     }
 
-    pub fn to_file(self: FlowrsConfig, path: Option<&Path>) -> Result<()> {
-        let path = match path {
-            Some(path) => path,
-            None => CONFIG_FILE.as_path(),
-        };
+    pub fn write_to_file(&mut self) -> Result<()> {
+        let path = self
+            .path
+            .clone()
+            .unwrap_or(CONFIG_FILE.as_path().to_path_buf());
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -127,7 +132,15 @@ impl FlowrsConfig {
             .create(true)
             .open(path)?;
 
-        file.write_all(Self::to_str(&self)?.as_bytes())?;
+        // Only write non-managed servers to the config file
+        if let Some(servers) = &mut self.servers {
+            *servers = servers
+                .iter()
+                .filter(|server| server.managed.is_none())
+                .cloned()
+                .collect();
+        }
+        file.write_all(Self::to_str(self)?.as_bytes())?;
         Ok(())
     }
 }
@@ -184,6 +197,8 @@ password = "airflow"
                 managed: None,
             }]),
             managed_services: Some(vec![ManagedService::Conveyor]),
+            active_server: None,
+            path: None,
         };
 
         let serialized_config = config.to_str().unwrap();

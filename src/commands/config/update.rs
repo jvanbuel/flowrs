@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::PathBuf;
 
 use inquire::Select;
 use log::info;
@@ -14,8 +14,8 @@ use anyhow::Result;
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
-        let path = self.file.as_ref().map(Path::new);
-        let mut config = FlowrsConfig::from_file(path)?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(&path)?;
 
         if config.servers.is_none() {
             println!("❌ No servers found in config file");
@@ -81,7 +81,7 @@ impl UpdateCommand {
         };
 
         config.servers = Some(servers);
-        config.to_file(path)?;
+        config.write_to_file()?;
 
         println!("✅ Config updated successfully!");
         Ok(())
