@@ -34,7 +34,7 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
                 .servers
                 .as_ref()
                 .and_then(|servers| servers.iter().find(|s| s.name == *server)),
-            None => None,
+            _ => None,
         };
         airflow_client = airflow_config.map(AirFlowClient::from);
     }
