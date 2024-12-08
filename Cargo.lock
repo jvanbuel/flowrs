@@ -599,7 +599,6 @@ dependencies = [
  "futures",
  "indoc",
  "inquire",
- "lazy_static",
  "left-pad",
  "log",
  "mockito",
