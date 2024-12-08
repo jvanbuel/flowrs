@@ -34,7 +34,7 @@ pub struct TaskInstanceModel {
     pub errors: Vec<Error>,
     pub popup: Option<TaskInstancePopUp>,
     pub marked: Vec<usize>,
-    commands: Option<CommandPopUp<'static, 3>>,
+    commands: Option<&'static CommandPopUp<'static>>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -215,7 +215,7 @@ impl Model for TaskInstanceModel {
                             }
                         }
                         KeyCode::Char('?') => {
-                            self.commands = Some(TASK_COMMAND_POP_UP);
+                            self.commands = Some(&*TASK_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();

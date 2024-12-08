@@ -11,6 +11,8 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::WorkerMessage;
 use crate::ui::constants::{ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
+use super::popup::commands_help::CommandPopUp;
+use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::ui::common::create_headers;
 use anyhow::Error;
@@ -19,6 +21,7 @@ pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
+    pub commands: Option<&'static CommandPopUp<'static>>,
     #[allow(dead_code)]
     pub errors: Vec<Error>,
 }
@@ -29,6 +32,7 @@ impl ConfigModel {
             all: configs.clone(),
             filtered: StatefulTable::new(configs),
             filter: Filter::new(),
+            commands: None,
             errors: vec![],
         }
     }
@@ -52,48 +56,61 @@ impl ConfigModel {
 impl Model for ConfigModel {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
-            FlowrsEvent::Tick => return (Some(FlowrsEvent::Tick), vec![]),
+            FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),
             FlowrsEvent::Key(key_event) => {
                 if self.filter.enabled {
                     self.filter.update(key_event);
                     self.filter_configs();
                     return (None, vec![]);
-                }
-                match key_event.code {
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        self.filtered.next();
+                } else if let Some(_commands) = &mut self.commands {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') | KeyCode::Enter => {
+                            self.commands = None;
+                        }
+                        _ => (),
                     }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        self.filtered.previous();
-                    }
-                    KeyCode::Char('/') => {
-                        self.filter.toggle();
-                    }
-                    KeyCode::Char('o') => {
-                        let selected_config = self.filtered.state.selected().unwrap_or_default();
-                        let endpoint = &self.filtered.items[selected_config].endpoint;
-                        debug!("Selected config: {}", endpoint);
-                        webbrowser::open(endpoint).unwrap();
-                    }
-                    KeyCode::Enter => {
-                        let selected_config = self.filtered.state.selected().unwrap_or_default();
-                        debug!(
-                            "Selected config: {}",
-                            self.filtered.items[selected_config].name
-                        );
+                } else {
+                    match key_event.code {
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            self.filtered.next();
+                        }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            self.filtered.previous();
+                        }
+                        KeyCode::Char('/') => {
+                            self.filter.toggle();
+                        }
+                        KeyCode::Char('o') => {
+                            let selected_config =
+                                self.filtered.state.selected().unwrap_or_default();
+                            let endpoint = &self.filtered.items[selected_config].endpoint;
+                            debug!("Selected config: {}", endpoint);
+                            webbrowser::open(endpoint).unwrap();
+                        }
+                        KeyCode::Char('?') => {
+                            self.commands = Some(&*CONFIG_COMMAND_POP_UP);
+                        }
+                        KeyCode::Enter => {
+                            let selected_config =
+                                self.filtered.state.selected().unwrap_or_default();
+                            debug!(
+                                "Selected config: {}",
+                                self.filtered.items[selected_config].name
+                            );
 
-                        return (
-                            Some(event.clone()),
-                            vec![WorkerMessage::ConfigSelected(selected_config)],
-                        );
+                            return (
+                                Some(event.clone()),
+                                vec![WorkerMessage::ConfigSelected(selected_config)],
+                            );
+                        }
+                        _ => (),
                     }
-                    _ => (),
+                    return (Some(event.clone()), vec![]);
                 }
-                return (Some(event.clone()), vec![]);
+                (None, vec![])
             }
-            _ => (),
-        };
-        (Some(event.clone()), vec![])
+            _ => (Some(event.clone()), vec![]),
+        }
     }
 }
 
@@ -168,5 +185,9 @@ impl Widget for &mut ConfigModel {
         .style(DEFAULT_STYLE)
         .row_highlight_style(selected_style);
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+
+        if let Some(commands) = &self.commands {
+            commands.render(area, buf);
+        }
     }
 }

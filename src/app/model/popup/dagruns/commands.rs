@@ -1,8 +1,9 @@
-use crate::app::model::popup::commands_help::{Command, CommandPopUp};
+use std::sync::LazyLock;
 
-pub const DAGRUN_COMMAND_POP_UP: CommandPopUp<6> = CommandPopUp {
-    title: "DAG Commands",
-    commands: [
+use crate::app::model::popup::commands_help::{Command, CommandPopUp, DefaultCommands};
+
+pub static DAGRUN_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
+    let mut commands = vec![
         Command {
             name: "Clear",
             key_binding: "c",
@@ -28,10 +29,10 @@ pub const DAGRUN_COMMAND_POP_UP: CommandPopUp<6> = CommandPopUp {
             key_binding: "t",
             description: "Trigger a DAG run",
         },
-        Command {
-            name: "Filter",
-            key_binding: "/",
-            description: "Filter DAG runs",
-        },
-    ],
-};
+    ];
+    commands.append(&mut DefaultCommands::new().0);
+    CommandPopUp {
+        title: "DAG Run Commands".into(),
+        commands,
+    }
+});
