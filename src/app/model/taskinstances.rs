@@ -24,7 +24,7 @@ use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::WorkerMessage;
 use anyhow::Error;
 
-pub struct TaskInstanceModel {
+pub struct TaskInstanceModel<'a> {
     pub dag_id: Option<String>,
     pub dag_run_id: Option<String>,
     pub all: Vec<TaskInstance>,
@@ -34,12 +34,12 @@ pub struct TaskInstanceModel {
     pub errors: Vec<Error>,
     pub popup: Option<TaskInstancePopUp>,
     pub marked: Vec<usize>,
-    commands: Option<CommandPopUp<'static, 3>>,
+    commands: Option<&'a CommandPopUp<'a>>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
 
-impl TaskInstanceModel {
+impl TaskInstanceModel<'_> {
     pub fn new() -> Self {
         TaskInstanceModel {
             dag_id: None,
@@ -86,13 +86,13 @@ impl TaskInstanceModel {
     }
 }
 
-impl Default for TaskInstanceModel {
+impl Default for TaskInstanceModel<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Model for TaskInstanceModel {
+impl Model for TaskInstanceModel<'_> {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
@@ -215,7 +215,7 @@ impl Model for TaskInstanceModel {
                             }
                         }
                         KeyCode::Char('?') => {
-                            self.commands = Some(TASK_COMMAND_POP_UP);
+                            self.commands = Some(&*TASK_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -243,7 +243,7 @@ impl Model for TaskInstanceModel {
         }
     }
 }
-impl Widget for &mut TaskInstanceModel {
+impl Widget for &mut TaskInstanceModel<'_> {
     fn render(self, area: Rect, buffer: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()

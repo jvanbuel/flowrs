@@ -21,19 +21,19 @@ use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::WorkerMessage;
 use anyhow::Error;
 
-pub struct DagModel {
+pub struct DagModel<'a> {
     pub all: Vec<Dag>,
     pub dag_stats: HashMap<String, Vec<DagStatistic>>,
     pub filtered: StatefulTable<Dag>,
     pub filter: Filter,
     #[allow(dead_code)]
     pub errors: Vec<Error>,
-    commands: Option<CommandPopUp<'static, 2>>,
+    commands: Option<&'a CommandPopUp<'a>>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
 
-impl DagModel {
+impl DagModel<'_> {
     pub fn new() -> Self {
         DagModel {
             all: vec![],
@@ -72,13 +72,13 @@ impl DagModel {
     }
 }
 
-impl Default for DagModel {
+impl Default for DagModel<'_> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Model for DagModel {
+impl Model for DagModel<'_> {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
@@ -138,7 +138,7 @@ impl Model for DagModel {
                             self.filter_dags();
                         }
                         KeyCode::Char('?') => {
-                            self.commands = Some(DAG_COMMAND_POP_UP);
+                            self.commands = Some(&*DAG_COMMAND_POP_UP);
                         }
                         KeyCode::Enter => {
                             if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone())
@@ -178,7 +178,7 @@ impl Model for DagModel {
     }
 }
 
-impl Widget for &mut DagModel {
+impl Widget for &mut DagModel<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()

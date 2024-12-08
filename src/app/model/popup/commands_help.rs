@@ -12,17 +12,17 @@ pub struct Command<'a> {
     pub key_binding: &'a str,
     pub description: &'a str,
 }
-pub struct CommandPopUp<'a, const N: usize> {
-    pub title: &'a str,
-    pub commands: [Command<'a>; N],
+pub struct CommandPopUp<'a> {
+    pub title: String,
+    pub commands: Vec<Command<'a>>,
 }
 
-impl<const N: usize> Widget for &CommandPopUp<'_, N> {
+impl Widget for &CommandPopUp<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let popup_area = popup_area(area, 80, 80);
         let popup = Block::default()
             .border_type(BorderType::Rounded)
-            .title(self.title)
+            .title(self.title.as_str())
             .borders(Borders::ALL);
 
         Clear.render(popup_area, buf);

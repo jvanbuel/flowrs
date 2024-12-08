@@ -8,8 +8,8 @@ use futures::future::join_all;
 use log::debug;
 use tokio::sync::mpsc::Receiver;
 
-pub struct Worker {
-    app: Arc<Mutex<App>>,
+pub struct Worker<'a> {
+    app: Arc<Mutex<App<'a>>>,
     client: Option<AirFlowClient>,
     rx_worker: Receiver<WorkerMessage>,
 }
@@ -68,9 +68,9 @@ pub enum WorkerMessage {
     },
 }
 
-impl Worker {
+impl<'a> Worker<'a> {
     pub fn new(
-        app: Arc<Mutex<App>>,
+        app: Arc<Mutex<App<'a>>>,
         client: Option<AirFlowClient>,
         rx_worker: Receiver<WorkerMessage>,
     ) -> Self {
