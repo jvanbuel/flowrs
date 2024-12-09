@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6](https://github.com/jvanbuel/flowrs/compare/v0.1.5...v0.1.6) - 2024-12-09
+
+### Other
+
+- show cursor position
+- refactor filter into widget
+- Create CODE_OF_CONDUCT.md
+- Update issue templates
+- Create LICENSE
+- refactor command help with lazy static
+
 ## [0.1.5](https://github.com/jvanbuel/flowrs/compare/v0.1.4...v0.1.5) - 2024-12-08
 
 ### Added
