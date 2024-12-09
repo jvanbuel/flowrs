@@ -1,16 +1,22 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Position, Rect},
     style::Styled,
     widgets::{Block, BorderType, Borders, Paragraph, Widget},
 };
 
 use crate::ui::constants::DEFAULT_STYLE;
 
+#[derive(Clone)]
+pub struct CursorState {
+    pub position: Position,
+}
+
 pub struct Filter {
     pub enabled: bool,
     pub prefix: Option<String>,
+    pub cursor: CursorState,
 }
 
 impl Filter {
@@ -18,6 +24,9 @@ impl Filter {
         Filter {
             enabled: false,
             prefix: None,
+            cursor: CursorState {
+                position: Position::default(),
+            },
         }
     }
 
@@ -59,6 +68,9 @@ impl Filter {
             _ => {}
         }
     }
+    pub fn cursor_position(&self) -> &Position {
+        &self.cursor.position
+    }
 }
 
 impl Default for Filter {
@@ -67,11 +79,17 @@ impl Default for Filter {
     }
 }
 
-impl Widget for &Filter {
+impl Widget for &mut Filter {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let filter = self.prefix().clone();
+        let filter_text = filter.unwrap_or_default();
 
-        let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
+        self.cursor.position = Position {
+            x: area.x + 1 + filter_text.len() as u16,
+            y: area.y + 1,
+        };
+
+        let paragraph = Paragraph::new(filter_text)
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)
