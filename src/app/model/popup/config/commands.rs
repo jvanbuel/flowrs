@@ -2,11 +2,11 @@ use std::sync::LazyLock;
 
 use crate::app::model::popup::commands_help::{Command, CommandPopUp, DefaultCommands};
 
-pub static DAG_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
+pub static CONFIG_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
     let mut commands = vec![Command {
-        name: "Toggle pauze",
-        key_binding: "p",
-        description: "Toggle pauze/unpauze a DAG",
+        name: "Open",
+        key_binding: "o",
+        description: "Open Airflow Web UI",
     }];
     commands.append(&mut DefaultCommands::new().0);
     CommandPopUp {

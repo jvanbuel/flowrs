@@ -40,7 +40,7 @@ pub struct DagRunModel {
     #[allow(dead_code)]
     pub errors: Vec<Error>,
     pub popup: Option<DagRunPopUp>,
-    pub commands: Option<CommandPopUp<'static, 6>>,
+    pub commands: Option<&'static CommandPopUp<'static>>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -254,7 +254,7 @@ impl Model for DagRunModel {
                             }
                         }
                         KeyCode::Char('?') => {
-                            self.commands = Some(DAGRUN_COMMAND_POP_UP);
+                            self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
                             self.filter.toggle();

@@ -28,7 +28,7 @@ pub struct DagModel {
     pub filter: Filter,
     #[allow(dead_code)]
     pub errors: Vec<Error>,
-    commands: Option<CommandPopUp<'static, 2>>,
+    commands: Option<&'static CommandPopUp<'static>>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -138,7 +138,7 @@ impl Model for DagModel {
                             self.filter_dags();
                         }
                         KeyCode::Char('?') => {
-                            self.commands = Some(DAG_COMMAND_POP_UP);
+                            self.commands = Some(&*DAG_COMMAND_POP_UP);
                         }
                         KeyCode::Enter => {
                             if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone())
