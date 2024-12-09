@@ -2,9 +2,9 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Styled, Stylize};
+use ratatui::style::{Modifier, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
@@ -122,18 +122,7 @@ impl Widget for &mut ConfigModel {
                 .margin(0)
                 .split(area);
 
-            let filter = self.filter.prefix().clone();
-
-            let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-                .block(
-                    Block::default()
-                        .border_type(BorderType::Rounded)
-                        .borders(Borders::ALL)
-                        .title("filter"),
-                )
-                .set_style(DEFAULT_STYLE);
-
-            Widget::render(paragraph, rects[1], buf);
+            self.filter.render(rects[1], buf);
 
             rects
         } else {
