@@ -6,9 +6,9 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style, Styled, Stylize};
+use ratatui::style::{Modifier, Style, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
 use crate::airflow::model::taskinstance::TaskInstance;
@@ -251,19 +251,7 @@ impl Widget for &mut TaskInstanceModel {
                 .margin(0)
                 .split(area);
 
-            let filter = self.filter.prefix().clone();
-
-            let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-                .block(
-                    Block::default()
-                        .border_type(BorderType::Rounded)
-                        .borders(Borders::ALL)
-                        .title("filter"),
-                )
-                .set_style(DEFAULT_STYLE);
-
-            Widget::render(paragraph, rects[1], buffer);
-
+            self.filter.render(rects[1], buffer);
             rects
         } else {
             Layout::default()

@@ -1,4 +1,12 @@
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    style::Styled,
+    widgets::{Block, BorderType, Borders, Paragraph, Widget},
+};
+
+use crate::ui::constants::DEFAULT_STYLE;
 
 pub struct Filter {
     pub enabled: bool,
@@ -56,5 +64,22 @@ impl Filter {
 impl Default for Filter {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Widget for &Filter {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let filter = self.prefix().clone();
+
+        let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::ALL)
+                    .title("filter"),
+            )
+            .set_style(DEFAULT_STYLE);
+
+        Widget::render(paragraph, area, buf);
     }
 }

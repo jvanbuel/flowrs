@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style, Styled, Stylize};
+use ratatui::style::{Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
@@ -308,19 +308,7 @@ impl Widget for &mut DagRunModel {
                 .margin(0)
                 .split(area);
 
-            let filter = self.filter.prefix().clone();
-
-            let paragraph = Paragraph::new(filter.unwrap_or("".to_string()))
-                .block(
-                    Block::default()
-                        .border_type(BorderType::Rounded)
-                        .borders(Borders::ALL)
-                        .title("filter"),
-                )
-                .set_style(DEFAULT_STYLE);
-
-            Widget::render(paragraph, rects[1], buf);
-
+            self.filter.render(rects[1], buf);
             rects
         } else {
             Layout::default()
