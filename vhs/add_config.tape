@@ -1,27 +1,28 @@
 Set Theme "Dark+"
 Require flowrs
-Set Height 400 
+Set Height 400
+Set Framerate 24
 
 Sleep 1s
 Type "flowrs config add"
 Enter
-Sleep 1s
+Sleep 0.5s
 Type "airflow-test"
 Enter
-Sleep 1s
+Sleep 0.5s
 Type "http://localhost:8080"
-Sleep 1s
+Sleep 0.5s
 Enter
-Sleep 1s
-Enter
-Type "airflow"
-Sleep 1s
+Sleep 0.5s
 Enter
 Type "airflow"
-Sleep 1s
+Sleep 0.5s
 Enter
 Type "airflow"
-Sleep 500ms
+Sleep 0.5s
 Enter
-Sleep 2s
+Type "airflow"
+Sleep 250ms
+Enter
+Sleep 1s
 
