@@ -302,8 +302,7 @@ impl Worker {
 
         let mut app = self.app.lock().unwrap();
         app.config.active_server = Some(selected_config.name.clone());
-        app.ticks = 0;
-        *app = App::new(app.config.clone()).unwrap();
+        app.clear_state();
     }
 
     pub async fn run(&mut self) {
