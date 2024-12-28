@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7](https://github.com/jvanbuel/flowrs/compare/v0.1.6...v0.1.7) - 2024-12-28
+
+### Fixed
+
+- persist last selected config state when switching between configurations
+
+### Other
+
+- update README with managed service configuration
+
 ## [0.1.6](https://github.com/jvanbuel/flowrs/compare/v0.1.5...v0.1.6) - 2024-12-28
 
 ### Fixed
