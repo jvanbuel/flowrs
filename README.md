@@ -27,27 +27,23 @@ cargo install flowrs-tui --locked
 
 ## Usage
 
-You can register an Airflow server instance with the `flowrs config add` command:
+### Managed Airflow services
+
+The easiest way to user `flowrs` is with a managed Airflow service. The currently supported managed services are:
+
+- [x] Conveyor
+- [ ] Amazon Managed Workflows for Apache Airflow (MWAA)
+- [ ] Google Cloud Composer
+- [ ] Astronomer
+
+To enable a managed service, run `flowrs config enable -m <service>`. This will add the configuration for the managed service to your configuration file, or prompt you for the necessary configuration details. On startup `flowrs` will then try to find and connect to all available managed service's Airflow instances.
+
+### Custom Airflow instances
+
+If you're self-hosting an Airflow instance, or your favorite managed service is not yet supported, you can register an Airflow server instance with the `flowrs config add` command:
 
 ![flowrs config add demo](./vhs/add_config.gif)
 
-This creates an entry in a `~/.flowrs` configuration file. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` starting screen.
+This creates an entry in a `~/.flowrs` configuration file. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` configuration screen.
 
-Only basic authentication and bearer token authentication are currently supported. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
-
-### Managed services
-
-`flowrs` supports the following managed services:
-
-- [x] Conveyor
-- [ ] Google Cloud Composer
-- [ ] Amazon Managed Workflows for Apache Airflow (MWAA)
-- [ ] Astronomer
-
-To enable a managed service, add it to the `managed_services` section in the configuration file, e.g.:
-
-```toml
-managed_services = ["Conveyor"]
-```
-
-`flowrs` will then on startup try to find and connect to all the Airflow instances that are managed by the specified service.
+Only basic authentication and bearer token authentication are supported. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
