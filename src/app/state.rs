@@ -14,7 +14,7 @@ pub struct App {
     pub logs: LogModel,
     pub ticks: u32,
     pub active_panel: Panel,
-    pub loading: bool
+    pub loading: bool,
 }
 
 #[derive(Clone, PartialEq)]
@@ -68,5 +68,14 @@ impl App {
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
             Panel::Logs => self.active_panel = Panel::TaskInstance,
         }
+    }
+
+    pub fn clear_state(&mut self) {
+        self.ticks = 0;
+        self.loading = true;
+        self.dags.all.clear();
+        self.dagruns.all.clear();
+        self.task_instances.all.clear();
+        self.logs.all.clear();
     }
 }
