@@ -36,7 +36,7 @@ regex = "1.11.1"
 reqwest = { version = "0.12.9", features = ["json", "rustls-tls"] }
 rstest = "0.23.0"
 serde = { version = "1.0.216", features = ["derive"] }
-serde_json = "1.0.132"
+serde_json = "1.0.134"
 simplelog = "0.12.2"
 strum = "0.26.3"
 syntect = "5.2.0"
