@@ -18,7 +18,7 @@ use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STY
 
 use super::popup::commands_help::CommandPopUp;
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::worker::WorkerMessage;
+use crate::app::worker::{OpenItem, WorkerMessage};
 use anyhow::Error;
 
 pub struct DagModel {
@@ -165,6 +165,20 @@ impl Model for DagModel {
                                 }
                             } else {
                                 self.event_buffer.push(FlowrsEvent::Key(*key_event));
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            if let Some(dag) = self.current() {
+                                debug!("Selected dag: {}", dag.dag_id);
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::OpenItem(OpenItem::Dag {
+                                        dag_id: dag.dag_id.clone(),
+                                    })],
+                                );
+                            } else {
+                                self.errors
+                                    .push(Error::msg("No DAG selected to open in the browser"));
                             }
                         }
                         _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event

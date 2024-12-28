@@ -21,7 +21,7 @@ use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::worker::WorkerMessage;
+use crate::app::worker::{OpenItem, WorkerMessage};
 use anyhow::Error;
 
 pub struct TaskInstanceModel {
@@ -225,12 +225,25 @@ impl Model for TaskInstanceModel {
                             if let Some(task_instance) = self.current() {
                                 return (
                                     Some(FlowrsEvent::Key(*key_event)),
-                                    vec![WorkerMessage::GetTaskLogs {
+                                    vec![WorkerMessage::UpdateTaskLogs {
                                         dag_id: task_instance.dag_id.clone(),
                                         dag_run_id: task_instance.dag_run_id.clone(),
                                         task_id: task_instance.task_id.clone(),
                                         task_try: task_instance.try_number as u16,
+                                        clear: true,
                                     }],
+                                );
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            if let Some(task_instance) = self.current() {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::OpenItem(OpenItem::TaskInstance {
+                                        dag_id: task_instance.dag_id.clone(),
+                                        dag_run_id: task_instance.dag_run_id.clone(),
+                                        task_id: task_instance.task_id.clone(),
+                                    })],
                                 );
                             }
                         }

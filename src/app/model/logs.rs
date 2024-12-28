@@ -14,7 +14,10 @@ use regex::Regex;
 
 use crate::{
     airflow::model::log::Log,
-    app::{events::custom::FlowrsEvent, worker::WorkerMessage},
+    app::{
+        events::custom::FlowrsEvent,
+        worker::{OpenItem, WorkerMessage},
+    },
     ui::constants::DM_RGB,
 };
 
@@ -71,11 +74,12 @@ impl Model for LogModel {
                     log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
                     return (
                         Some(FlowrsEvent::Tick),
-                        vec![WorkerMessage::GetTaskLogs {
+                        vec![WorkerMessage::UpdateTaskLogs {
                             dag_id: dag_id.clone(),
                             dag_run_id: dag_run_id.clone(),
                             task_id: task_id.clone(),
                             task_try: *tries,
+                            clear: false,
                         }],
                     );
                 }
@@ -99,6 +103,19 @@ impl Model for LogModel {
                     self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
                     self.vertical_scroll_state =
                         self.vertical_scroll_state.position(self.vertical_scroll)
+                }
+                KeyCode::Char('o') => {
+                    if self.all.get(self.current % self.all.len()).is_some() {
+                        return (
+                            Some(FlowrsEvent::Key(*key)),
+                            vec![WorkerMessage::OpenItem(OpenItem::Log {
+                                dag_id: self.dag_id.clone().expect("DAG ID not set"),
+                                dag_run_id: self.dag_run_id.clone().expect("DAG Run ID not set"),
+                                task_id: self.task_id.clone().expect("Task ID not set"),
+                                task_try: self.current as u16,
+                            })],
+                        );
+                    }
                 }
 
                 _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event

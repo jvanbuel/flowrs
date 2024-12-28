@@ -4,9 +4,11 @@ use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
 use super::{model::popup::dagruns::mark::MarkState, state::App};
+use anyhow::Result;
 use futures::future::join_all;
 use log::debug;
 use tokio::sync::mpsc::Receiver;
+use url::{form_urlencoded, Url};
 
 pub struct Worker {
     app: Arc<Mutex<App>>,
@@ -41,11 +43,12 @@ pub enum WorkerMessage {
         dag_run_id: String,
         dag_id: String,
     },
-    GetTaskLogs {
+    UpdateTaskLogs {
         dag_id: String,
         dag_run_id: String,
         task_id: String,
         task_try: u16,
+        clear: bool,
     },
     MarkDagRun {
         dag_run_id: String,
@@ -66,6 +69,31 @@ pub enum WorkerMessage {
     TriggerDagRun {
         dag_id: String,
     },
+    OpenItem(OpenItem),
+}
+
+#[derive(Debug)]
+pub enum OpenItem {
+    Config(String),
+    Dag {
+        dag_id: String,
+    },
+    DagRun {
+        dag_id: String,
+        dag_run_id: String,
+    },
+    TaskInstance {
+        dag_id: String,
+        dag_run_id: String,
+        task_id: String,
+    },
+    Log {
+        dag_id: String,
+        dag_run_id: String,
+        task_id: String,
+        #[allow(dead_code)]
+        task_try: u16,
+    },
 }
 
 impl Worker {
@@ -81,12 +109,12 @@ impl Worker {
         }
     }
 
-    pub async fn process_message(&mut self, message: WorkerMessage) {
+    pub async fn process_message(&mut self, message: WorkerMessage) -> Result<()> {
         if self.client.is_none() {
             if let WorkerMessage::ConfigSelected(idx) = message {
                 self.switch_airflow_client(idx);
             };
-            return;
+            return Ok(());
         }
         let client = self.client.as_ref().unwrap();
         match message {
@@ -199,11 +227,12 @@ impl Worker {
                     app.dagruns.errors.push(e);
                 }
             }
-            WorkerMessage::GetTaskLogs {
+            WorkerMessage::UpdateTaskLogs {
                 dag_id,
                 dag_run_id,
                 task_id,
                 task_try,
+                clear,
             } => {
                 debug!("Getting logs for task: {task_id}, try number {task_try}");
                 let logs = join_all(
@@ -212,6 +241,13 @@ impl Worker {
                         .collect::<Vec<_>>(),
                 )
                 .await;
+
+                if clear {
+                    let mut app = self.app.lock().unwrap();
+                    app.logs.dag_id = Some(dag_id);
+                    app.logs.dag_run_id = Some(dag_run_id);
+                    app.logs.task_id = Some(task_id);
+                }
 
                 let mut app = self.app.lock().unwrap();
                 app.logs.all.clear();
@@ -293,7 +329,51 @@ impl Worker {
                     app.dagruns.errors.push(e);
                 }
             }
+            WorkerMessage::OpenItem(item) => {
+                let mut base_url = Url::parse(&client.config.endpoint)?;
+                match item {
+                    OpenItem::Config(config_endpoint) => {
+                        base_url = config_endpoint.parse()?;
+                    }
+                    OpenItem::Dag { dag_id } => {
+                        base_url = base_url.join(&format!("dags/{dag_id}"))?;
+                    }
+                    OpenItem::DagRun { dag_id, dag_run_id } => {
+                        base_url = base_url.join(&format!("/dags/{dag_id}/grid"))?;
+                        let escaped_dag_run_id: String =
+                            form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
+                        base_url.set_query(Some(&format!("dag_run_id={escaped_dag_run_id}")));
+                    }
+                    OpenItem::TaskInstance {
+                        dag_id,
+                        dag_run_id,
+                        task_id,
+                    } => {
+                        base_url = base_url.join(&format!("/dags/{dag_id}/grid"))?;
+                        let escaped_dag_run_id: String =
+                            form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
+                        base_url.set_query(Some(&format!(
+                            "dag_run_id={escaped_dag_run_id}&task_id={task_id}"
+                        )));
+                    }
+                    OpenItem::Log {
+                        dag_id,
+                        dag_run_id,
+                        task_id,
+                        task_try: _,
+                    } => {
+                        base_url = base_url.join(&format!("/dags/{dag_id}/grid"))?;
+                        let escaped_dag_run_id: String =
+                            form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
+                        base_url.set_query(Some(&format!(
+                            "dag_run_id={escaped_dag_run_id}&task_id={task_id}&tab=logs"
+                        )));
+                    }
+                }
+                webbrowser::open(base_url.as_str()).unwrap();
+            }
         }
+        Ok(())
     }
 
     pub fn switch_airflow_client(&mut self, idx: usize) {
@@ -305,13 +385,13 @@ impl Worker {
         app.clear_state();
     }
 
-    pub async fn run(&mut self) {
+    pub async fn run(&mut self) -> Result<()> {
         loop {
             if let Some(message) = self.rx_worker.recv().await {
                 // tokio::spawn(async move {
                 //     self.process_message(message).await;
                 // }); //TODO: check how we can send messages to a pool of workers
-                self.process_message(message).await;
+                self.process_message(message).await?;
             }
         }
     }

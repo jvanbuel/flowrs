@@ -27,7 +27,7 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{filter::Filter, Model, StatefulTable};
-use crate::app::worker::WorkerMessage;
+use crate::app::worker::{OpenItem, WorkerMessage};
 use anyhow::Error;
 
 pub struct DagRunModel {
@@ -287,6 +287,17 @@ impl Model for DagRunModel {
                                         dag_run_id: dag_run.dag_run_id.clone(),
                                         clear: true,
                                     }],
+                                );
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::OpenItem(OpenItem::DagRun {
+                                        dag_id: dag_id.clone(),
+                                        dag_run_id: dag_run.dag_run_id.clone(),
+                                    })],
                                 );
                             }
                         }
