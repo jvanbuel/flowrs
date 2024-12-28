@@ -14,8 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - do not handle non-tick events when loading
 - reduce gif sizes
 
-### Other
+### Added
+- Show cursor position
+- Create CODE_OF_CONDUCT.md
+- Create LICENSE
 
+### Changed
+- Update vhs gif
+- Refactor filter into widget
+- Refactor command help with lazy static
+- Update issue templates
+
+### Dependencies
+- Bump chrono from 0.4.38 to 0.4.39
 - Merge pull request [#290](https://github.com/jvanbuel/flowrs/pull/290) from jvanbuel/dependabot/cargo/serde_json-1.0.134
 - Merge pull request [#291](https://github.com/jvanbuel/flowrs/pull/291) from jvanbuel/dependabot/cargo/anyhow-1.0.95
 - *(deps)* bump env_logger from 0.11.5 to 0.11.6
