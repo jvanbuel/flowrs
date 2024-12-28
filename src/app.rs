@@ -53,6 +53,10 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
         })?;
 
         if let Some(event) = events.next().await {
+            // If the app is loading, only tick events are allowed
+            if app.lock().unwrap().loading && event != FlowrsEvent::Tick {
+                continue;
+            }
             // First handle panel specific events, and send messages to the event channel
             let (fall_through_event, messages) = {
                 let mut app = app.lock().unwrap();

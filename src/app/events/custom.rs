@@ -1,6 +1,6 @@
 use crossterm::event::KeyEvent;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FlowrsEvent {
     Tick,
     Key(KeyEvent),

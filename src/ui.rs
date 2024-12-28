@@ -16,6 +16,7 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         render_init_screen(f, app.ticks);
         return;
     }
+    app.loading = false;
     // Only frame has the ability to set the cursor position, so we need to control the cursor filter from here
     // Not very elegant, and quite some duplication... Should be refactored
     match app.active_panel {

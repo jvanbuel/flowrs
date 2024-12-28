@@ -14,6 +14,7 @@ pub struct App {
     pub logs: LogModel,
     pub ticks: u32,
     pub active_panel: Panel,
+    pub loading: bool
 }
 
 #[derive(Clone, PartialEq)]
@@ -45,6 +46,7 @@ impl App {
                 None => Panel::Config,
             },
             ticks: 0,
+            loading: true,
         })
     }
 
