@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7](https://github.com/jvanbuel/flowrs/compare/v0.1.6...v0.1.7) - 2025-01-20
+
+### Fixed
+
+- persist last selected config state when switching between configurations
+
+### Other
+
+- default to empty config if no config file exists
+- Merge pull request [#304](https://github.com/jvanbuel/flowrs/pull/304) from jvanbuel/dependabot/cargo/log-0.4.25
+- *(deps)* bump serde_json from 1.0.135 to 1.0.137
+- Merge pull request [#299](https://github.com/jvanbuel/flowrs/pull/299) from jvanbuel/dependabot/cargo/dirs-6.0.0
+- Merge pull request [#300](https://github.com/jvanbuel/flowrs/pull/300) from jvanbuel/dependabot/cargo/tokio-1.43.0
+- Merge pull request [#301](https://github.com/jvanbuel/flowrs/pull/301) from jvanbuel/dependabot/cargo/serde_json-1.0.135
+- *(deps)* bump clap from 4.5.23 to 4.5.26
+- *(deps)* bump reqwest from 0.12.11 to 0.12.12
+- *(deps)* bump rstest from 0.23.0 to 0.24.0
+- update README with managed service configuration
+
 ## [0.1.6](https://github.com/jvanbuel/flowrs/compare/v0.1.5...v0.1.6) - 2024-12-28
 
 ### Fixed
