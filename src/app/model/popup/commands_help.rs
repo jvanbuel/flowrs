@@ -62,6 +62,11 @@ impl DefaultCommands {
                 description: "Filter items",
             },
             Command {
+                name: "Open",
+                key_binding: "o",
+                description: "Open the selected item in the browser",
+            },
+            Command {
                 name: "Previous",
                 key_binding: "k / Up",
                 description: "Move to the previous item",

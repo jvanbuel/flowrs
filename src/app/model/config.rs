@@ -8,7 +8,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
-use crate::app::worker::WorkerMessage;
+use crate::app::worker::{OpenItem, WorkerMessage};
 use crate::ui::constants::{ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
@@ -83,9 +83,12 @@ impl Model for ConfigModel {
                         KeyCode::Char('o') => {
                             let selected_config =
                                 self.filtered.state.selected().unwrap_or_default();
-                            let endpoint = &self.filtered.items[selected_config].endpoint;
-                            debug!("Selected config: {}", endpoint);
-                            webbrowser::open(endpoint).unwrap();
+                            let endpoint =
+                                self.filtered.items[selected_config].endpoint.to_string();
+                            return (
+                                Some(event.clone()),
+                                vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))],
+                            );
                         }
                         KeyCode::Char('?') => {
                             self.commands = Some(&*CONFIG_COMMAND_POP_UP);
