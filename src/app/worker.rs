@@ -123,7 +123,19 @@ impl Worker {
                 let mut app = self.app.lock().unwrap();
                 match dag_list {
                     Ok(dag_list) => {
-                        app.dags.all = dag_list.dags;
+                        // If there are no Dags yet, we want to update all Dags
+                        if app.dags.all.is_empty() {
+                            app.dags.all = dag_list.dags;
+                            app.dags.filter_dags();
+                            return Ok(());
+                        }
+                        // If a Dag is selected, we only want to update the DagRuns of that Dag
+                        // and skip late responses of other Dag update requests (see issue https://github.com/jvanbuel/flowrs/issues/311).
+                        if let Some(dag) = app.dags.current() {
+                            if dag_list.dags[0].dag_id == dag.dag_id {
+                                app.dags.all = dag_list.dags;
+                            }
+                        }
                         app.dags.filter_dags();
                     }
                     Err(e) => app.dags.errors.push(e),
