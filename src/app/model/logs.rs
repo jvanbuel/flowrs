@@ -86,12 +86,22 @@ impl Model for LogModel {
                 return (Some(FlowrsEvent::Tick), vec![]);
             }
             FlowrsEvent::Key(key) => match key.code {
-                KeyCode::Char('l') => {
-                    self.current += 1;
+                KeyCode::Char('l') | KeyCode::Right => {
+                    if !self.all.is_empty() {
+                        if self.current == self.all.len() - 1 {
+                            self.current = 0;
+                        } else {
+                            self.current += 1;
+                        }
+                    }
                 }
-                KeyCode::Char('h') => {
-                    if self.current > 0 {
-                        self.current -= 1;
+                KeyCode::Char('h') | KeyCode::Left => {
+                    if !self.all.is_empty() {
+                        if self.current == 0 {
+                            self.current = self.all.len() - 1;
+                        } else {
+                            self.current -= 1;
+                        }
                     }
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
