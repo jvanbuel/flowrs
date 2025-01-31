@@ -25,7 +25,7 @@ pub struct TaskInstance {
     #[serde(rename = "end_date", with = "time::serde::iso8601::option")]
     pub end_date: Option<OffsetDateTime>,
     pub duration: Option<f64>,
-    pub state: String,
+    pub state: Option<String>,
     #[serde(rename = "try_number")]
     pub try_number: i64,
     #[serde(rename = "map_index")]
