@@ -80,7 +80,7 @@ impl TaskInstanceModel {
     pub fn mark_task_instance(&mut self, task_id: &str, status: &str) {
         self.filtered.items.iter_mut().for_each(|task_instance| {
             if task_instance.task_id == task_id {
-                task_instance.state = status.to_string();
+                task_instance.state = Some(status.to_string());
             }
         });
     }
@@ -295,14 +295,20 @@ impl Widget for &mut TaskInstanceModel {
                 } else {
                     "None".to_string()
                 }),
-                Line::from(match item.state.as_str() {
-                    "success" => state_to_colored_square(AirflowStateColor::Success),
-                    "running" => state_to_colored_square(AirflowStateColor::Running),
-                    "failed" => state_to_colored_square(AirflowStateColor::Failed),
-                    "queued" => state_to_colored_square(AirflowStateColor::Queued),
-                    "up_for_retry" => state_to_colored_square(AirflowStateColor::UpForRetry),
-                    "upstream_failed" => state_to_colored_square(AirflowStateColor::UpstreamFailed),
-                    _ => state_to_colored_square(AirflowStateColor::None),
+                Line::from(if let Some(state) = &item.state {
+                    match state.as_str() {
+                        "success" => state_to_colored_square(AirflowStateColor::Success),
+                        "running" => state_to_colored_square(AirflowStateColor::Running),
+                        "failed" => state_to_colored_square(AirflowStateColor::Failed),
+                        "queued" => state_to_colored_square(AirflowStateColor::Queued),
+                        "up_for_retry" => state_to_colored_square(AirflowStateColor::UpForRetry),
+                        "upstream_failed" => {
+                            state_to_colored_square(AirflowStateColor::UpstreamFailed)
+                        }
+                        _ => state_to_colored_square(AirflowStateColor::None),
+                    }
+                } else {
+                    state_to_colored_square(AirflowStateColor::None)
                 }),
                 Line::from(format!("{:?}", item.try_number)),
             ])

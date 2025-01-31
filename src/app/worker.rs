@@ -169,7 +169,11 @@ impl Worker {
                         app.task_instances.all = task_instances.task_instances;
                         app.task_instances.filter_task_instances();
                     }
-                    Err(e) => app.task_instances.errors.push(e),
+
+                    Err(e) => {
+                        log::error!("Error getting task instances: {:?}", e);
+                        app.task_instances.errors.push(e);
+                    }
                 }
             }
             WorkerMessage::GetDagCode { dag_id } => {
