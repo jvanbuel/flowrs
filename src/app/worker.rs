@@ -343,7 +343,7 @@ impl Worker {
                         base_url = base_url.join(&format!("dags/{dag_id}"))?;
                     }
                     OpenItem::DagRun { dag_id, dag_run_id } => {
-                        base_url = base_url.join(&format!("/dags/{dag_id}/grid"))?;
+                        base_url = base_url.join(&format!("dags/{dag_id}/grid"))?;
                         let escaped_dag_run_id: String =
                             form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
                         base_url.set_query(Some(&format!("dag_run_id={escaped_dag_run_id}")));
@@ -353,7 +353,7 @@ impl Worker {
                         dag_run_id,
                         task_id,
                     } => {
-                        base_url = base_url.join(&format!("/dags/{dag_id}/grid"))?;
+                        base_url = base_url.join(&format!("dags/{dag_id}/grid"))?;
                         let escaped_dag_run_id: String =
                             form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
                         base_url.set_query(Some(&format!(
