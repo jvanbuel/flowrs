@@ -18,7 +18,7 @@ formula = "flowrs"
 
 [dependencies]
 ansi-to-tui = { version = "7.0.0" }
-anyhow = "1.0.96"
+anyhow = "1.0.97"
 backtrace = "0.3.73"
 chrono = "0.4.39"
 clap = { version = "^4.5", features = ["derive", "env"] }
