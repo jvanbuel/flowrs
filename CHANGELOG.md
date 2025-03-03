@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9](https://github.com/jvanbuel/flowrs/compare/v0.1.8...v0.1.9) - 2025-03-03
+
+### Fixed
+
+- remove leading slash so conveyor URLs for DagRuns and Task Instances are correctly formed
+
+### Other
+
+- Merge pull request [#328](https://github.com/jvanbuel/flowrs/pull/328) from jvanbuel/dependabot/cargo/clap-4.5.31
+- Merge pull request [#329](https://github.com/jvanbuel/flowrs/pull/329) from jvanbuel/dependabot/cargo/chrono-0.4.40
+- Merge pull request [#330](https://github.com/jvanbuel/flowrs/pull/330) from jvanbuel/dependabot/cargo/rstest-0.25.0
+- *(deps)* bump anyhow from 1.0.96 to 1.0.97
+- Merge pull request [#322](https://github.com/jvanbuel/flowrs/pull/322) from jvanbuel/dependabot/cargo/log-0.4.26
+- *(deps)* bump log from 0.4.25 to 0.4.26
+- Merge pull request [#324](https://github.com/jvanbuel/flowrs/pull/324) from jvanbuel/dependabot/cargo/anyhow-1.0.96
+- Merge pull request [#325](https://github.com/jvanbuel/flowrs/pull/325) from jvanbuel/dependabot/cargo/serde_json-1.0.139
+- *(deps)* bump clap from 4.5.29 to 4.5.30
+- update dependencies
+- Merge pull request [#320](https://github.com/jvanbuel/flowrs/pull/320) from jvanbuel/dependabot/cargo/clap-4.5.29
+- *(deps)* bump clap from 4.5.28 to 4.5.29
+- Merge pull request [#318](https://github.com/jvanbuel/flowrs/pull/318) from jvanbuel/dependabot/cargo/openssl-0.10.70
+- *(deps)* bump openssl from 0.10.69 to 0.10.70
+- Merge pull request [#315](https://github.com/jvanbuel/flowrs/pull/315) from jvanbuel/dependabot/cargo/toml-0.8.20
+- *(deps)* bump toml from 0.8.19 to 0.8.20
+
 ## [0.1.8](https://github.com/jvanbuel/flowrs/compare/v0.1.7...v0.1.8) - 2025-01-31
 
 ### Fixed
