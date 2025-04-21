@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.9](https://github.com/jvanbuel/flowrs/compare/v0.1.8...v0.1.9) - 2025-04-21
+
+### Added
+
+- remove dependency on jq for getting conveyor tokens
+
+### Fixed
+
+- remove leading slash so conveyor URLs for DagRuns and Task Instances are correctly formed
+
+### Other
+
+- *(deps)* bump clap from 4.5.36 to 4.5.37
+- Merge pull request #349 from jvanbuel/dependabot/cargo/clap-4.5.36
+- *(deps)* bump anyhow from 1.0.97 to 1.0.98
+- Merge pull request #346 from jvanbuel/dependabot/cargo/crossterm-0.29.0
+- Merge pull request #345 from jvanbuel/dependabot/cargo/env_logger-0.11.8
+- Merge pull request #344 from jvanbuel/dependabot/cargo/openssl-0.10.72
+- Merge pull request #347 from jvanbuel/dependabot/cargo/tokio-1.44.2
+- *(deps)* bump log from 0.4.26 to 0.4.27
+- Merge pull request #337 from jvanbuel/dependabot/cargo/env_logger-0.11.7
+- Merge pull request #339 from jvanbuel/dependabot/cargo/webbrowser-1.0.4
+- Merge pull request #341 from jvanbuel/dependabot/cargo/tokio-1.44.1
+- Merge pull request #342 from jvanbuel/dependabot/cargo/time-0.3.41
+- *(deps)* bump reqwest from 0.12.12 to 0.12.15
+- *(deps)* bump serde from 1.0.218 to 1.0.219
+- Merge pull request #332 from jvanbuel/dependabot/cargo/ring-0.17.13
+- Merge pull request #334 from jvanbuel/dependabot/cargo/indoc-2.0.6
+- Merge pull request #335 from jvanbuel/dependabot/cargo/serde_json-1.0.140
+- *(deps)* bump mockito from 1.6.1 to 1.7.0
+- Merge pull request #328 from jvanbuel/dependabot/cargo/clap-4.5.31
+- Merge pull request #329 from jvanbuel/dependabot/cargo/chrono-0.4.40
+- Merge pull request #330 from jvanbuel/dependabot/cargo/rstest-0.25.0
+- *(deps)* bump anyhow from 1.0.96 to 1.0.97
+- Merge pull request #322 from jvanbuel/dependabot/cargo/log-0.4.26
+- *(deps)* bump log from 0.4.25 to 0.4.26
+- Merge pull request #324 from jvanbuel/dependabot/cargo/anyhow-1.0.96
+- Merge pull request #325 from jvanbuel/dependabot/cargo/serde_json-1.0.139
+- *(deps)* bump clap from 4.5.29 to 4.5.30
+- update dependencies
+- Merge pull request #320 from jvanbuel/dependabot/cargo/clap-4.5.29
+- *(deps)* bump clap from 4.5.28 to 4.5.29
+- Merge pull request #318 from jvanbuel/dependabot/cargo/openssl-0.10.70
+- *(deps)* bump openssl from 0.10.69 to 0.10.70
+- Merge pull request #315 from jvanbuel/dependabot/cargo/toml-0.8.20
+- *(deps)* bump toml from 0.8.19 to 0.8.20
+
 ## [0.1.8](https://github.com/jvanbuel/flowrs/compare/v0.1.7...v0.1.8) - 2025-01-31
 
 ### Fixed
