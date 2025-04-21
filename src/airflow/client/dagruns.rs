@@ -13,6 +13,8 @@ impl AirFlowClient {
             .query(&[("order_by", "-execution_date")])
             .send()
             .await?;
+
+        debug!("{:?}", response);
         let dagruns: DagRunList = response.json::<DagRunList>().await?;
         Ok(dagruns)
     }

@@ -6,7 +6,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
 use crate::airflow::model::dag::Dag;
@@ -196,16 +196,22 @@ impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()
-                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
+                .constraints(
+                    [
+                        Constraint::Length(2),
+                        Constraint::Fill(90),
+                        Constraint::Max(3),
+                    ]
+                    .as_ref(),
+                )
                 .margin(0)
                 .split(area);
-
-            self.filter.render(rects[1], buf);
+            self.filter.render(rects[2], buf);
 
             rects
         } else {
             Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
+                .constraints([Constraint::Length(2), Constraint::Percentage(100)].as_ref())
                 .margin(0)
                 .split(area)
         };
@@ -299,7 +305,7 @@ impl Widget for &mut DagModel {
         )
         .row_highlight_style(selected_style);
 
-        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+        StatefulWidget::render(t, rects[1], buf, &mut self.filtered.state);
 
         if let Some(commands) = &self.commands {
             commands.render(area, buf);
