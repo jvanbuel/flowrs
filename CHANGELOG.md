@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.12](https://github.com/jvanbuel/flowrs/compare/v0.1.11...v0.1.12) - 2025-04-21
+
+### Fixed
+
+- use own username in homebrew publishing step
+
 ## [0.1.11](https://github.com/jvanbuel/flowrs/compare/v0.1.10...v0.1.11) - 2025-04-21
 
 ### Fixed
