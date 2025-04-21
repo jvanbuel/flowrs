@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-tui"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
 license = "MIT"
