@@ -31,7 +31,7 @@ impl AddCommand {
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::BasicAuth(BasicAuth { username, password }),
+                    auth: AirflowAuth::Basic(BasicAuth { username, password }),
                     managed: None,
                 }
             }
@@ -53,7 +53,7 @@ impl AddCommand {
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::TokenAuth(TokenCmd {
+                    auth: AirflowAuth::Token(TokenCmd {
                         cmd,
                         token: Some(token),
                     }),

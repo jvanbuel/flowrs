@@ -10,7 +10,7 @@ use std::time::Duration;
 use log::info;
 use reqwest::{Method, Url};
 
-use crate::airflow::config::{AirflowAuth, AirflowConfig};
+use crate::airflow::{config::{AirflowAuth, AirflowConfig}, managed_services::conveyor::get_conveyor_token};
 
 #[derive(Debug, Clone)]
 pub struct AirFlowClient {
@@ -33,14 +33,14 @@ impl AirFlowClient {
         let url = base_url.join(format!("api/v1/{endpoint}").as_str())?;
 
         match &self.config.auth {
-            AirflowAuth::BasicAuth(auth) => {
+            AirflowAuth::Basic(auth) => {
                 info!("🔑 Basic Auth: {}", auth.username);
                 Ok(self
                     .client
                     .request(method, url)
                     .basic_auth(&auth.username, Some(&auth.password)))
             }
-            AirflowAuth::TokenAuth(token) => {
+            AirflowAuth::Token(token) => {
                 info!("🔑 Token Auth: {:?}", token.cmd);
                 if let Some(cmd) = &token.cmd {
                     let output = std::process::Command::new("sh")
@@ -57,6 +57,11 @@ impl AirFlowClient {
                     }
                     Err(anyhow::anyhow!("Token not found"))
                 }
+            }
+            AirflowAuth::Conveyor => {
+                info!("🔑 Conveyor Auth");
+                let token: String = get_conveyor_token()?;
+                Ok(self.client.request(method, url).bearer_auth(token))
             }
         }
     }

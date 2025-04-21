@@ -44,14 +44,15 @@ pub struct FlowrsConfig {
 pub struct AirflowConfig {
     pub name: String,
     pub endpoint: String,
-    pub auth: AirflowAuth,
+    pub auth: crate::airflow::config::AirflowAuth,
     pub managed: Option<ManagedService>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AirflowAuth {
-    BasicAuth(BasicAuth),
-    TokenAuth(TokenCmd),
+    Basic(BasicAuth),
+    Token(TokenCmd),
+    Conveyor,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -212,7 +213,7 @@ password = "airflow"
             servers: Some(vec![AirflowConfig {
                 name: "bla".to_string(),
                 endpoint: "http://localhost:8080".to_string(),
-                auth: AirflowAuth::BasicAuth(BasicAuth {
+                auth: AirflowAuth::Basic(BasicAuth {
                     username: "airflow".to_string(),
                     password: "airflow".to_string(),
                 }),
