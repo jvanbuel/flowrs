@@ -48,7 +48,7 @@ time = { version = "0.3.41", features = [
   "macros",
 ] }
 tokio = { version = "1.44.2", features = ["full"] }
-toml = "0.8.20"
+toml = "0.8.21"
 url = "2.5.4"
 webbrowser = "1.0.4"
 
