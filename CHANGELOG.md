@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.14](https://github.com/jvanbuel/flowrs/compare/v0.1.13...v0.1.14) - 2025-04-30
+
+### Fixed
+
+- automatic conveyor login
+
+### Other
+
+- *(deps)* bump toml from 0.8.20 to 0.8.21
+
 ## [0.1.13](https://github.com/jvanbuel/flowrs/compare/v0.1.12...v0.1.13) - 2025-04-21
 
 ### Other
