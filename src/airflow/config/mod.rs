@@ -103,7 +103,6 @@ impl FlowrsConfig {
     }
     pub fn from_str(config: &str) -> Result<Self> {
         let mut config: FlowrsConfig = toml::from_str(config)?;
-
         info!("Config: {:?}", config);
 
         // This should not happen here, but when the App has started
