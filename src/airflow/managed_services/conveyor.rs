@@ -1,7 +1,9 @@
 use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService};
-use anyhow::Result;
+use anyhow::{Context, Result};
+use expectrl::spawn; // Import spawn function directly
 use log::info;
 use serde::{Deserialize, Serialize};
+use std::io::Read; // Import the Read trait for read_to_end
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ConveyorEnvironment {
@@ -15,6 +17,8 @@ pub struct ConveyorEnvironment {
 }
 
 pub fn list_conveyor_environments() -> Result<Vec<ConveyorEnvironment>> {
+    // Make sure we're authenticated; TODO: make this a bit cleaner e.g. by creating a ConveyorClient struct
+    get_conveyor_token()?;
     let output = std::process::Command::new("sh")
         .arg("-c")
         .arg("conveyor environment list -o json")
@@ -48,12 +52,24 @@ pub struct ConveyorTokenResponse {
 }
 
 pub fn get_conveyor_token() -> Result<String> {
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("conveyor auth get --quiet")
-        .output()?;
-    let token = serde_json::from_str::<ConveyorTokenResponse>(&String::from_utf8(output.stdout)?)?
-        .access_token;
+    // Use expectrl to spawn the command in a pseudo-terminal
+    let mut session = spawn("conveyor auth get --quiet") // Use imported spawn
+        .context("Failed to spawn conveyor auth get command")?;
+
+    // Create a buffer to read the output into
+    let mut output_bytes = Vec::new();
+
+    // Read all output until EOF into the buffer
+    session
+        .read_to_end(&mut output_bytes) // Pass buffer mutably
+        .context("Failed to read output from conveyor auth get")?;
+
+    let token = serde_json::from_str::<ConveyorTokenResponse>(
+        &String::from_utf8(output_bytes).context("Failed to decode output as UTF-8")?,
+    )
+    .context("Failed to parse JSON token from conveyor output")?
+    .access_token;
+
     Ok(token)
 }
 
@@ -76,8 +92,8 @@ mod tests {
         assert!(!environments.is_empty());
     }
 
-    #[tokio::test]
-    async fn test_get_conveyor_token() {
+    #[test]
+    fn test_get_conveyor_token() {
         let token = get_conveyor_token().unwrap();
         assert!(!token.is_empty());
     }
