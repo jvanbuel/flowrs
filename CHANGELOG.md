@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15](https://github.com/jvanbuel/flowrs/compare/v0.1.14...v0.1.15) - 2025-05-20
+
+### Other
+
+- Merge pull request #361 from jvanbuel/dependabot/cargo/backtrace-0.3.75
+- Merge pull request #362 from jvanbuel/dependabot/cargo/syntect-tui-3.0.6
+- Merge pull request #363 from jvanbuel/dependabot/cargo/clap-4.5.38
+- *(deps)* bump tokio from 1.44.2 to 1.45.0
+
 ## [0.1.14](https://github.com/jvanbuel/flowrs/compare/v0.1.13...v0.1.14) - 2025-04-30
 
 ### Fixed
