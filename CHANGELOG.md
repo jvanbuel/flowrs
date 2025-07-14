@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15](https://github.com/jvanbuel/flowrs/compare/v0.1.14...v0.1.15) - 2025-07-14
+
+### Other
+
+- Merge pull request #376 from jvanbuel/dependabot/cargo/toml-0.9.2
+- *(deps)* bump clap from 4.5.40 to 4.5.41
+- Merge pull request #374 from jvanbuel/dependabot/cargo/reqwest-0.12.22
+- *(deps)* bump tokio from 1.45.1 to 1.46.1
+- Merge pull request #371 from jvanbuel/dependabot/cargo/reqwest-0.12.20
+- Merge pull request #372 from jvanbuel/dependabot/cargo/clap-4.5.40
+- *(deps)* bump webbrowser from 1.0.4 to 1.0.5
+- Merge pull request #369 from jvanbuel/dependabot/cargo/reqwest-0.12.19
+- *(deps)* bump toml from 0.8.22 to 0.8.23
+- Merge pull request #367 from jvanbuel/dependabot/cargo/clap-4.5.39
+- *(deps)* bump reqwest from 0.12.15 to 0.12.18
+- *(deps)* bump tokio from 1.45.0 to 1.45.1
+- Merge pull request #361 from jvanbuel/dependabot/cargo/backtrace-0.3.75
+- Merge pull request #362 from jvanbuel/dependabot/cargo/syntect-tui-3.0.6
+- Merge pull request #363 from jvanbuel/dependabot/cargo/clap-4.5.38
+- *(deps)* bump tokio from 1.44.2 to 1.45.0
+
 ## [0.1.14](https://github.com/jvanbuel/flowrs/compare/v0.1.13...v0.1.14) - 2025-04-30
 
 ### Fixed
