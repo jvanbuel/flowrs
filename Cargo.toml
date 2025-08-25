@@ -50,7 +50,7 @@ time = { version = "0.3.41", features = [
 ] }
 tokio = { version = "1.47.1", features = ["full"] }
 toml = "0.9.5"
-url = "2.5.4"
+url = "2.5.7"
 webbrowser = "1.0.5"
 
 [dev-dependencies]
