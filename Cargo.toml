@@ -42,7 +42,7 @@ simplelog = "0.12.2"
 strum = { version = "0.27.2", features = ["derive"] }
 syntect = "5.2.0"
 syntect-tui = "3.0.6"
-time = { version = "0.3.41", features = [
+time = { version = "0.3.42", features = [
   "serde",
   "serde-human-readable",
   "parsing",
