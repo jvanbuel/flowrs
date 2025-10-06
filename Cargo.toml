@@ -40,7 +40,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 simplelog = "0.12.2"
 strum = { version = "0.27.2", features = ["derive"] }
-syntect = "5.2.0"
+syntect = "5.3.0"
 syntect-tui = "3.0.6"
 time = { version = "0.3.44", features = [
   "serde",
