@@ -83,7 +83,7 @@ impl Model for DagModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if self.ticks % 10 != 0 {
+                if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 (

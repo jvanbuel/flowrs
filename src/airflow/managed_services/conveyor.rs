@@ -1,9 +1,42 @@
 use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService};
 use anyhow::{Context, Result};
-use expectrl::spawn; // Import spawn function directly
+use dirs::home_dir;
+use expectrl::spawn;
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::io::Read; // Import the Read trait for read_to_end
+use std::io::Read;
+
+// New ConveyorClient struct
+#[derive(Debug, Clone)]
+pub struct ConveyorClient {}
+
+impl ConveyorClient {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn get_token(&self) -> Result<String> {
+        // Use expectrl to spawn the command in a pseudo-terminal
+        let mut session = spawn("conveyor auth get --quiet")
+            .context("Failed to spawn conveyor auth get command")?;
+
+        // Create a buffer to read the output into
+        let mut output_bytes = Vec::new();
+
+        // Read all output until EOF into the buffer
+        session
+            .read_to_end(&mut output_bytes)
+            .context("Failed to read output from conveyor auth get")?;
+
+        let token = serde_json::from_str::<ConveyorTokenResponse>(
+            &String::from_utf8(output_bytes).context("Failed to decode output as UTF-8")?,
+        )
+        .context("Failed to parse JSON token from conveyor output")?
+        .access_token;
+
+        Ok(token)
+    }
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct ConveyorEnvironment {
@@ -17,8 +50,10 @@ pub struct ConveyorEnvironment {
 }
 
 pub fn list_conveyor_environments() -> Result<Vec<ConveyorEnvironment>> {
-    // Make sure we're authenticated; TODO: make this a bit cleaner e.g. by creating a ConveyorClient struct
-    get_conveyor_token()?;
+    // Use the new ConveyorClient to authenticate
+    let conveyor_client = ConveyorClient::new();
+    conveyor_client.get_token()?; // Ensure authentication before listing environments
+
     let output = std::process::Command::new("sh")
         .arg("-c")
         .arg("conveyor environment list -o json")
@@ -31,14 +66,13 @@ pub fn list_conveyor_environments() -> Result<Vec<ConveyorEnvironment>> {
 
 pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
     let environments = list_conveyor_environments()?;
+    let api_endpoint = get_conveyor_api_endpoint()?;
+
     let servers = environments
         .iter()
         .map(|env| AirflowConfig {
             name: env.name.clone(),
-            endpoint: format!(
-                "https://app.conveyordata.com/environments/{}/airflow/",
-                env.name
-            ),
+            endpoint: format!("{}/environments/{}/airflow/", api_endpoint, env.name),
             auth: AirflowAuth::Conveyor,
             managed: Some(ManagedService::Conveyor),
         })
@@ -51,27 +85,43 @@ pub struct ConveyorTokenResponse {
     pub access_token: String,
 }
 
-pub fn get_conveyor_token() -> Result<String> {
-    // Use expectrl to spawn the command in a pseudo-terminal
-    let mut session = spawn("conveyor auth get --quiet") // Use imported spawn
-        .context("Failed to spawn conveyor auth get command")?;
-
-    // Create a buffer to read the output into
-    let mut output_bytes = Vec::new();
-
-    // Read all output until EOF into the buffer
-    session
-        .read_to_end(&mut output_bytes) // Pass buffer mutably
-        .context("Failed to read output from conveyor auth get")?;
-
-    let token = serde_json::from_str::<ConveyorTokenResponse>(
-        &String::from_utf8(output_bytes).context("Failed to decode output as UTF-8")?,
-    )
-    .context("Failed to parse JSON token from conveyor output")?
-    .access_token;
-
-    Ok(token)
+#[derive(Deserialize, Debug)]
+struct ConveyorProfiles {
+    activeprofile: String,
+    #[serde(rename = "version")]
+    _version: Option<i8>,
+    #[serde(flatten)]
+    profiles: std::collections::HashMap<String, ConveyorProfile>,
 }
+
+#[derive(Deserialize, Debug)]
+struct ConveyorProfile {
+    api: String,
+}
+
+fn get_conveyor_api_endpoint() -> Result<String> {
+    let profiles_path = home_dir()
+        .context("Could not determine home directory")?
+        .join(".conveyor/profiles.toml");
+
+    let profiles_content = std::fs::read_to_string(&profiles_path)
+        .context("Failed to read ~/.conveyor/profiles.toml")?;
+
+    let profiles_config: ConveyorProfiles =
+        toml::from_str(&profiles_content).context("Failed to parse profiles.toml")?;
+
+    let active_profile = profiles_config
+        .profiles
+        .get(&profiles_config.activeprofile)
+        .context(format!(
+            "Active profile '{}' not found in profiles.toml",
+            profiles_config.activeprofile
+        ))?;
+
+    Ok(active_profile.api.clone())
+}
+
+// Removed the standalone get_conveyor_token function as its logic is now in ConveyorClient::get_token
 
 #[cfg(test)]
 mod tests {
@@ -94,7 +144,9 @@ mod tests {
 
     #[test]
     fn test_get_conveyor_token() {
-        let token = get_conveyor_token().unwrap();
+        // Test the new client method
+        let client = ConveyorClient::new();
+        let token = client.get_token().unwrap();
         assert!(!token.is_empty());
     }
 }

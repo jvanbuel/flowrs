@@ -110,7 +110,7 @@ impl Model for DagRunModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if self.ticks % 10 != 0 {
+                if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 let worker_messages = if let Some(dag_id) = &self.dag_id {
@@ -441,7 +441,7 @@ impl Widget for &mut DagRunModel {
     }
 }
 
-fn code_to_lines(dag_code: &str) -> Vec<Line> {
+fn code_to_lines(dag_code: &'_ str) -> Vec<Line<'_>> {
     let ps = SyntaxSet::load_defaults_newlines();
     let ts = ThemeSet::load_defaults();
     let syntax = ps.find_syntax_by_extension("py").unwrap();
