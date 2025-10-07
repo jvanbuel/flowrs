@@ -16,7 +16,7 @@ pub struct ErrorPopup {
 impl ErrorPopup {
     pub fn new(errors: &[Error]) -> Self {
         Self {
-            errors: errors.iter().map(|e| e.to_string()).collect(),
+            errors: errors.iter().map(std::string::ToString::to_string).collect(),
         }
     }
 

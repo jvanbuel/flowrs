@@ -1,13 +1,16 @@
 use anyhow::Result;
+use async_trait::async_trait;
 use log::{debug, info};
 use reqwest::{Method, Response};
 
-use crate::airflow::model::taskinstance::TaskInstanceList;
+use crate::airflow::{model::common::TaskInstanceList, traits::TaskInstanceOperations};
+use super::model;
 
-use super::AirFlowClient;
+use super::V1Client;
 
-impl AirFlowClient {
-    pub async fn list_task_instances(
+#[async_trait]
+impl TaskInstanceOperations for V1Client {
+    async fn list_task_instances(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -18,23 +21,30 @@ impl AirFlowClient {
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"),
             )?
             .send()
+            .await?
+            .error_for_status()?;
+        let daglist: model::taskinstance::TaskInstanceCollectionResponse = response
+            .json::<model::taskinstance::TaskInstanceCollectionResponse>()
             .await?;
-        let daglist: TaskInstanceList = response.json::<TaskInstanceList>().await?;
-        info!("TaskInstances: {:?}", daglist);
-        Ok(daglist)
+        info!("TaskInstances: {daglist:?}");
+        Ok(daglist.into())
     }
 
-    #[allow(dead_code)]
-    pub async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
+    async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
         let response: Response = self
             .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")?
             .send()
+            .await?
+            .error_for_status()?;
+
+        debug!("list_all_taskinstances response: {response:?}");
+        let daglist: model::taskinstance::TaskInstanceCollectionResponse = response
+            .json::<model::taskinstance::TaskInstanceCollectionResponse>()
             .await?;
-        let daglist: TaskInstanceList = response.json::<TaskInstanceList>().await?;
-        Ok(daglist)
+        Ok(daglist.into())
     }
 
-    pub async fn mark_task_instance(
+    async fn mark_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -44,16 +54,17 @@ impl AirFlowClient {
         let resp: Response = self
             .base_api(
                 Method::PATCH,
-                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}",),
+                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
             )?
             .json(&serde_json::json!({"new_state": status, "dry_run": false}))
             .send()
-            .await?;
-        debug!("{:?}", resp);
+            .await?
+            .error_for_status()?;
+        debug!("{resp:?}");
         Ok(())
     }
 
-    pub async fn clear_task_instance(
+    async fn clear_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -64,7 +75,7 @@ impl AirFlowClient {
             .json(&serde_json::json!(
                 {
                     "dry_run": false,
-                    "task_ids": [task_id,],
+                    "task_ids": [task_id],
                     "dag_run_id": dag_run_id,
                     "include_downstream": true,
                     "only_failed": false,
@@ -72,8 +83,9 @@ impl AirFlowClient {
                 }
             ))
             .send()
-            .await?;
-        debug!("{:?}", resp);
+            .await?
+            .error_for_status()?;
+        debug!("{resp:?}");
         Ok(())
     }
 }

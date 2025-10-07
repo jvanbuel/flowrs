@@ -72,19 +72,19 @@ impl Model for MarkTaskInstancePopup {
                         self.marked
                             .iter()
                             .map(|i| WorkerMessage::MarkTaskInstance {
-                                dag_run_id: self.dag_run_id.to_string(),
-                                dag_id: self.dag_id.to_string(),
-                                task_id: i.to_string(),
+                                dag_run_id: self.dag_run_id.clone(),
+                                dag_id: self.dag_id.clone(),
+                                task_id: i.clone(),
                                 status: self.status.clone(),
                             })
                             .collect(),
                     );
                 }
-                KeyCode::Char('j') | KeyCode::Down | KeyCode::Char('h') | KeyCode::Left => {
+                KeyCode::Char('j' | 'h') | KeyCode::Down | KeyCode::Left => {
                     self.previous_state();
                     return (None, vec![]);
                 }
-                KeyCode::Char('k') | KeyCode::Up | KeyCode::Char('l') | KeyCode::Right => {
+                KeyCode::Char('k' | 'l') | KeyCode::Up | KeyCode::Right => {
                     self.next_state();
                     return (None, vec![]);
                 }

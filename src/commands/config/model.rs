@@ -73,9 +73,10 @@ pub struct ManagedServiceCommand {
 
 type Command = Option<String>;
 
+#[allow(clippy::unnecessary_wraps)]
 pub fn validate_endpoint(
     endpoint: &str,
-) -> std::result::Result<Validation, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Validation, Box<dyn std::error::Error + Send + Sync>> {
     match Url::parse(endpoint) {
         Ok(_) => Ok(Validation::Valid),
         Err(error) => Ok(Validation::Invalid(error.into())),

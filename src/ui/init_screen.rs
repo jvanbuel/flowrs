@@ -13,11 +13,13 @@ pub fn render_init_screen(f: &mut Frame, index: u32) {
 
     let area = center(
         f.area(),
+        #[allow(clippy::cast_possible_truncation)]
         Constraint::Length(text.width() as u16),
+        #[allow(clippy::cast_possible_truncation)]
         Constraint::Length(text.height() as u16),
     );
 
-    f.render_widget(text, area)
+    f.render_widget(text, area);
 }
 
 fn center(area: Rect, horizontal: Constraint, vertical: Constraint) -> Rect {

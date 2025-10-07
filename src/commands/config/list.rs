@@ -7,7 +7,7 @@ use anyhow::Result;
 impl ListCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(PathBuf::from);
-        let config = FlowrsConfig::from_file(&path)?;
+        let config = FlowrsConfig::from_file(path.as_ref())?;
         let servers = config.servers.unwrap_or_default();
 
         if servers.is_empty() {

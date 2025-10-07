@@ -38,8 +38,8 @@ impl Filter {
         self.enabled
     }
 
-    pub fn prefix(&self) -> &Option<String> {
-        &self.prefix
+    pub fn prefix(&self) -> Option<&String> {
+        self.prefix.as_ref()
     }
 
     pub fn reset(&mut self) {
@@ -80,16 +80,18 @@ impl Default for Filter {
 }
 
 impl Widget for &mut Filter {
+    #[allow(clippy::cast_possible_truncation)]
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let filter = self.prefix().clone();
-        let filter_text = filter.unwrap_or_default();
-
+        let filter = self.prefix().cloned();
+        let binding = String::new();
+        let filter_text = filter.unwrap_or(binding);
+        let filter_length = filter_text.len();
         self.cursor.position = Position {
-            x: area.x + 1 + filter_text.len() as u16,
+            x: area.x + 1 + filter_length as u16,
             y: area.y + 1,
         };
 
-        let paragraph = Paragraph::new(filter_text)
+        let paragraph = Paragraph::new(filter_text.as_str())
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)

@@ -11,11 +11,7 @@ use std::io::Read;
 pub struct ConveyorClient {}
 
 impl ConveyorClient {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn get_token(&self) -> Result<String> {
+    pub fn get_token() -> Result<String> {
         // Use expectrl to spawn the command in a pseudo-terminal
         let mut session = spawn("conveyor auth get --quiet")
             .context("Failed to spawn conveyor auth get command")?;
@@ -51,16 +47,26 @@ pub struct ConveyorEnvironment {
 
 pub fn list_conveyor_environments() -> Result<Vec<ConveyorEnvironment>> {
     // Use the new ConveyorClient to authenticate
-    let conveyor_client = ConveyorClient::new();
-    conveyor_client.get_token()?; // Ensure authentication before listing environments
+    ConveyorClient::get_token()?; // Ensure authentication before listing environments
 
-    let output = std::process::Command::new("sh")
-        .arg("-c")
-        .arg("conveyor environment list -o json")
-        .output()?;
+    let output = std::process::Command::new("conveyor")
+        .arg("environment")
+        .arg("list")
+        .arg("-o")
+        .arg("json")
+        .output()
+        .context("Failed to execute conveyor environment list command")?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("conveyor environment list failed: {stderr}");
+    }
+
     let environments: Vec<ConveyorEnvironment> =
-        serde_json::from_str(&String::from_utf8(output.stdout)?)?;
-    info!("Conveyor Environments: {:?}", environments);
+        serde_json::from_str(&String::from_utf8(output.stdout)?)
+            .context("Failed to parse conveyor environment list output")?;
+
+    info!("Found {} Conveyor environment(s)", environments.len());
     Ok(environments)
 }
 
@@ -70,11 +76,18 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
 
     let servers = environments
         .iter()
-        .map(|env| AirflowConfig {
-            name: env.name.clone(),
-            endpoint: format!("{}/environments/{}/airflow/", api_endpoint, env.name),
-            auth: AirflowAuth::Conveyor,
-            managed: Some(ManagedService::Conveyor),
+        .map(|env| {
+            let version = match env.airflow_version.as_str() {
+                "AirflowVersion_V3" => crate::airflow::config::AirflowVersion::V3,
+                _ => crate::airflow::config::AirflowVersion::V2,
+            };
+            AirflowConfig {
+                name: env.name.clone(),
+                endpoint: format!("{}/environments/{}/airflow/", api_endpoint, env.name),
+                auth: AirflowAuth::Conveyor,
+                managed: Some(ManagedService::Conveyor),
+                version,
+            }
         })
         .collect();
     Ok(servers)
@@ -126,18 +139,8 @@ fn get_conveyor_api_endpoint() -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::airflow::config::FlowrsConfig;
-
-    const TEST_CONFIG: &str = r#"[[servers]]
-        name = "test"
-        endpoint = "http://localhost:8080"
-        auth = { BasicAuth = { username = "airflow", password = "airflow" } }
-        "#;
-
     #[tokio::test]
     async fn test_list_conveyor_environments() {
-        let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
-        let _server = config.servers.unwrap()[0].clone();
         let environments = get_conveyor_environment_servers().unwrap();
         assert!(!environments.is_empty());
     }
@@ -145,8 +148,7 @@ mod tests {
     #[test]
     fn test_get_conveyor_token() {
         // Test the new client method
-        let client = ConveyorClient::new();
-        let token = client.get_token().unwrap();
+        let token = ConveyorClient::get_token().unwrap();
         assert!(!token.is_empty());
     }
 }

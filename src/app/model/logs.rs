@@ -12,7 +12,7 @@ use ratatui::{
 use regex::Regex;
 
 use crate::{
-    airflow::model::log::Log,
+    airflow::model::common::Log,
     app::{
         events::custom::FlowrsEvent,
         worker::{OpenItem, WorkerMessage},
@@ -70,7 +70,7 @@ impl Model for LogModel {
                 if let (Some(dag_run_id), Some(dag_id), Some(task_id), Some(tries)) =
                     (&self.dag_run_id, &self.dag_id, &self.task_id, &self.tries)
                 {
-                    log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
+                    log::debug!("Updating task instances for dag_run_id: {dag_run_id}");
                     return (
                         Some(FlowrsEvent::Tick),
                         vec![WorkerMessage::UpdateTaskLogs {
@@ -95,52 +95,56 @@ impl Model for LogModel {
                     return (None, vec![]);
                 }
                 match key.code {
-                KeyCode::Char('l') | KeyCode::Right => {
-                    if !self.all.is_empty() {
-                        if self.current == self.all.len() - 1 {
-                            self.current = 0;
-                        } else {
-                            self.current += 1;
+                    KeyCode::Char('l') | KeyCode::Right => {
+                        if !self.all.is_empty() {
+                            if self.current == self.all.len() - 1 {
+                                self.current = 0;
+                            } else {
+                                self.current += 1;
+                            }
                         }
                     }
-                }
-                KeyCode::Char('h') | KeyCode::Left => {
-                    if !self.all.is_empty() {
-                        if self.current == 0 {
-                            self.current = self.all.len() - 1;
-                        } else {
-                            self.current -= 1;
+                    KeyCode::Char('h') | KeyCode::Left => {
+                        if !self.all.is_empty() {
+                            if self.current == 0 {
+                                self.current = self.all.len() - 1;
+                            } else {
+                                self.current -= 1;
+                            }
                         }
                     }
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.vertical_scroll = self.vertical_scroll.saturating_add(1);
-                    self.vertical_scroll_state =
-                        self.vertical_scroll_state.position(self.vertical_scroll)
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
-                    self.vertical_scroll_state =
-                        self.vertical_scroll_state.position(self.vertical_scroll)
-                }
-                KeyCode::Char('o') => {
-                    if self.all.get(self.current % self.all.len()).is_some() {
-                        return (
-                            Some(FlowrsEvent::Key(*key)),
-                            vec![WorkerMessage::OpenItem(OpenItem::Log {
-                                dag_id: self.dag_id.clone().expect("DAG ID not set"),
-                                dag_run_id: self.dag_run_id.clone().expect("DAG Run ID not set"),
-                                task_id: self.task_id.clone().expect("Task ID not set"),
-                                task_try: self.current as u16,
-                            })],
-                        );
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        self.vertical_scroll = self.vertical_scroll.saturating_add(1);
+                        self.vertical_scroll_state =
+                            self.vertical_scroll_state.position(self.vertical_scroll);
                     }
-                }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
+                        self.vertical_scroll_state =
+                            self.vertical_scroll_state.position(self.vertical_scroll);
+                    }
+                    KeyCode::Char('o') => {
+                        if self.all.get(self.current % self.all.len()).is_some() {
+                            return (
+                                Some(FlowrsEvent::Key(*key)),
+                                vec![WorkerMessage::OpenItem(OpenItem::Log {
+                                    dag_id: self.dag_id.clone().expect("DAG ID not set"),
+                                    dag_run_id: self
+                                        .dag_run_id
+                                        .clone()
+                                        .expect("DAG Run ID not set"),
+                                    task_id: self.task_id.clone().expect("Task ID not set"),
+                                    #[allow(clippy::cast_possible_truncation)]
+                                    task_try: (self.current + 1) as u16,
+                                })],
+                            );
+                        }
+                    }
 
-                _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
+                    _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
                 }
             }
-            _ => (),
+            FlowrsEvent::Mouse => (),
         }
 
         (None, vec![])
@@ -191,15 +195,29 @@ impl Widget for &mut LogModel {
         if let Some(log) = self.all.get(self.current % self.all.len()) {
             let mut content = Text::default();
             let fragments = parse_content(&log.content);
-            // This works but is extremely ugly. TODO: refactor, and test
-            for (_, log_fragment) in fragments {
-                let replaced_log = log_fragment.replace("\\n", "\n");
-                let lines: Vec<String> = replaced_log.lines().map(|s| s.to_string()).collect();
-                for line in lines {
+
+            // If fragments is empty, content is likely v2 format (already a clean string)
+            // Otherwise, it's v1 format with Python tuples that need parsing
+            if fragments.is_empty() {
+                // v2 format: content is already a clean string, just split by lines
+                for line in log.content.lines() {
                     content.push_line(Line::raw(line));
+                }
+            } else {
+                // v1 format: parse Python tuples
+                for (_, log_fragment) in fragments {
+                    let replaced_log = log_fragment.replace("\\n", "\n");
+                    let lines: Vec<String> = replaced_log
+                        .lines()
+                        .map(std::string::ToString::to_string)
+                        .collect();
+                    for line in lines {
+                        content.push_line(Line::raw(line));
+                    }
                 }
             }
 
+            #[allow(clippy::cast_possible_truncation)]
             let paragraph = Paragraph::new(content)
                 .block(
                     Block::default()
@@ -228,12 +246,81 @@ impl Widget for &mut LogModel {
 }
 
 // Log content is a list of tuples of form ('element1', 'element2'), i.e. serialized python tuples
+// The second element can be single or double quoted depending on content
 fn parse_content(content: &str) -> Vec<(String, String)> {
-    // Regex to match tuples of form ('element1', 'element2'). TODO: add tests, cause this is disgusting
-    let re = Regex::new(r"\(\s*'((?:\\.|[^'])*)'\s*,\s*'((?:\\.|[^'])*)'\s*\)").unwrap();
+    // Regex to match tuples with either quote style for second element:
+    // ('element1', 'element2') OR ('element1', "element2")
+    let re =
+        Regex::new(r#"\(\s*'((?:\\.|[^'])*)'\s*,\s*(?:"((?:\\.|[^"])*)"|'((?:\\.|[^'])*)')\s*\)"#)
+            .unwrap();
 
     // Use regex to extract tuples
     re.captures_iter(content)
-        .map(|cap| (cap[1].to_string(), cap[2].to_string()))
+        .map(|cap| {
+            let first = cap[1].to_string();
+            // Second element can be in group 2 (double quotes) or group 3 (single quotes)
+            let second = cap
+                .get(2)
+                .or_else(|| cap.get(3))
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            (first, second)
+        })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_content_single_quotes() {
+        let content = "[('host1', 'log content here')]";
+        let result = parse_content(content);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "host1");
+        assert_eq!(result[0].1, "log content here");
+    }
+
+    #[test]
+    fn test_parse_content_double_quotes_second_element() {
+        let content = r#"[('cec849a302e3', "*** Found local files:\n***   * /opt/airflow/logs/")]"#;
+        let result = parse_content(content);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "cec849a302e3");
+        assert_eq!(
+            result[0].1,
+            r"*** Found local files:\n***   * /opt/airflow/logs/"
+        );
+    }
+
+    #[test]
+    fn test_parse_content_with_escaped_quotes() {
+        let content = r"[('host', 'line with \' escaped quote')]";
+        let result = parse_content(content);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "host");
+        assert_eq!(result[0].1, r"line with \' escaped quote");
+    }
+
+    #[test]
+    fn test_parse_content_multiple_tuples() {
+        let content = r#"[('host1', 'log1'), ('host2', "log2 with special chars")]"#;
+        let result = parse_content(content);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0], ("host1".to_string(), "log1".to_string()));
+        assert_eq!(
+            result[1],
+            ("host2".to_string(), "log2 with special chars".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_content_real_airflow_log() {
+        let content = r#"[('cec849a302e3', "*** Found local files:\\n***   * /opt/airflow/logs/dag_id=dataset_consumes_1/run_id=dataset_triggered__2025-10-12T01:24:15.313731+00:00/task_id=consuming_1/attempt=1.log\\n[2025-10-12T01:24:16.754+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs")]"#;
+        let result = parse_content(content);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, "cec849a302e3");
+        assert!(result[0].1.starts_with("*** Found local files:"));
+    }
 }

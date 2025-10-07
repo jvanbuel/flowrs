@@ -12,7 +12,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
-use crate::airflow::model::taskinstance::TaskInstance;
+use crate::airflow::model::common::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
@@ -66,7 +66,7 @@ impl TaskInstanceModel {
                 .collect::<Vec<TaskInstance>>(),
             None => &self.all,
         };
-        self.filtered.items = filtered_task_instances.to_vec();
+        self.filtered.items = filtered_task_instances.clone();
     }
 
     #[allow(dead_code)]
@@ -100,7 +100,7 @@ impl Model for TaskInstanceModel {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {
-                    log::debug!("Updating task instances for dag_run_id: {}", dag_run_id);
+                    log::debug!("Updating task instances for dag_run_id: {dag_run_id}");
                     return (
                         Some(FlowrsEvent::Tick),
                         vec![WorkerMessage::UpdateTaskInstances {
@@ -127,7 +127,7 @@ impl Model for TaskInstanceModel {
                     return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
+                        KeyCode::Char('q' | '?') | KeyCode::Esc => {
                             self.commands = None;
                         }
                         _ => (),
@@ -136,7 +136,7 @@ impl Model for TaskInstanceModel {
                     match popup {
                         TaskInstancePopUp::Clear(popup) => {
                             let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {:?}", messages);
+                            debug!("Popup messages: {messages:?}");
                             if let Some(FlowrsEvent::Key(key_event)) = &key_event {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
@@ -149,7 +149,7 @@ impl Model for TaskInstanceModel {
                         }
                         TaskInstancePopUp::Mark(popup) => {
                             let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {:?}", messages);
+                            debug!("Popup messages: {messages:?}");
                             if let Some(FlowrsEvent::Key(key_event)) = &key_event {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
@@ -236,6 +236,10 @@ impl Model for TaskInstanceModel {
                                         dag_id: task_instance.dag_id.clone(),
                                         dag_run_id: task_instance.dag_run_id.clone(),
                                         task_id: task_instance.task_id.clone(),
+                                        #[allow(
+                                            clippy::cast_sign_loss,
+                                            clippy::cast_possible_truncation
+                                        )]
                                         task_try: task_instance.try_number as u16,
                                         clear: true,
                                     }],
@@ -259,7 +263,7 @@ impl Model for TaskInstanceModel {
                 }
                 (None, vec![])
             }
-            _ => (Some(event.clone()), vec![]),
+            FlowrsEvent::Mouse => (Some(event.clone()), vec![]),
         }
     }
 }
@@ -290,10 +294,10 @@ impl Widget for &mut TaskInstanceModel {
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
                 Line::from(item.task_id.as_str()),
-                Line::from(if let Some(date) = item.execution_date {
+                Line::from(if let Some(date) = item.logical_date {
                     date.format(&format_description::parse(TIME_FORMAT).unwrap())
                         .unwrap()
-                        .to_string()
+                        .clone()
                 } else {
                     "None".to_string()
                 }),

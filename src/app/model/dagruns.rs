@@ -14,7 +14,7 @@ use syntect::util::LinesWithEndings;
 use syntect_tui::into_span;
 use time::format_description;
 
-use crate::airflow::model::dagrun::DagRun;
+use crate::airflow::model::common::DagRun;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
@@ -46,9 +46,23 @@ pub struct DagRunModel {
 
 #[derive(Default)]
 pub struct DagCodeWidget {
-    pub code: Option<String>,
+    pub cached_lines: Option<Vec<Line<'static>>>,
     pub vertical_scroll: usize,
     pub vertical_scroll_state: ScrollbarState,
+}
+
+impl DagCodeWidget {
+    pub fn set_code(&mut self, code: &str) {
+        self.cached_lines = Some(code_to_lines(code));
+        self.vertical_scroll = 0;
+        self.vertical_scroll_state = ScrollbarState::default();
+    }
+
+    pub fn clear(&mut self) {
+        self.cached_lines = None;
+        self.vertical_scroll = 0;
+        self.vertical_scroll_state = ScrollbarState::default();
+    }
 }
 
 impl DagRunModel {
@@ -79,7 +93,7 @@ impl DagRunModel {
                 .collect::<Vec<DagRun>>(),
             None => &self.all,
         };
-        self.filtered.items = filtered_dag_runs.to_vec();
+        self.filtered.items = filtered_dag_runs.clone();
     }
 
     pub fn current(&self) -> Option<&DagRun> {
@@ -137,7 +151,7 @@ impl Model for DagRunModel {
                     return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
+                        KeyCode::Char('q' | '?') | KeyCode::Esc => {
                             self.commands = None;
                             return (None, vec![]);
                         }
@@ -148,7 +162,7 @@ impl Model for DagRunModel {
                     match popup {
                         DagRunPopUp::Clear(popup) => {
                             let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {:?}", messages);
+                            debug!("Popup messages: {messages:?}");
                             if let Some(FlowrsEvent::Key(key_event)) = &key_event {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
@@ -161,7 +175,7 @@ impl Model for DagRunModel {
                         }
                         DagRunPopUp::Mark(popup) => {
                             let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {:?}", messages);
+                            debug!("Popup messages: {messages:?}");
                             if let Some(FlowrsEvent::Key(key_event)) = &key_event {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
@@ -175,7 +189,7 @@ impl Model for DagRunModel {
                         }
                         DagRunPopUp::Trigger(popup) => {
                             let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {:?}", messages);
+                            debug!("Popup messages: {messages:?}");
                             if let Some(FlowrsEvent::Key(key_event)) = &key_event {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
@@ -187,10 +201,10 @@ impl Model for DagRunModel {
                             return (None, messages);
                         }
                     }
-                } else if self.dag_code.code.is_some() {
+                } else if self.dag_code.cached_lines.is_some() {
                     match key_event.code {
-                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Char('v') | KeyCode::Enter => {
-                            self.dag_code.code = None;
+                        KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
+                            self.dag_code.clear();
                             return (None, vec![]);
                         }
                         KeyCode::Down | KeyCode::Char('j') => {
@@ -199,7 +213,7 @@ impl Model for DagRunModel {
                             self.dag_code.vertical_scroll_state = self
                                 .dag_code
                                 .vertical_scroll_state
-                                .position(self.dag_code.vertical_scroll)
+                                .position(self.dag_code.vertical_scroll);
                         }
                         KeyCode::Up | KeyCode::Char('k') => {
                             self.dag_code.vertical_scroll =
@@ -207,7 +221,7 @@ impl Model for DagRunModel {
                             self.dag_code.vertical_scroll_state = self
                                 .dag_code
                                 .vertical_scroll_state
-                                .position(self.dag_code.vertical_scroll)
+                                .position(self.dag_code.vertical_scroll);
                         }
                         _ => {}
                     }
@@ -312,7 +326,7 @@ impl Model for DagRunModel {
                     }
                 }
             }
-            _ => {}
+            FlowrsEvent::Mouse => {}
         }
         (Some(event.clone()), vec![])
     }
@@ -364,7 +378,7 @@ impl Widget for &mut DagRunModel {
                 Line::from(if let Some(date) = item.logical_date {
                     date.format(&format_description::parse(TIME_FORMAT).unwrap())
                         .unwrap()
-                        .to_string()
+                        .clone()
                 } else {
                     "None".to_string()
                 }),
@@ -393,7 +407,7 @@ impl Widget for &mut DagRunModel {
                 .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
-                    format!("DAGRuns ({}) - press <?> to see available commands", dag_id)
+                    format!("DAGRuns ({dag_id}) - press <?> to see available commands")
                 } else {
                     "DAGRuns".to_string()
                 })
@@ -402,7 +416,7 @@ impl Widget for &mut DagRunModel {
         .row_highlight_style(DEFAULT_STYLE.reversed());
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 
-        if let Some(dag_code) = &self.dag_code.code {
+        if let Some(cached_lines) = &self.dag_code.cached_lines {
             let area = popup_area(area, 60, 90);
 
             let popup = Block::default()
@@ -413,7 +427,8 @@ impl Widget for &mut DagRunModel {
                 .style(DEFAULT_STYLE)
                 .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
 
-            let code_text = Paragraph::new(code_to_lines(dag_code))
+            #[allow(clippy::cast_possible_truncation)]
+            let code_text = Paragraph::new(cached_lines.clone())
                 .block(popup)
                 .style(DEFAULT_STYLE)
                 .wrap(Wrap { trim: true })
@@ -452,20 +467,24 @@ impl Widget for &mut DagRunModel {
     }
 }
 
-fn code_to_lines(dag_code: &'_ str) -> Vec<Line<'_>> {
+fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
     let ps = SyntaxSet::load_defaults_newlines();
     let ts = ThemeSet::load_defaults();
     let syntax = ps.find_syntax_by_extension("py").unwrap();
     let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
-    let mut lines: Vec<Line> = vec![];
+    let mut lines: Vec<Line<'static>> = vec![];
     for line in LinesWithEndings::from(dag_code) {
         // LinesWithEndings enables use of newlines mode
-        let line_spans: Vec<ratatui::prelude::Span> = h
+        let line_spans: Vec<Span<'static>> = h
             .highlight_line(line, &ps)
             .unwrap()
             .into_iter()
             .filter_map(|segment| into_span(segment).ok())
-            .collect::<Vec<ratatui::prelude::Span>>();
+            .map(|span: Span| {
+                // Convert borrowed span to owned span
+                Span::styled(span.content.to_string(), span.style)
+            })
+            .collect();
         lines.push(Line::from(line_spans));
     }
     lines

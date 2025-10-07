@@ -10,7 +10,7 @@ pub static CONFIG_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
     }];
     commands.append(&mut DefaultCommands::new().0);
     CommandPopUp {
-        title: "DAG Commands".into(),
+        title: "Config Commands".into(),
         commands,
     }
 });

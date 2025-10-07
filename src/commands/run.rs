@@ -43,8 +43,8 @@ impl RunCommand {
 
         // create app and run it
         let path = self.file.as_ref().map(PathBuf::from);
-        let config = FlowrsConfig::from_file(&path)?;
-        let app = App::new(config)?;
+        let config = FlowrsConfig::from_file(path.as_ref())?;
+        let app = App::new(config);
 
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
 
@@ -90,8 +90,7 @@ fn panic_hook(info: &PanicHookInfo<'_>) {
         LeaveAlternateScreen,
         DisableMouseCapture,
         Print(format!(
-            "thread '<unnamed>' panicked at '{}', {}\n\r{}",
-            msg, location, stacktrace
+            "thread '<unnamed>' panicked at '{msg}', {location}\n\r{stacktrace}"
         )),
     )
     .unwrap();
@@ -108,5 +107,5 @@ fn get_panic_info(info: &PanicHookInfo<'_>) -> (String, String) {
         },
     };
 
-    (msg.to_string(), format!("{}", location))
+    (msg.to_string(), format!("{location}"))
 }

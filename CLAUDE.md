@@ -68,9 +68,11 @@ Each panel has:
 - Popup submodules in `src/app/model/popup/` for modal interactions
 
 **Client Architecture (src/airflow/client.rs)**
-- `AirFlowClient` wraps reqwest HTTP client
+- `BaseClient` wraps reqwest HTTP client and handles authentication
+- Trait-based client system: `V1Client` (Airflow v2, uses /api/v1) and `V2Client` (Airflow v3, uses /api/v2)
+- `create_client()` factory function selects appropriate client based on configuration
 - Authenticates via `AirflowAuth` enum: Basic, Token (static or command-based), or Conveyor
-- Client modules per resource: `dags`, `dagruns`, `dagstats`, `taskinstances`, `logs`
+- Client modules per resource in `src/airflow/client/v1/` and `src/airflow/client/v2/`
 
 **Commands (src/commands/)**
 CLI subcommands using clap:
