@@ -15,6 +15,7 @@ pub struct App {
     pub ticks: u32,
     pub active_panel: Panel,
     pub loading: bool,
+    pub startup: bool,
 }
 
 #[derive(Clone, PartialEq)]
@@ -47,6 +48,7 @@ impl App {
             },
             ticks: 0,
             loading: true,
+            startup: true,
         })
     }
 
