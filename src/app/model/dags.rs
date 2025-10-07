@@ -9,8 +9,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
-use crate::airflow::model::dag::Dag;
-use crate::airflow::model::dagstats::DagStatistic;
+use crate::airflow::model::common::{Dag, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
@@ -240,11 +239,10 @@ impl Widget for &mut DagModel {
                         Style::default().add_modifier(Modifier::BOLD),
                     )),
                     Line::from(item.owners.join(", ")),
-                    if let Some(schedule) = &item.schedule_interval {
-                        Line::from(schedule.value.clone().unwrap_or_else(|| "None".to_string()))
-                    } else {
-                        Line::from("None")
-                    }
+                    Line::from(
+                        item.timetable_description.as_deref()
+                            .unwrap_or("None"),
+                    )
                     .style(Style::default().fg(Color::LightYellow)),
                     Line::from(if let Some(date) = item.next_dagrun_create_after {
                         convert_datetimeoffset_to_human_readable_remaining_time(date)

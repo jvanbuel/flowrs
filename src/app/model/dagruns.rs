@@ -14,7 +14,7 @@ use syntect::util::LinesWithEndings;
 use syntect_tui::into_span;
 use time::format_description;
 
-use crate::airflow::model::dagrun::DagRun;
+use crate::airflow::model::common::DagRun;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};

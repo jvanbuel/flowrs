@@ -6,7 +6,7 @@ use strum::IntoEnumIterator;
 
 use super::model::AddCommand;
 use crate::{
-    airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
+    airflow::config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenCmd},
     commands::config::model::{validate_endpoint, ConfigOption},
 };
 use anyhow::Result;
@@ -17,6 +17,19 @@ impl AddCommand {
         let endpoint = inquire::Text::new("endpoint")
             .with_validator(validate_endpoint)
             .prompt()?;
+
+        let version_str = inquire::Select::new(
+            "Airflow version",
+            vec!["v2", "v3"],
+        )
+        .with_help_message("Select the Airflow API version")
+        .prompt()?;
+
+        let version = match version_str {
+            "v2" => AirflowVersion::V2,
+            "v3" => AirflowVersion::V3,
+            _ => AirflowVersion::V2,
+        };
 
         let auth_type =
             Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
@@ -33,6 +46,7 @@ impl AddCommand {
                     endpoint,
                     auth: AirflowAuth::Basic(BasicAuth { username, password }),
                     managed: None,
+                    version,
                 }
             }
             ConfigOption::Token(_) => {
@@ -58,6 +72,7 @@ impl AddCommand {
                         token: Some(token),
                     }),
                     managed: None,
+                    version,
                 }
             }
         };

@@ -12,7 +12,7 @@ use ratatui::{
 use regex::Regex;
 
 use crate::{
-    airflow::model::log::Log,
+    airflow::model::common::Log,
     app::{
         events::custom::FlowrsEvent,
         worker::{OpenItem, WorkerMessage},
@@ -95,49 +95,52 @@ impl Model for LogModel {
                     return (None, vec![]);
                 }
                 match key.code {
-                KeyCode::Char('l') | KeyCode::Right => {
-                    if !self.all.is_empty() {
-                        if self.current == self.all.len() - 1 {
-                            self.current = 0;
-                        } else {
-                            self.current += 1;
+                    KeyCode::Char('l') | KeyCode::Right => {
+                        if !self.all.is_empty() {
+                            if self.current == self.all.len() - 1 {
+                                self.current = 0;
+                            } else {
+                                self.current += 1;
+                            }
                         }
                     }
-                }
-                KeyCode::Char('h') | KeyCode::Left => {
-                    if !self.all.is_empty() {
-                        if self.current == 0 {
-                            self.current = self.all.len() - 1;
-                        } else {
-                            self.current -= 1;
+                    KeyCode::Char('h') | KeyCode::Left => {
+                        if !self.all.is_empty() {
+                            if self.current == 0 {
+                                self.current = self.all.len() - 1;
+                            } else {
+                                self.current -= 1;
+                            }
                         }
                     }
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.vertical_scroll = self.vertical_scroll.saturating_add(1);
-                    self.vertical_scroll_state =
-                        self.vertical_scroll_state.position(self.vertical_scroll)
-                }
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
-                    self.vertical_scroll_state =
-                        self.vertical_scroll_state.position(self.vertical_scroll)
-                }
-                KeyCode::Char('o') => {
-                    if self.all.get(self.current % self.all.len()).is_some() {
-                        return (
-                            Some(FlowrsEvent::Key(*key)),
-                            vec![WorkerMessage::OpenItem(OpenItem::Log {
-                                dag_id: self.dag_id.clone().expect("DAG ID not set"),
-                                dag_run_id: self.dag_run_id.clone().expect("DAG Run ID not set"),
-                                task_id: self.task_id.clone().expect("Task ID not set"),
-                                task_try: self.current as u16,
-                            })],
-                        );
+                    KeyCode::Down | KeyCode::Char('j') => {
+                        self.vertical_scroll = self.vertical_scroll.saturating_add(1);
+                        self.vertical_scroll_state =
+                            self.vertical_scroll_state.position(self.vertical_scroll)
                     }
-                }
+                    KeyCode::Up | KeyCode::Char('k') => {
+                        self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
+                        self.vertical_scroll_state =
+                            self.vertical_scroll_state.position(self.vertical_scroll)
+                    }
+                    KeyCode::Char('o') => {
+                        if self.all.get(self.current % self.all.len()).is_some() {
+                            return (
+                                Some(FlowrsEvent::Key(*key)),
+                                vec![WorkerMessage::OpenItem(OpenItem::Log {
+                                    dag_id: self.dag_id.clone().expect("DAG ID not set"),
+                                    dag_run_id: self
+                                        .dag_run_id
+                                        .clone()
+                                        .expect("DAG Run ID not set"),
+                                    task_id: self.task_id.clone().expect("Task ID not set"),
+                                    task_try: self.current as u16,
+                                })],
+                            );
+                        }
+                    }
 
-                _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
+                    _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
                 }
             }
             _ => (),
