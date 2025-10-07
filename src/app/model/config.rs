@@ -15,15 +15,12 @@ use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::ui::common::create_headers;
-use anyhow::Error;
 
 pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
     pub commands: Option<&'static CommandPopUp<'static>>,
-    #[allow(dead_code)]
-    pub errors: Vec<Error>,
 }
 
 impl ConfigModel {
@@ -33,7 +30,6 @@ impl ConfigModel {
             filtered: StatefulTable::new(configs),
             filter: Filter::new(),
             commands: None,
-            errors: vec![],
         }
     }
 
