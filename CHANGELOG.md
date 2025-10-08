@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.17](https://github.com/jvanbuel/flowrs/compare/v0.1.16...v0.1.17) - 2025-10-08
+
+### Fixed
+
+- only show rotating flowrs logo once
+
 ## [0.1.16](https://github.com/jvanbuel/flowrs/compare/v0.1.15...v0.1.16) - 2025-10-08
 
 ### Added
