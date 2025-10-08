@@ -97,7 +97,7 @@ impl Model for TaskInstanceModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if self.ticks % 10 != 0 {
+                if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {

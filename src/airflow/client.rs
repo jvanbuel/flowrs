@@ -10,7 +10,7 @@ use std::time::Duration;
 use log::info;
 use reqwest::{Method, Url};
 
-use crate::airflow::{config::{AirflowAuth, AirflowConfig}, managed_services::conveyor::get_conveyor_token};
+use crate::airflow::config::{AirflowAuth, AirflowConfig};
 
 #[derive(Debug, Clone)]
 pub struct AirFlowClient {
@@ -60,7 +60,9 @@ impl AirFlowClient {
             }
             AirflowAuth::Conveyor => {
                 info!("🔑 Conveyor Auth");
-                let token: String = get_conveyor_token()?;
+                use crate::airflow::managed_services::conveyor::ConveyorClient;
+                let client = ConveyorClient::new();
+                let token: String = client.get_token()?;
                 Ok(self.client.request(method, url).bearer_auth(token))
             }
         }
