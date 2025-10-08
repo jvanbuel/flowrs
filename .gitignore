@@ -7,5 +7,6 @@ dags/**
 .DS_Store
 .vscode
 *.tiff
+.claude
 
 flowrs-debug*

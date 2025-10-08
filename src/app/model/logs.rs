@@ -1,4 +1,3 @@
-use anyhow::Error;
 use crossterm::event::KeyCode;
 use ratatui::{
     buffer::Buffer,
@@ -21,6 +20,7 @@ use crate::{
     ui::constants::DM_RGB,
 };
 
+use super::popup::error::ErrorPopup;
 use super::Model;
 
 pub struct LogModel {
@@ -30,8 +30,7 @@ pub struct LogModel {
     pub tries: Option<u16>,
     pub all: Vec<Log>,
     pub current: usize,
-    #[allow(dead_code)]
-    pub errors: Vec<Error>,
+    pub error_popup: Option<ErrorPopup>,
     ticks: u32,
     vertical_scroll: usize,
     vertical_scroll_state: ScrollbarState,
@@ -46,7 +45,7 @@ impl LogModel {
             tries: None,
             all: vec![],
             current: 0,
-            errors: vec![],
+            error_popup: None,
             ticks: 0,
             vertical_scroll: 0,
             vertical_scroll_state: ScrollbarState::default(),
@@ -85,7 +84,17 @@ impl Model for LogModel {
                 }
                 return (Some(FlowrsEvent::Tick), vec![]);
             }
-            FlowrsEvent::Key(key) => match key.code {
+            FlowrsEvent::Key(key) => {
+                if let Some(_error_popup) = &mut self.error_popup {
+                    match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            self.error_popup = None;
+                        }
+                        _ => (),
+                    }
+                    return (None, vec![]);
+                }
+                match key.code {
                 KeyCode::Char('l') | KeyCode::Right => {
                     if !self.all.is_empty() {
                         if self.current == self.all.len() - 1 {
@@ -129,7 +138,8 @@ impl Model for LogModel {
                 }
 
                 _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
-            },
+                }
+            }
             _ => (),
         }
 
@@ -209,6 +219,10 @@ impl Widget for &mut LogModel {
                 .end_symbol(Some("↓"));
 
             scrollbar.render(chunks[1], buffer, &mut self.vertical_scroll_state);
+        }
+
+        if let Some(error_popup) = &self.error_popup {
+            error_popup.render(area, buffer);
         }
     }
 }

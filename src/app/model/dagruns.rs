@@ -24,11 +24,11 @@ use super::popup::commands_help::CommandPopUp;
 use super::popup::dagruns::commands::DAGRUN_COMMAND_POP_UP;
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
+use super::popup::error::ErrorPopup;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::{OpenItem, WorkerMessage};
-use anyhow::Error;
 
 pub struct DagRunModel {
     pub dag_id: Option<String>,
@@ -37,10 +37,9 @@ pub struct DagRunModel {
     pub filtered: StatefulTable<DagRun>,
     pub filter: Filter,
     pub marked: Vec<usize>,
-    #[allow(dead_code)]
-    pub errors: Vec<Error>,
     pub popup: Option<DagRunPopUp>,
     pub commands: Option<&'static CommandPopUp<'static>>,
+    pub error_popup: Option<ErrorPopup>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -61,9 +60,9 @@ impl DagRunModel {
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
             marked: vec![],
-            errors: vec![],
             popup: None,
             commands: None,
+            error_popup: None,
             ticks: 0,
             event_buffer: vec![],
         }
@@ -127,6 +126,14 @@ impl Model for DagRunModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_dag_runs();
+                    return (None, vec![]);
+                } else if let Some(_error_popup) = &mut self.error_popup {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            self.error_popup = None;
+                        }
+                        _ => (),
+                    }
                     return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
@@ -437,6 +444,10 @@ impl Widget for &mut DagRunModel {
 
         if let Some(commands) = &self.commands {
             commands.render(area, buf);
+        }
+
+        if let Some(error_popup) = &self.error_popup {
+            error_popup.render(area, buf);
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::vec;
 
 use super::popup::commands_help::CommandPopUp;
+use super::popup::error::ErrorPopup;
 use super::popup::taskinstances::commands::TASK_COMMAND_POP_UP;
 use crossterm::event::KeyCode;
 use log::debug;
@@ -22,7 +23,6 @@ use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::{OpenItem, WorkerMessage};
-use anyhow::Error;
 
 pub struct TaskInstanceModel {
     pub dag_id: Option<String>,
@@ -30,11 +30,10 @@ pub struct TaskInstanceModel {
     pub all: Vec<TaskInstance>,
     pub filtered: StatefulTable<TaskInstance>,
     pub filter: Filter,
-    #[allow(dead_code)]
-    pub errors: Vec<Error>,
     pub popup: Option<TaskInstancePopUp>,
     pub marked: Vec<usize>,
     commands: Option<&'static CommandPopUp<'static>>,
+    pub error_popup: Option<ErrorPopup>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -47,10 +46,10 @@ impl TaskInstanceModel {
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
-            errors: vec![],
             popup: None,
             marked: vec![],
             commands: None,
+            error_popup: None,
             ticks: 0,
             event_buffer: vec![],
         }
@@ -117,6 +116,14 @@ impl Model for TaskInstanceModel {
                 if self.filter.is_enabled() {
                     self.filter.update(key_event);
                     self.filter_task_instances();
+                    return (None, vec![]);
+                } else if let Some(_error_popup) = &mut self.error_popup {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            self.error_popup = None;
+                        }
+                        _ => (),
+                    }
                     return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
@@ -354,6 +361,10 @@ impl Widget for &mut TaskInstanceModel {
 
         if let Some(commands) = &self.commands {
             commands.render(area, buffer);
+        }
+
+        if let Some(error_popup) = &self.error_popup {
+            error_popup.render(area, buffer);
         }
     }
 }

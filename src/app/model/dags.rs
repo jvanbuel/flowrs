@@ -17,18 +17,17 @@ use crate::ui::common::create_headers;
 use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
+use super::popup::error::ErrorPopup;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::{OpenItem, WorkerMessage};
-use anyhow::Error;
 
 pub struct DagModel {
     pub all: Vec<Dag>,
     pub dag_stats: HashMap<String, Vec<DagStatistic>>,
     pub filtered: StatefulTable<Dag>,
     pub filter: Filter,
-    #[allow(dead_code)]
-    pub errors: Vec<Error>,
     commands: Option<&'static CommandPopUp<'static>>,
+    pub error_popup: Option<ErrorPopup>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -40,9 +39,9 @@ impl DagModel {
             dag_stats: HashMap::new(),
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
-            errors: vec![],
             ticks: 0,
             commands: None,
+            error_popup: None,
             event_buffer: vec![],
         }
     }
@@ -99,6 +98,14 @@ impl Model for DagModel {
                     self.filter.update(key_event);
                     self.filter_dags();
                     return (None, vec![]);
+                } else if let Some(_error_popup) = &mut self.error_popup {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            self.error_popup = None;
+                        }
+                        _ => (),
+                    }
+                    return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
@@ -129,9 +136,11 @@ impl Model for DagModel {
                                     }],
                                 );
                             }
-                            None => self
-                                .errors
-                                .push(Error::msg("No DAG selected to pause/resume")),
+                            None => {
+                                self.error_popup = Some(ErrorPopup::from_strings(vec![
+                                    "No DAG selected to pause/resume".to_string(),
+                                ]));
+                            }
                         },
                         KeyCode::Char('/') => {
                             self.filter.toggle();
@@ -152,8 +161,9 @@ impl Model for DagModel {
                                     }],
                                 );
                             } else {
-                                self.errors
-                                    .push(Error::msg("No DAG selected to view DAG Runs"));
+                                self.error_popup = Some(ErrorPopup::from_strings(vec![
+                                    "No DAG selected to view DAG Runs".to_string(),
+                                ]));
                             }
                         }
                         KeyCode::Char('g') => {
@@ -177,8 +187,9 @@ impl Model for DagModel {
                                     })],
                                 );
                             } else {
-                                self.errors
-                                    .push(Error::msg("No DAG selected to open in the browser"));
+                                self.error_popup = Some(ErrorPopup::from_strings(vec![
+                                    "No DAG selected to open in the browser".to_string(),
+                                ]));
                             }
                         }
                         _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
@@ -303,6 +314,10 @@ impl Widget for &mut DagModel {
 
         if let Some(commands) = &self.commands {
             commands.render(area, buf);
+        }
+
+        if let Some(error_popup) = &self.error_popup {
+            error_popup.render(area, buf);
         }
     }
 }

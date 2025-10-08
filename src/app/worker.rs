@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::airflow::{client::AirFlowClient, model::dag::Dag};
 
+use super::model::popup::error::ErrorPopup;
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
 use super::{model::popup::dagruns::mark::MarkState, state::App};
 use anyhow::Result;
@@ -126,14 +127,16 @@ impl Worker {
                         app.dags.all = dag_list.dags;
                         app.dags.filter_dags();
                     }
-                    Err(e) => app.dags.errors.push(e),
+                    Err(e) => {
+                        app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                    }
                 }
             }
             WorkerMessage::ToggleDag { dag_id, is_paused } => {
                 let dag = client.toggle_dag(&dag_id, is_paused).await;
                 if let Err(e) = dag {
                     let mut app = self.app.lock().unwrap();
-                    app.dags.errors.push(e);
+                    app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::ConfigSelected(idx) => {
@@ -150,7 +153,9 @@ impl Worker {
                         app.dagruns.all = dag_runs.dag_runs;
                         app.dagruns.filter_dag_runs();
                     }
-                    Err(e) => app.dagruns.errors.push(e),
+                    Err(e) => {
+                        app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                    }
                 }
             }
             WorkerMessage::UpdateTaskInstances {
@@ -172,7 +177,8 @@ impl Worker {
 
                     Err(e) => {
                         log::error!("Error getting task instances: {:?}", e);
-                        app.task_instances.errors.push(e);
+                        app.task_instances.error_popup =
+                            Some(ErrorPopup::from_strings(vec![e.to_string()]));
                     }
                 }
             }
@@ -193,7 +199,9 @@ impl Worker {
                     Ok(dag_code) => {
                         app.dagruns.dag_code.code = Some(dag_code);
                     }
-                    Err(e) => app.dags.errors.push(e),
+                    Err(e) => {
+                        app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                    }
                 }
             }
             WorkerMessage::UpdateDagStats { clear } => {
@@ -219,7 +227,9 @@ impl Worker {
                             app.dags.dag_stats.insert(dag_stats.dag_id, dag_stats.stats);
                         }
                     }
-                    Err(e) => app.dags.errors.push(e),
+                    Err(e) => {
+                        app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                    }
                 }
             }
             WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
@@ -228,7 +238,7 @@ impl Worker {
                 if let Err(e) = dag_run {
                     debug!("Error clearing dag_run: {}", e);
                     let mut app = self.app.lock().unwrap();
-                    app.dagruns.errors.push(e);
+                    app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::UpdateTaskLogs {
@@ -262,7 +272,7 @@ impl Worker {
                         }
                         Err(e) => {
                             debug!("Error getting logs: {}", e);
-                            app.logs.errors.push(e);
+                            app.logs.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                         }
                     }
                 }
@@ -284,7 +294,7 @@ impl Worker {
                 if let Err(e) = dag_run {
                     debug!("Error marking dag_run: {}", e);
                     let mut app = self.app.lock().unwrap();
-                    app.dagruns.errors.push(e);
+                    app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::ClearTaskInstance {
@@ -299,7 +309,8 @@ impl Worker {
                 if let Err(e) = task_instance {
                     debug!("Error clearing task_instance: {}", e);
                     let mut app = self.app.lock().unwrap();
-                    app.task_instances.errors.push(e);
+                    app.task_instances.error_popup =
+                        Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::MarkTaskInstance {
@@ -321,7 +332,8 @@ impl Worker {
                 if let Err(e) = task_instance {
                     debug!("Error marking task_instance: {}", e);
                     let mut app = self.app.lock().unwrap();
-                    app.task_instances.errors.push(e);
+                    app.task_instances.error_popup =
+                        Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::TriggerDagRun { dag_id } => {
@@ -330,7 +342,7 @@ impl Worker {
                 if let Err(e) = dag_run {
                     debug!("Error triggering dag_run: {}", e);
                     let mut app = self.app.lock().unwrap();
-                    app.dagruns.errors.push(e);
+                    app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::OpenItem(item) => {
