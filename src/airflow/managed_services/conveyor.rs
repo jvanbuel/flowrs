@@ -70,11 +70,19 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
 
     let servers = environments
         .iter()
-        .map(|env| AirflowConfig {
-            name: env.name.clone(),
-            endpoint: format!("{}/environments/{}/airflow/", api_endpoint, env.name),
-            auth: AirflowAuth::Conveyor,
-            managed: Some(ManagedService::Conveyor),
+        .map(|env| {
+            let version = match env.airflow_version.as_str() {
+                "AirflowVersion_V2" => crate::airflow::config::AirflowVersion::V2,
+                "AirflowVersion_V3" => crate::airflow::config::AirflowVersion::V3,
+                _ => crate::airflow::config::AirflowVersion::V2,
+            };
+            AirflowConfig {
+                name: env.name.clone(),
+                endpoint: format!("{}/environments/{}/airflow/", api_endpoint, env.name),
+                auth: AirflowAuth::Conveyor,
+                managed: Some(ManagedService::Conveyor),
+                version,
+            }
         })
         .collect();
     Ok(servers)
@@ -126,18 +134,8 @@ fn get_conveyor_api_endpoint() -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::airflow::config::FlowrsConfig;
-
-    const TEST_CONFIG: &str = r#"[[servers]]
-        name = "test"
-        endpoint = "http://localhost:8080"
-        auth = { BasicAuth = { username = "airflow", password = "airflow" } }
-        "#;
-
     #[tokio::test]
     async fn test_list_conveyor_environments() {
-        let config: FlowrsConfig = toml::from_str(str::trim(TEST_CONFIG)).unwrap();
-        let _server = config.servers.unwrap()[0].clone();
         let environments = get_conveyor_environment_servers().unwrap();
         assert!(!environments.is_empty());
     }

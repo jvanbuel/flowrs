@@ -132,7 +132,7 @@ impl Widget for &mut ConfigModel {
         };
         let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
 
-        let headers = ["Name", "Endpoint", "Managed"];
+        let headers = ["Name", "Endpoint", "Managed", "Version"];
         let header_row = create_headers(headers);
 
         let header =
@@ -147,6 +147,10 @@ impl Widget for &mut ConfigModel {
                 } else {
                     "None".to_string()
                 }),
+                Line::from(match item.version {
+                    crate::airflow::config::AirflowVersion::V2 => "v2",
+                    crate::airflow::config::AirflowVersion::V3 => "v3",
+                }),
             ])
             .style(if (idx % 2) == 0 {
                 DEFAULT_STYLE
@@ -159,8 +163,9 @@ impl Widget for &mut ConfigModel {
             rows,
             &[
                 Constraint::Percentage(20),
-                Constraint::Percentage(80),
-                Constraint::Percentage(20),
+                Constraint::Percentage(55),
+                Constraint::Percentage(15),
+                Constraint::Min(8),
             ],
         )
         .header(header)

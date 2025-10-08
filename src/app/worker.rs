@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::airflow::{client::AirFlowClient, model::dag::Dag};
+use crate::airflow::{model::common::Dag, traits::AirflowClient as AirflowClientTrait};
 
 use super::model::popup::error::ErrorPopup;
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
@@ -13,7 +13,7 @@ use url::{form_urlencoded, Url};
 
 pub struct Worker {
     app: Arc<Mutex<App>>,
-    client: Option<AirFlowClient>,
+    client: Option<Arc<dyn AirflowClientTrait>>,
     rx_worker: Receiver<WorkerMessage>,
 }
 
@@ -100,7 +100,7 @@ pub enum OpenItem {
 impl Worker {
     pub fn new(
         app: Arc<Mutex<App>>,
-        client: Option<AirFlowClient>,
+        client: Option<Arc<dyn AirflowClientTrait>>,
         rx_worker: Receiver<WorkerMessage>,
     ) -> Self {
         Worker {
@@ -154,7 +154,8 @@ impl Worker {
                         app.dagruns.filter_dag_runs();
                     }
                     Err(e) => {
-                        app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                        app.dagruns.error_popup =
+                            Some(ErrorPopup::from_strings(vec![e.to_string()]));
                     }
                 }
             }
@@ -272,7 +273,8 @@ impl Worker {
                         }
                         Err(e) => {
                             debug!("Error getting logs: {}", e);
-                            app.logs.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                            app.logs.error_popup =
+                                Some(ErrorPopup::from_strings(vec![e.to_string()]));
                         }
                     }
                 }
@@ -346,7 +348,22 @@ impl Worker {
                 }
             }
             WorkerMessage::OpenItem(item) => {
-                let mut base_url = Url::parse(&client.config.endpoint)?;
+                let endpoint = {
+                    let app = self.app.lock().unwrap();
+                    app.config
+                        .active_server
+                        .as_ref()
+                        .and_then(|server_name| {
+                            app.config.servers.as_ref().and_then(|servers| {
+                                servers
+                                    .iter()
+                                    .find(|s| s.name == *server_name)
+                                    .map(|s| s.endpoint.clone())
+                            })
+                        })
+                        .unwrap_or_default()
+                };
+                let mut base_url = Url::parse(&endpoint)?;
                 match item {
                     OpenItem::Config(config_endpoint) => {
                         base_url = config_endpoint.parse()?;
@@ -394,7 +411,7 @@ impl Worker {
 
     pub fn switch_airflow_client(&mut self, idx: usize) {
         let selected_config = self.app.lock().unwrap().configs.filtered.items[idx].clone();
-        self.client = Some(AirFlowClient::from(&selected_config));
+        self.client = crate::airflow::client::create_client(selected_config.clone()).ok();
 
         let mut app = self.app.lock().unwrap();
         app.config.active_server = Some(selected_config.name.clone());

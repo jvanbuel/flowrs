@@ -12,6 +12,22 @@ use super::managed_services::conveyor::get_conveyor_environment_servers;
 use crate::CONFIG_FILE;
 use anyhow::Result;
 
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
+pub enum AirflowVersion {
+    #[default]
+    V2,
+    V3,
+}
+
+impl AirflowVersion {
+    pub fn api_path(&self) -> &str {
+        match self {
+            AirflowVersion::V2 => "api/v1",
+            AirflowVersion::V3 => "api/v2",
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, ValueEnum, EnumIter)]
 pub enum ManagedService {
     Conveyor,
@@ -46,6 +62,8 @@ pub struct AirflowConfig {
     pub endpoint: String,
     pub auth: crate::airflow::config::AirflowAuth,
     pub managed: Option<ManagedService>,
+    #[serde(default)]
+    pub version: AirflowVersion,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -175,7 +193,7 @@ mod tests {
         name = "test"
         endpoint = "http://localhost:8080"
 
-        [servers.auth.BasicAuth]
+        [servers.auth.Basic]
         username = "airflow"
         password = "airflow"
         "#;
@@ -188,19 +206,21 @@ mod tests {
         assert_eq!(servers[0].name, "test");
     }
 
-    const TEST_CONFIG_CONVEYOR: &str = r#"managed_services = ["Conveyor"]
+    const TEST_CONFIG_CONVEYOR: &str = r#"
+managed_services = ["Conveyor"]
 
 [[servers]]
 name = "bla"
 endpoint = "http://localhost:8080"
+version = "V2"
 
-[servers.auth.BasicAuth]
+[servers.auth.Basic]
 username = "airflow"
 password = "airflow"
     "#;
     #[test]
     fn test_get_config_conveyor() {
-        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR).unwrap();
+        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR.trim()).unwrap();
         let services = result.managed_services.unwrap();
         assert_eq!(services.len(), 1);
         assert_eq!(services[0], ManagedService::Conveyor);
@@ -217,6 +237,7 @@ password = "airflow"
                     password: "airflow".to_string(),
                 }),
                 managed: None,
+                version: AirflowVersion::V2,
             }]),
             managed_services: Some(vec![ManagedService::Conveyor]),
             active_server: None,

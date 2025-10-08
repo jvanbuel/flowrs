@@ -9,7 +9,7 @@ use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
 use worker::{Worker, WorkerMessage};
 
-use crate::{airflow::client::AirFlowClient, ui::draw_ui};
+use crate::{airflow::client::create_client, ui::draw_ui};
 
 pub mod events;
 pub mod model;
@@ -24,7 +24,7 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
     let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
 
     log::info!("Starting worker");
-    let airflow_client: Option<AirFlowClient>;
+    let airflow_client;
     {
         let app = app.lock().unwrap();
         let previously_active_server = &app.config.active_server;
@@ -36,7 +36,7 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
                 .and_then(|servers| servers.iter().find(|s| s.name == *server)),
             _ => None,
         };
-        airflow_client = airflow_config.map(AirFlowClient::from);
+        airflow_client = airflow_config.and_then(|config| create_client(config.clone()).ok());
     }
 
     log::info!("Spawning worker");

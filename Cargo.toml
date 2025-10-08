@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-tui"
-version = "0.1.17"
+version = "0.2.0"
 edition = "2021"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
 license = "MIT"
@@ -21,6 +21,7 @@ ansi-to-tui = { version = "7.0.0" }
 anyhow = "1.0.100"
 backtrace = "0.3.76"
 chrono = "0.4.42"
+async-trait = "0.1.89"
 clap = { version = "^4.5", features = ["derive", "env"] }
 crossterm = "0.29.0"
 custom_error = "1.9.2"
