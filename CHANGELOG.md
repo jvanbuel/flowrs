@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.15](https://github.com/jvanbuel/flowrs/compare/v0.1.14...v0.1.15) - 2025-10-08
+
+### Added
+
+- refactor to use conveyor client, enable switching between tenants
+
 ## [0.1.14](https://github.com/jvanbuel/flowrs/compare/v0.1.13...v0.1.14) - 2025-04-30
 
 ### Fixed
