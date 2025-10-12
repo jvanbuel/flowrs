@@ -14,10 +14,10 @@ pub struct EventGenerator {
 
 impl EventGenerator {
     pub fn new(tick_rate: u16) -> Self {
-        let (_tx_event, rx_event) = channel::<FlowrsEvent>(500);
+        let (tx_event, rx_event) = channel::<FlowrsEvent>(500);
 
-        let tick_rate = Duration::from_millis(tick_rate as u64);
-        let tx_event_thread = _tx_event.clone();
+        let tick_rate = Duration::from_millis(u64::from(tick_rate));
+        let tx_event_thread = tx_event.clone();
         tokio::spawn(async move {
             let mut last_tick = Instant::now();
             loop {
@@ -39,7 +39,7 @@ impl EventGenerator {
         Self {
             _tick_rate: tick_rate,
             rx_event,
-            _tx_event,
+            _tx_event: tx_event,
         }
     }
 

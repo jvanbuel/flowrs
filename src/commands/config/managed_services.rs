@@ -10,17 +10,14 @@ use anyhow::Result;
 
 impl ManagedServiceCommand {
     pub fn run(&self) -> Result<()> {
-        let managed_service = match self.managed_service.clone() {
-            Some(managed_service) => managed_service,
-            None => {
-                let managed_service: ManagedService =
-                    Select::new("managed service", ManagedService::iter().collect()).prompt()?;
-                managed_service
-            }
+        let managed_service = if let Some(managed_service) = self.managed_service.clone() { managed_service } else {
+            let managed_service: ManagedService =
+                Select::new("managed service", ManagedService::iter().collect()).prompt()?;
+            managed_service
         };
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(&path)?;
+        let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
         match config.managed_services {
             Some(ref mut services) => {
@@ -42,17 +39,14 @@ impl ManagedServiceCommand {
     }
 
     pub fn disable(&self) -> Result<()> {
-        let managed_service = match self.managed_service.clone() {
-            Some(managed_service) => managed_service,
-            None => {
-                let managed_service: ManagedService =
-                    Select::new("managed service", ManagedService::iter().collect()).prompt()?;
-                managed_service
-            }
+        let managed_service = if let Some(managed_service) = self.managed_service.clone() { managed_service } else {
+            let managed_service: ManagedService =
+                Select::new("managed service", ManagedService::iter().collect()).prompt()?;
+            managed_service
         };
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(&path)?;
+        let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
         if let Some(ref mut services) = config.managed_services {
             if !services.contains(&managed_service) {

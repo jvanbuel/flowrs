@@ -9,7 +9,7 @@ use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
 use worker::{Worker, WorkerMessage};
 
-use crate::{airflow::client::AirFlowClient, ui::draw_ui};
+use crate::{airflow::client::create_client, ui::draw_ui};
 
 pub mod events;
 pub mod model;
@@ -24,7 +24,7 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
     let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
 
     log::info!("Starting worker");
-    let airflow_client: Option<AirFlowClient>;
+    let airflow_client;
     {
         let app = app.lock().unwrap();
         let previously_active_server = &app.config.active_server;
@@ -36,7 +36,7 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
                 .and_then(|servers| servers.iter().find(|s| s.name == *server)),
             _ => None,
         };
-        airflow_client = airflow_config.map(AirFlowClient::from);
+        airflow_client = airflow_config.and_then(|config| create_client(config).ok());
     }
 
     log::info!("Spawning worker");
@@ -53,10 +53,6 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
         })?;
 
         if let Some(event) = events.next().await {
-            // If the app is loading, only tick events are allowed
-            if app.lock().unwrap().loading && event != FlowrsEvent::Tick {
-                continue;
-            }
             // First handle panel specific events, and send messages to the event channel
             let (fall_through_event, messages) = {
                 let mut app = app.lock().unwrap();
@@ -94,14 +90,13 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
             let mut app = app.lock().unwrap();
             if let Some(FlowrsEvent::Tick) = fall_through_event {
                 app.ticks += 1;
+                app.throbber_state.calc_next();
             }
             if let FlowrsEvent::Key(key) = event {
                 // Handle exit key events
                 if key.modifiers == KeyModifiers::CONTROL {
-                    match key.code {
-                        KeyCode::Char('c') => return Ok(()),
-                        KeyCode::Char('d') => return Ok(()),
-                        _ => {}
+                    if let KeyCode::Char('c' | 'd') = key.code {
+                        return Ok(());
                     }
                 }
                 // Handle other key events

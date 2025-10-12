@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::airflow::{client::AirFlowClient, model::dag::Dag};
+use crate::airflow::{model::common::Dag, traits::AirflowClient as AirflowClientTrait};
 
 use super::model::popup::error::ErrorPopup;
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
@@ -9,12 +10,11 @@ use anyhow::Result;
 use futures::future::join_all;
 use log::debug;
 use tokio::sync::mpsc::Receiver;
-use url::{form_urlencoded, Url};
 
 pub struct Worker {
     app: Arc<Mutex<App>>,
-    client: Option<AirFlowClient>,
-    rx_worker: Receiver<WorkerMessage>,
+    client: Option<Arc<dyn AirflowClientTrait>>,
+    rx: Receiver<WorkerMessage>,
 }
 
 #[derive(Debug)]
@@ -100,21 +100,30 @@ pub enum OpenItem {
 impl Worker {
     pub fn new(
         app: Arc<Mutex<App>>,
-        client: Option<AirFlowClient>,
+        client: Option<Arc<dyn AirflowClientTrait>>,
         rx_worker: Receiver<WorkerMessage>,
     ) -> Self {
         Worker {
             app,
             client,
-            rx_worker,
+            rx: rx_worker,
         }
     }
 
     pub async fn process_message(&mut self, message: WorkerMessage) -> Result<()> {
+        // Set loading state at the start
+        {
+            let mut app = self.app.lock().unwrap();
+            app.loading = true;
+        }
+
         if self.client.is_none() {
             if let WorkerMessage::ConfigSelected(idx) = message {
                 self.switch_airflow_client(idx);
-            };
+            }
+            // Reset loading state before returning
+            let mut app = self.app.lock().unwrap();
+            app.loading = false;
             return Ok(());
         }
         let client = self.client.as_ref().unwrap();
@@ -154,7 +163,8 @@ impl Worker {
                         app.dagruns.filter_dag_runs();
                     }
                     Err(e) => {
-                        app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                        app.dagruns.error_popup =
+                            Some(ErrorPopup::from_strings(vec![e.to_string()]));
                     }
                 }
             }
@@ -176,7 +186,7 @@ impl Worker {
                     }
 
                     Err(e) => {
-                        log::error!("Error getting task instances: {:?}", e);
+                        log::error!("Error getting task instances: {e:?}");
                         app.task_instances.error_popup =
                             Some(ErrorPopup::from_strings(vec![e.to_string()]));
                     }
@@ -193,11 +203,11 @@ impl Worker {
                         .clone();
                 }
 
-                let dag_code = client.get_dag_code(&current_dag.file_token).await;
+                let dag_code = client.get_dag_code(&current_dag).await;
                 let mut app = self.app.lock().unwrap();
                 match dag_code {
                     Ok(dag_code) => {
-                        app.dagruns.dag_code.code = Some(dag_code);
+                        app.dagruns.dag_code.set_code(&dag_code);
                     }
                     Err(e) => {
                         app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
@@ -215,11 +225,12 @@ impl Worker {
                         .collect::<Vec<_>>();
                     dag_ids
                 };
-                let dag_ids_str: Vec<&str> = dag_ids.iter().map(|s| s.as_str()).collect();
+                let dag_ids_str: Vec<&str> =
+                    dag_ids.iter().map(std::string::String::as_str).collect();
                 let dag_stats = client.get_dag_stats(dag_ids_str).await;
                 let mut app = self.app.lock().unwrap();
                 if clear {
-                    app.dags.dag_stats = Default::default();
+                    app.dags.dag_stats = HashMap::default();
                 }
                 match dag_stats {
                     Ok(dag_stats) => {
@@ -233,10 +244,10 @@ impl Worker {
                 }
             }
             WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
-                debug!("Clearing dag_run: {}", dag_run_id);
+                debug!("Clearing dag_run: {dag_run_id}");
                 let dag_run = client.clear_dagrun(&dag_id, &dag_run_id).await;
                 if let Err(e) = dag_run {
-                    debug!("Error clearing dag_run: {}", e);
+                    debug!("Error clearing dag_run: {e}");
                     let mut app = self.app.lock().unwrap();
                     app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
@@ -268,11 +279,13 @@ impl Worker {
                 for log in logs {
                     match log {
                         Ok(log) => {
+                            debug!("Got log: {log:?}");
                             app.logs.all.push(log);
                         }
                         Err(e) => {
-                            debug!("Error getting logs: {}", e);
-                            app.logs.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                            debug!("Error getting logs: {e}");
+                            app.logs.error_popup =
+                                Some(ErrorPopup::from_strings(vec![e.to_string()]));
                         }
                     }
                 }
@@ -282,7 +295,7 @@ impl Worker {
                 dag_id,
                 status,
             } => {
-                debug!("Marking dag_run: {}", dag_run_id);
+                debug!("Marking dag_run: {dag_run_id}");
                 {
                     // Update the local state before sending the request; this way, the UI will update immediately
                     let mut app = self.app.lock().unwrap();
@@ -292,7 +305,7 @@ impl Worker {
                     .mark_dag_run(&dag_id, &dag_run_id, &status.to_string())
                     .await;
                 if let Err(e) = dag_run {
-                    debug!("Error marking dag_run: {}", e);
+                    debug!("Error marking dag_run: {e}");
                     let mut app = self.app.lock().unwrap();
                     app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
@@ -302,12 +315,12 @@ impl Worker {
                 dag_id,
                 dag_run_id,
             } => {
-                debug!("Clearing task_instance: {}", task_id);
+                debug!("Clearing task_instance: {task_id}");
                 let task_instance = client
                     .clear_task_instance(&dag_id, &dag_run_id, &task_id)
                     .await;
                 if let Err(e) = task_instance {
-                    debug!("Error clearing task_instance: {}", e);
+                    debug!("Error clearing task_instance: {e}");
                     let mut app = self.app.lock().unwrap();
                     app.task_instances.error_popup =
                         Some(ErrorPopup::from_strings(vec![e.to_string()]));
@@ -319,7 +332,7 @@ impl Worker {
                 dag_run_id,
                 status,
             } => {
-                debug!("Marking task_instance: {}", task_id);
+                debug!("Marking task_instance: {task_id}");
                 {
                     // Update the local state before sending the request; this way, the UI will update immediately
                     let mut app = self.app.lock().unwrap();
@@ -330,71 +343,69 @@ impl Worker {
                     .mark_task_instance(&dag_id, &dag_run_id, &task_id, &status.to_string())
                     .await;
                 if let Err(e) = task_instance {
-                    debug!("Error marking task_instance: {}", e);
+                    debug!("Error marking task_instance: {e}");
                     let mut app = self.app.lock().unwrap();
                     app.task_instances.error_popup =
                         Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::TriggerDagRun { dag_id } => {
-                debug!("Triggering dag_run: {}", dag_id);
-                let dag_run = client.trigger_dag_run(&dag_id).await;
+                debug!("Triggering dag_run: {dag_id}");
+                let dag_run = client.trigger_dag_run(&dag_id, None).await;
                 if let Err(e) = dag_run {
-                    debug!("Error triggering dag_run: {}", e);
+                    debug!("Error triggering dag_run: {e}");
                     let mut app = self.app.lock().unwrap();
                     app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
                 }
             }
             WorkerMessage::OpenItem(item) => {
-                let mut base_url = Url::parse(&client.config.endpoint)?;
-                match item {
-                    OpenItem::Config(config_endpoint) => {
-                        base_url = config_endpoint.parse()?;
-                    }
-                    OpenItem::Dag { dag_id } => {
-                        base_url = base_url.join(&format!("dags/{dag_id}"))?;
-                    }
-                    OpenItem::DagRun { dag_id, dag_run_id } => {
-                        base_url = base_url.join(&format!("dags/{dag_id}/grid"))?;
-                        let escaped_dag_run_id: String =
-                            form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
-                        base_url.set_query(Some(&format!("dag_run_id={escaped_dag_run_id}")));
-                    }
-                    OpenItem::TaskInstance {
-                        dag_id,
-                        dag_run_id,
-                        task_id,
-                    } => {
-                        base_url = base_url.join(&format!("dags/{dag_id}/grid"))?;
-                        let escaped_dag_run_id: String =
-                            form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
-                        base_url.set_query(Some(&format!(
-                            "dag_run_id={escaped_dag_run_id}&task_id={task_id}"
-                        )));
-                    }
-                    OpenItem::Log {
-                        dag_id,
-                        dag_run_id,
-                        task_id,
-                        task_try: _,
-                    } => {
-                        base_url = base_url.join(&format!("/dags/{dag_id}/grid"))?;
-                        let escaped_dag_run_id: String =
-                            form_urlencoded::byte_serialize(dag_run_id.as_bytes()).collect();
-                        base_url.set_query(Some(&format!(
-                            "dag_run_id={escaped_dag_run_id}&task_id={task_id}&tab=logs"
-                        )));
-                    }
-                }
-                webbrowser::open(base_url.as_str()).unwrap();
+                // For Config items, look up the endpoint from active_server instead of using the passed string
+                let final_item = if let OpenItem::Config(_) = &item {
+                    let app = self.app.lock().unwrap();
+
+                    let active_server_name = app
+                        .config
+                        .active_server
+                        .as_ref()
+                        .ok_or_else(|| anyhow::anyhow!("No active server configured"))?;
+
+                    let servers = app
+                        .config
+                        .servers
+                        .as_ref()
+                        .ok_or_else(|| anyhow::anyhow!("No servers configured"))?;
+
+                    let server = servers
+                        .iter()
+                        .find(|s| &s.name == active_server_name)
+                        .ok_or_else(|| {
+                            anyhow::anyhow!(
+                                "Active server '{active_server_name}' not found in configuration"
+                            )
+                        })?;
+
+                    OpenItem::Config(server.endpoint.clone())
+                } else {
+                    item
+                };
+
+                let url = client.build_open_url(&final_item)?;
+                webbrowser::open(&url).unwrap();
             }
         }
+
+        // Reset loading state at the end
+        {
+            let mut app = self.app.lock().unwrap();
+            app.loading = false;
+        }
+
         Ok(())
     }
 
     pub fn switch_airflow_client(&mut self, idx: usize) {
         let selected_config = self.app.lock().unwrap().configs.filtered.items[idx].clone();
-        self.client = Some(AirFlowClient::from(&selected_config));
+        self.client = crate::airflow::client::create_client(&selected_config).ok();
 
         let mut app = self.app.lock().unwrap();
         app.config.active_server = Some(selected_config.name.clone());
@@ -403,7 +414,7 @@ impl Worker {
 
     pub async fn run(&mut self) -> Result<()> {
         loop {
-            if let Some(message) = self.rx_worker.recv().await {
+            if let Some(message) = self.rx.recv().await {
                 // tokio::spawn(async move {
                 //     self.process_message(message).await;
                 // }); //TODO: check how we can send messages to a pool of workers

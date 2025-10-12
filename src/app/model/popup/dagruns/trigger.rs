@@ -43,18 +43,11 @@ impl Model for TriggerDagRunPopUp {
                                 dag_id: self.dag_id.clone(),
                             }],
                         );
-                    } else {
-                        return (Some(FlowrsEvent::Key(*key_event)), vec![]);
                     }
+                    return (Some(FlowrsEvent::Key(*key_event)), vec![]);
                 }
-                KeyCode::Char('j')
-                | KeyCode::Down
-                | KeyCode::Char('k')
-                | KeyCode::Up
-                | KeyCode::Char('h')
-                | KeyCode::Left
-                | KeyCode::Char('l')
-                | KeyCode::Right => {
+                KeyCode::Char('j' | 'k' | 'h' | 'l') | KeyCode::Down | KeyCode::Up |
+KeyCode::Left | KeyCode::Right => {
                     // For any movement vim key, we toggle the confirm flag, and we consume the event
                     self.confirm = !self.confirm;
                     return (None, vec![]);
@@ -120,10 +113,10 @@ impl Widget for &mut TriggerDagRunPopUp {
             );
 
         let no_text = Paragraph::new("No")
-            .style(if !self.confirm {
-                DEFAULT_STYLE.reversed()
-            } else {
+            .style(if self.confirm {
                 DEFAULT_STYLE
+            } else {
+                DEFAULT_STYLE.reversed()
             })
             .centered()
             .block(

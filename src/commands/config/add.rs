@@ -6,7 +6,9 @@ use strum::IntoEnumIterator;
 
 use super::model::AddCommand;
 use crate::{
-    airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
+    airflow::config::{
+        AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenCmd,
+    },
     commands::config::model::{validate_endpoint, ConfigOption},
 };
 use anyhow::Result;
@@ -17,6 +19,15 @@ impl AddCommand {
         let endpoint = inquire::Text::new("endpoint")
             .with_validator(validate_endpoint)
             .prompt()?;
+
+        let version_str = inquire::Select::new("Airflow version", vec!["v2", "v3"])
+            .with_help_message("Select the Airflow API version")
+            .prompt()?;
+
+        let version = match version_str {
+            "v3" => AirflowVersion::V3,
+            _ => AirflowVersion::V2,
+        };
 
         let auth_type =
             Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
@@ -33,13 +44,14 @@ impl AddCommand {
                     endpoint,
                     auth: AirflowAuth::Basic(BasicAuth { username, password }),
                     managed: None,
+                    version,
                 }
             }
             ConfigOption::Token(_) => {
                 let cmd = Some(inquire::Text::new("cmd").prompt()?);
                 let token: String;
                 if let Some(cmd) = &cmd {
-                    info!("🔑 Running command: {}", cmd);
+                    info!("🔑 Running command: {cmd}");
                     let output = std::process::Command::new("sh")
                         .arg("-c")
                         .arg(cmd)
@@ -58,12 +70,19 @@ impl AddCommand {
                         token: Some(token),
                     }),
                     managed: None,
+                    version,
                 }
             }
         };
 
-        let path = self.file.as_deref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(&path)?;
+        let path = self.file.as_ref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+
+        // If the user provided a custom path, override the config path so write_to_file
+        // uses the user-specified location even if it didn't exist during from_file
+        if let Some(user_path) = path {
+            config.path = Some(user_path);
+        }
 
         if let Some(mut servers) = config.servers.clone() {
             servers.retain(|server| server.name != new_config.name && server.managed.is_none());

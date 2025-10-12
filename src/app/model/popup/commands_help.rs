@@ -28,18 +28,22 @@ impl Widget for &CommandPopUp<'_> {
 
         Clear.render(popup_area, buf);
 
-        let text = Text::from_iter(self.commands.iter().map(|c| {
-            Line::from(vec![
-                Span::styled(
-                    format!("<{}>: ", c.key_binding),
-                    Style::default().add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(
-                    format!("{} - {}", c.name, c.description),
-                    Style::default().dark_gray(),
-                ),
-            ])
-        }));
+        let text = self
+            .commands
+            .iter()
+            .map(|c| {
+                Line::from(vec![
+                    Span::styled(
+                        format!("<{}>: ", c.key_binding),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!("{} - {}", c.name, c.description),
+                        Style::default().dark_gray(),
+                    ),
+                ])
+            })
+            .collect::<Text>();
 
         let command_paragraph = Paragraph::new(text).wrap(Wrap { trim: true }).block(popup);
         command_paragraph.render(popup_area, buf);

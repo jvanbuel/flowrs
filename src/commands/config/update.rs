@@ -15,7 +15,7 @@ use anyhow::Result;
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(&path)?;
+        let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
         if config.servers.is_none() {
             println!("❌ No servers found in config file");
@@ -65,7 +65,7 @@ impl UpdateCommand {
                 let cmd = Some(inquire::Text::new("cmd").prompt()?);
                 let token: String;
                 if let Some(cmd) = &cmd {
-                    info!("🔑 Running command: {}", cmd);
+                    info!("🔑 Running command: {cmd}");
                     let output = std::process::Command::new(cmd)
                         .output()
                         .expect("failed to execute process");
@@ -78,7 +78,7 @@ impl UpdateCommand {
                     token: Some(token),
                 });
             }
-        };
+        }
 
         config.servers = Some(servers);
         config.write_to_file()?;

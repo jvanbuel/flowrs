@@ -9,8 +9,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
-use crate::airflow::model::dag::Dag;
-use crate::airflow::model::dagstats::DagStatistic;
+use crate::airflow::model::common::{Dag, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
@@ -57,7 +56,7 @@ impl DagModel {
                 .collect::<Vec<Dag>>(),
             None => &self.all,
         };
-        self.filtered.items = filtered_dags.to_vec();
+        self.filtered.items = filtered_dags.clone();
     }
 
     pub fn current(&mut self) -> Option<&mut Dag> {
@@ -108,7 +107,7 @@ impl Model for DagModel {
                     return (None, vec![]);
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc | KeyCode::Char('?') => {
+                        KeyCode::Char('q' | '?') | KeyCode::Esc => {
                             self.commands = None;
                         }
                         _ => (),
@@ -152,7 +151,7 @@ impl Model for DagModel {
                         KeyCode::Enter => {
                             if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone())
                             {
-                                debug!("Selected dag: {}", selected_dag);
+                                debug!("Selected dag: {selected_dag}");
                                 return (
                                     Some(FlowrsEvent::Key(*key_event)),
                                     vec![WorkerMessage::UpdateDagRuns {
@@ -160,11 +159,10 @@ impl Model for DagModel {
                                         clear: true,
                                     }],
                                 );
-                            } else {
-                                self.error_popup = Some(ErrorPopup::from_strings(vec![
-                                    "No DAG selected to view DAG Runs".to_string(),
-                                ]));
                             }
+                            self.error_popup = Some(ErrorPopup::from_strings(vec![
+                                "No DAG selected to view DAG Runs".to_string(),
+                            ]));
                         }
                         KeyCode::Char('g') => {
                             if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
@@ -186,11 +184,10 @@ impl Model for DagModel {
                                         dag_id: dag.dag_id.clone(),
                                     })],
                                 );
-                            } else {
-                                self.error_popup = Some(ErrorPopup::from_strings(vec![
-                                    "No DAG selected to open in the browser".to_string(),
-                                ]));
                             }
+                            self.error_popup = Some(ErrorPopup::from_strings(vec![
+                                "No DAG selected to open in the browser".to_string(),
+                            ]));
                         }
                         _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                     }
@@ -198,7 +195,7 @@ impl Model for DagModel {
                 }
                 (None, vec![])
             }
-            _ => (Some(event.clone()), vec![]),
+            FlowrsEvent::Mouse => (Some(event.clone()), vec![]),
         }
     }
 }
@@ -240,12 +237,8 @@ impl Widget for &mut DagModel {
                         Style::default().add_modifier(Modifier::BOLD),
                     )),
                     Line::from(item.owners.join(", ")),
-                    if let Some(schedule) = &item.schedule_interval {
-                        Line::from(schedule.value.clone().unwrap_or_else(|| "None".to_string()))
-                    } else {
-                        Line::from("None")
-                    }
-                    .style(Style::default().fg(Color::LightYellow)),
+                    Line::from(item.timetable_description.as_deref().unwrap_or("None"))
+                        .style(Style::default().fg(Color::LightYellow)),
                     Line::from(if let Some(date) = item.next_dagrun_create_after {
                         convert_datetimeoffset_to_human_readable_remaining_time(date)
                     } else {
@@ -335,6 +328,7 @@ fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
 fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -> String {
     let now = OffsetDateTime::now_utc();
     let duration = dt.unix_timestamp() - now.unix_timestamp();
+    #[allow(clippy::cast_sign_loss)]
     let duration = if duration < 0 { 0 } else { duration as u64 };
     let days = duration / (24 * 3600);
     let hours = (duration % (24 * 3600)) / 3600;
@@ -342,10 +336,10 @@ fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -
     let seconds = duration % 60;
 
     match duration {
-        0..=59 => format!("{}s", seconds),
-        60..=3599 => format!("{}m", minutes),
-        3600..=86_399 => format!("{}h {:02}m", hours, minutes),
-        _ => format!("{}d {:02}h {:02}m", days, hours, minutes),
+        0..=59 => format!("{seconds}s"),
+        60..=3599 => format!("{minutes}m"),
+        3600..=86_399 => format!("{hours}h {minutes:02}m"),
+        _ => format!("{days}d {hours:02}h {minutes:02}m"),
     }
 }
 

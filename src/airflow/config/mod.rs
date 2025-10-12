@@ -12,6 +12,22 @@ use super::managed_services::conveyor::get_conveyor_environment_servers;
 use crate::CONFIG_FILE;
 use anyhow::Result;
 
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
+pub enum AirflowVersion {
+    #[default]
+    V2,
+    V3,
+}
+
+impl AirflowVersion {
+    pub fn api_path(&self) -> &str {
+        match self {
+            AirflowVersion::V2 => "api/v1",
+            AirflowVersion::V3 => "api/v2",
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, ValueEnum, EnumIter)]
 pub enum ManagedService {
     Conveyor,
@@ -46,6 +62,8 @@ pub struct AirflowConfig {
     pub endpoint: String,
     pub auth: crate::airflow::config::AirflowAuth,
     pub managed: Option<ManagedService>,
+    #[serde(default)]
+    pub version: AirflowVersion,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -74,9 +92,9 @@ impl Default for FlowrsConfig {
 }
 
 impl FlowrsConfig {
-    /// Creates a new FlowrsConfig with default values.
+    /// Creates a new `FlowrsConfig` with default values.
     ///
-    /// Returns a FlowrsConfig with:
+    /// Returns a `FlowrsConfig` with:
     /// - No servers configured
     /// - No managed services
     /// - No active server
@@ -89,21 +107,28 @@ impl FlowrsConfig {
             path: Some(CONFIG_FILE.as_path().to_path_buf()),
         }
     }
-    pub fn from_file(config_path: &Option<PathBuf>) -> Result<Self> {
+
+    pub fn from_file(config_path: Option<&PathBuf>) -> Result<Self> {
         let path = config_path
-            .clone()
             .filter(|p| p.exists())
-            .unwrap_or_else(|| CONFIG_FILE.as_path().to_path_buf());
+            .cloned()
+            .unwrap_or_else(|| {
+                // No valid path was provided by the user, use the default path
+                let default_path = CONFIG_FILE.as_path().to_path_buf();
+                info!("Using configuration path: {}", default_path.display());
+                default_path
+            });
 
         // If no config at the default path, return an empty (default) config
         let toml_config = std::fs::read_to_string(&path).unwrap_or_default();
         let mut config = Self::from_str(&toml_config)?;
-        config.path = Some(path.to_path_buf());
+        config.path = Some(path.clone());
         Ok(config)
     }
+
     pub fn from_str(config: &str) -> Result<Self> {
         let mut config: FlowrsConfig = toml::from_str(config)?;
-        info!("Config: {:?}", config);
+        info!("Config: {config:?}");
 
         // This should not happen here, but when the App has started
         if config.managed_services.is_none() {
@@ -133,13 +158,13 @@ impl FlowrsConfig {
                     }
                 }
             }
-            info!("Updated Config: {:?}", config);
+            info!("Updated Config: {config:?}");
             Ok(config)
         }
     }
 
     pub fn to_str(&self) -> Result<String> {
-        toml::to_string(self).map_err(|e| e.into())
+        toml::to_string(self).map_err(std::convert::Into::into)
     }
 
     pub fn write_to_file(&mut self) -> Result<()> {
@@ -175,7 +200,7 @@ mod tests {
         name = "test"
         endpoint = "http://localhost:8080"
 
-        [servers.auth.BasicAuth]
+        [servers.auth.Basic]
         username = "airflow"
         password = "airflow"
         "#;
@@ -188,19 +213,21 @@ mod tests {
         assert_eq!(servers[0].name, "test");
     }
 
-    const TEST_CONFIG_CONVEYOR: &str = r#"managed_services = ["Conveyor"]
+    const TEST_CONFIG_CONVEYOR: &str = r#"
+managed_services = ["Conveyor"]
 
 [[servers]]
 name = "bla"
 endpoint = "http://localhost:8080"
+version = "V2"
 
-[servers.auth.BasicAuth]
+[servers.auth.Basic]
 username = "airflow"
 password = "airflow"
     "#;
     #[test]
     fn test_get_config_conveyor() {
-        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR).unwrap();
+        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR.trim()).unwrap();
         let services = result.managed_services.unwrap();
         assert_eq!(services.len(), 1);
         assert_eq!(services[0], ManagedService::Conveyor);
@@ -217,6 +244,7 @@ password = "airflow"
                     password: "airflow".to_string(),
                 }),
                 managed: None,
+                version: AirflowVersion::V2,
             }]),
             managed_services: Some(vec![ManagedService::Conveyor]),
             active_server: None,
@@ -229,7 +257,8 @@ password = "airflow"
 
     #[test]
     fn non_existing_path() {
-        let config = FlowrsConfig::from_file(&Some(PathBuf::from("non-existing.toml")));
+        let path = PathBuf::from("non-existing.toml");
+        let config = FlowrsConfig::from_file(Some(&path));
         assert!(config.is_ok());
 
         let config = config.unwrap();
@@ -238,7 +267,7 @@ password = "airflow"
 
     #[test]
     fn none_path() {
-        let config = FlowrsConfig::from_file(&None);
+        let config = FlowrsConfig::from_file(None);
         assert!(config.is_ok());
 
         let config = config.unwrap();
