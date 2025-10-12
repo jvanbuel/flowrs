@@ -26,6 +26,37 @@ pub struct DagRunList {
 
 // From trait implementations for v1 models
 impl From<crate::airflow::model::v1::dagrun::DAGRunResponse> for DagRun {
+    /// Converts a v1 `DAGRunResponse` into the common `DagRun` representation.
+    ///
+    /// The resulting `DagRun` copies the corresponding fields from the v1 response and sets
+    /// `external_trigger` to `Some(value.external_trigger)`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::airflow::model::v1::dagrun::DAGRunResponse;
+    /// use crate::airflow::model::common::dagrun::DagRun;
+    ///
+    /// let v1 = DAGRunResponse {
+    ///     dag_id: "example".into(),
+    ///     dag_run_id: Some("r1".into()),
+    ///     logical_date: None,
+    ///     data_interval_end: None,
+    ///     data_interval_start: None,
+    ///     end_date: None,
+    ///     start_date: None,
+    ///     last_scheduling_decision: None,
+    ///     run_type: "manual".into(),
+    ///     state: "running".into(),
+    ///     note: None,
+    ///     external_trigger: false,
+    /// };
+    ///
+    /// let common: DagRun = v1.into();
+    /// assert_eq!(common.dag_id, "example");
+    /// assert_eq!(common.dag_run_id, "r1");
+    /// assert_eq!(common.external_trigger, Some(false));
+    /// ```
     fn from(value: crate::airflow::model::v1::dagrun::DAGRunResponse) -> Self {
         DagRun {
             dag_id: value.dag_id,
@@ -45,6 +76,18 @@ impl From<crate::airflow::model::v1::dagrun::DAGRunResponse> for DagRun {
 }
 
 impl From<crate::airflow::model::v1::dagrun::DAGRunCollectionResponse> for DagRunList {
+    /// Converts a v1 `DAGRunCollectionResponse` into a `DagRunList`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::airflow::model::v1::dagrun::DAGRunCollectionResponse;
+    /// use crate::airflow::model::common::dagrun::DagRunList;
+    ///
+    /// let v1 = DAGRunCollectionResponse { dag_runs: vec![], total_entries: 0 };
+    /// let list: DagRunList = v1.into();
+    /// assert_eq!(list.total_entries, 0);
+    /// ```
     fn from(value: crate::airflow::model::v1::dagrun::DAGRunCollectionResponse) -> Self {
         DagRunList {
             dag_runs: value.dag_runs.into_iter().map(|dr| dr.into()).collect(),
@@ -55,6 +98,24 @@ impl From<crate::airflow::model::v1::dagrun::DAGRunCollectionResponse> for DagRu
 
 // From trait implementations for v2 models
 impl From<crate::airflow::model::v2::dagrun::DagRun> for DagRun {
+    /// Converts a v2 `DagRun` into the common `DagRun` representation.
+    ///
+    /// The v2 fields are mapped directly; the `external_trigger` field is set to `None` on the resulting common `DagRun`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // Construct a v2 DagRun (fields shown illustratively; actual construction may vary)
+    /// let v2 = crate::airflow::model::v2::dagrun::DagRun {
+    ///     dag_id: "example".to_string(),
+    ///     dag_run_id: "run_1".to_string(),
+    ///     ..Default::default()
+    /// };
+    /// let common: crate::airflow::model::common::dagrun::DagRun = v2.into();
+    /// assert_eq!(common.dag_id, "example");
+    /// assert_eq!(common.dag_run_id, "run_1");
+    /// assert_eq!(common.external_trigger, None);
+    /// ```
     fn from(value: crate::airflow::model::v2::dagrun::DagRun) -> Self {
         DagRun {
             dag_id: value.dag_id,
@@ -74,6 +135,18 @@ impl From<crate::airflow::model::v2::dagrun::DagRun> for DagRun {
 }
 
 impl From<crate::airflow::model::v2::dagrun::DagRunList> for DagRunList {
+    /// Converts a v2 `DagRunList` into the common `DagRunList` representation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::airflow::model::v2::dagrun::DagRunList as V2DagRunList;
+    /// use crate::airflow::model::common::dagrun::DagRunList;
+    ///
+    /// let v2 = V2DagRunList { dag_runs: vec![], total_entries: 0 };
+    /// let common: DagRunList = v2.into();
+    /// assert_eq!(common.total_entries, 0);
+    /// ```
     fn from(value: crate::airflow::model::v2::dagrun::DagRunList) -> Self {
         DagRunList {
             dag_runs: value.dag_runs.into_iter().map(|dr| dr.into()).collect(),

@@ -35,6 +35,18 @@ pub struct TaskInstanceList {
 
 // From trait implementations for v1 models
 impl From<crate::airflow::model::v1::taskinstance::TaskInstanceResponse> for TaskInstance {
+    /// Convert a v1 `TaskInstanceResponse` into the shared `TaskInstance` representation.
+    ///
+    /// The conversion maps each field from the v1 response into the corresponding field of the
+    /// common `TaskInstance`, wrapping values in `Option` where the common model expects them.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // Given a v1 response `resp`, convert it into the shared model:
+    /// // let resp: crate::airflow::model::v1::taskinstance::TaskInstanceResponse = ...;
+    /// // let ti: crate::airflow::shared::TaskInstance = resp.into();
+    /// ```
     fn from(value: crate::airflow::model::v1::taskinstance::TaskInstanceResponse) -> Self {
         TaskInstance {
             task_id: value.task_id,
@@ -63,6 +75,18 @@ impl From<crate::airflow::model::v1::taskinstance::TaskInstanceResponse> for Tas
 }
 
 impl From<crate::airflow::model::v1::taskinstance::TaskInstanceCollectionResponse> for TaskInstanceList {
+    /// Convert a v1 `TaskInstanceCollectionResponse` into the shared `TaskInstanceList`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let v1 = crate::airflow::model::v1::taskinstance::TaskInstanceCollectionResponse {
+    ///     task_instances: Vec::new(),
+    ///     total_entries: 0,
+    /// };
+    /// let list: crate::mymodule::TaskInstanceList = v1.into();
+    /// assert_eq!(list.total_entries, 0);
+    /// ```
     fn from(value: crate::airflow::model::v1::taskinstance::TaskInstanceCollectionResponse) -> Self {
         TaskInstanceList {
             task_instances: value.task_instances.into_iter().map(|ti| ti.into()).collect(),
@@ -73,6 +97,42 @@ impl From<crate::airflow::model::v1::taskinstance::TaskInstanceCollectionRespons
 
 // From trait implementations for v2 models
 impl From<crate::airflow::model::v2::taskinstance::TaskInstance> for TaskInstance {
+    /// Convert a v2 Airflow `TaskInstance` into the shared `TaskInstance` model.
+    ///
+    /// Returns a `TaskInstance` populated with the corresponding fields from the provided v2 model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::airflow::model::v2::taskinstance as v2;
+    /// // construct a v2 TaskInstance (fields omitted for brevity)
+    /// let v2_ti = v2::TaskInstance {
+    ///     task_id: "task".to_string(),
+    ///     dag_id: "dag".to_string(),
+    ///     dag_run_id: "run".to_string(),
+    ///     logical_date: None,
+    ///     start_date: None,
+    ///     end_date: None,
+    ///     duration: None,
+    ///     state: None,
+    ///     try_number: 0,
+    ///     max_tries: 0,
+    ///     map_index: -1,
+    ///     hostname: None,
+    ///     unixname: None,
+    ///     pool: String::new(),
+    ///     pool_slots: 0,
+    ///     queue: None,
+    ///     priority_weight: None,
+    ///     operator: None,
+    ///     queued_when: None,
+    ///     pid: None,
+    ///     note: None,
+    /// };
+    ///
+    /// let common: crate::airflow::shared::taskinstance::TaskInstance = v2_ti.into();
+    /// assert_eq!(common.task_id, "task");
+    /// ```
     fn from(value: crate::airflow::model::v2::taskinstance::TaskInstance) -> Self {
         TaskInstance {
             task_id: value.task_id,
@@ -101,6 +161,18 @@ impl From<crate::airflow::model::v2::taskinstance::TaskInstance> for TaskInstanc
 }
 
 impl From<crate::airflow::model::v2::taskinstance::TaskInstanceList> for TaskInstanceList {
+    /// Convert an Airflow v2 `TaskInstanceList` into the shared `TaskInstanceList` model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let v2 = crate::airflow::model::v2::taskinstance::TaskInstanceList {
+    ///     task_instances: vec![],
+    ///     total_entries: 0,
+    /// };
+    /// let list: super::TaskInstanceList = v2.into();
+    /// assert_eq!(list.total_entries, 0);
+    /// ```
     fn from(value: crate::airflow::model::v2::taskinstance::TaskInstanceList) -> Self {
         TaskInstanceList {
             task_instances: value.task_instances.into_iter().map(|ti| ti.into()).collect(),

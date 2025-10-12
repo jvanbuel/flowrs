@@ -20,6 +20,18 @@ pub enum AirflowVersion {
 }
 
 impl AirflowVersion {
+    /// Get the API path segment for the Airflow REST API corresponding to the version.
+    ///
+    /// # Returns
+    ///
+    /// The API path string: `"api/v1"` for `V2`, `"api/v2"` for `V3`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let p = AirflowVersion::V2.api_path();
+    /// assert_eq!(p, "api/v1");
+    /// ```
     pub fn api_path(&self) -> &str {
         match self {
             AirflowVersion::V2 => "api/v1",

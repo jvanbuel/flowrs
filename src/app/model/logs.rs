@@ -60,6 +60,26 @@ impl Default for LogModel {
 }
 
 impl Model for LogModel {
+    /// Handle an incoming `FlowrsEvent`, update internal state, and produce optional follow-up event and worker messages.
+    ///
+    /// This method processes tick and key events:
+    /// - On `Tick`, increments an internal tick counter and, every 10 ticks, requests task log updates when DAG/run/task/try context is set.
+    /// - On `Key`, if an error popup is shown only `q` or `Esc` closes it; otherwise supports cycling logs (h/l or Left/Right), scrolling (j/k or Down/Up),
+    ///   and opening the currently selected log (`o`) which emits an `OpenItem::Log` worker message. Unhandled keys are propagated back as the returned event.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(Option<FlowrsEvent>, Vec<WorkerMessage>)` where the first element is an event to propagate (or `None`) and the second element is a list of messages to send to workers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut model = LogModel::new();
+    /// // simulate a tick event
+    /// let (evt, msgs) = model.update(&FlowrsEvent::Tick);
+    /// // simulate a key press (propagated or handled)
+    /// let (evt2, msgs2) = model.update(&FlowrsEvent::Key(crossterm::event::KeyEvent::from(crossterm::event::KeyCode::Char('l'))));
+    /// ```
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {

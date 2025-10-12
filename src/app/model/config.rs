@@ -114,6 +114,25 @@ impl Model for ConfigModel {
 }
 
 impl Widget for &mut ConfigModel {
+    /// Renders the configuration table (and optional filter or commands popup) into the given drawing area.
+    ///
+    /// Displays a table of configurations with the headers "Name", "Endpoint", "Managed", and "Version".
+    /// If the model's filter is enabled, the filter UI is rendered in a small area and the table is allocated
+    /// the remaining space. The currently selected row is highlighted. If a commands popup is active, it is
+    /// rendered on top of the main area.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use ratatui::layout::Rect;
+    /// use ratatui::buffer::Buffer;
+    ///
+    /// // `model` is a mutable ConfigModel prepared elsewhere with items, filter, and commands as needed.
+    /// // The following demonstrates calling `render` to draw into a buffer for the area (0,0) size 80x24.
+    /// let mut model = /* obtain or construct a ConfigModel */ unimplemented!();
+    /// let mut buf = Buffer::empty(Rect::new(0, 0, 80, 24));
+    /// model.render(Rect::new(0, 0, 80, 24), &mut buf);
+    /// ```
     fn render(self, area: Rect, buf: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()

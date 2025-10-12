@@ -12,7 +12,24 @@ pub use base::BaseClient;
 pub use v1::V1Client;
 pub use v2::V2Client;
 
-/// Create an Airflow client based on the configuration version
+/// Create an Airflow client appropriate for the provided configuration version.
+///
+/// Returns an `Arc`-wrapped implementation of `AirflowClient` selected from the
+/// configured Airflow API version: `AirflowVersion::V2` yields a `V1Client` (uses API v1),
+/// and `AirflowVersion::V3` yields a `V2Client` (uses API v2).
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::Arc;
+/// use crate::airflow::config::{AirflowConfig, AirflowVersion};
+/// use crate::airflow::create_client;
+/// use crate::airflow::traits::AirflowClient;
+///
+/// // Construct `config` appropriately for your environment.
+/// let config = AirflowConfig { version: AirflowVersion::V2, ..Default::default() };
+/// let client: Arc<dyn AirflowClient> = create_client(config).unwrap();
+/// ```
 pub fn create_client(config: AirflowConfig) -> Result<Arc<dyn AirflowClient>> {
     let base = BaseClient::new(config.clone())?;
 

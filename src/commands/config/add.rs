@@ -12,6 +12,20 @@ use crate::{
 use anyhow::Result;
 
 impl AddCommand {
+    /// Adds a new Airflow server configuration by interactively prompting the user and persisting it to the configured file.
+    ///
+    /// Prompts for name, endpoint (validated), Airflow API version (v2 or v3), and authentication details (basic credentials or token). If a token command is provided it is executed to obtain the token. The new configuration replaces any existing non-managed server with the same name, is merged into the existing servers list, and the resulting configuration is written back to the file.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// let cmd = AddCommand { file: None };
+    /// cmd.run().unwrap();
+    /// ```
+    ///
+    /// # Returns
+    ///
+    /// `Ok(())` on success, an error otherwise.
     pub fn run(&self) -> Result<()> {
         let name = inquire::Text::new("name").prompt()?;
         let endpoint = inquire::Text::new("endpoint")

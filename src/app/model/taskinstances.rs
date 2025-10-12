@@ -264,6 +264,22 @@ impl Model for TaskInstanceModel {
     }
 }
 impl Widget for &mut TaskInstanceModel {
+    /// Renders the task-instances table into the provided buffer, including the optional filter UI and any active popups (clear/mark), the commands popup, and the error popup.
+    ///
+    /// The rendered table shows task id, execution date (uses `logical_date`), duration, state (as a colored indicator), and tries, with visual highlighting for the current selection and marked rows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::models::task_instance::TaskInstanceModel;
+    /// use tui::layout::Rect;
+    /// use tui::buffer::Buffer;
+    ///
+    /// let mut model = TaskInstanceModel::new();
+    /// let area = Rect::new(0, 0, 100, 10);
+    /// let mut buffer = Buffer::empty(area);
+    /// model.render(area, &mut buffer);
+    /// ```
     fn render(self, area: Rect, buffer: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()

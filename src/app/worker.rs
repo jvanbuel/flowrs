@@ -98,6 +98,22 @@ pub enum OpenItem {
 }
 
 impl Worker {
+    /// Constructs a Worker with shared application state, an optional Airflow client, and a message receiver.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::sync::Arc;
+    /// use tokio::sync::mpsc::channel;
+    /// use tokio::sync::Mutex;
+    ///
+    /// // Create placeholders for `App`, `WorkerMessage` and a client implementing `AirflowClientTrait`.
+    /// let app = Arc::new(Mutex::new(App::default()));
+    /// let (tx, rx) = channel::<WorkerMessage>(8);
+    /// let client: Option<Arc<dyn AirflowClientTrait>> = None;
+    ///
+    /// let worker = Worker::new(app, client, rx);
+    /// ```
     pub fn new(
         app: Arc<Mutex<App>>,
         client: Option<Arc<dyn AirflowClientTrait>>,
@@ -110,6 +126,24 @@ impl Worker {
         }
     }
 
+    /// Processes a single `WorkerMessage`, performing the requested Airflow client operations and updating shared application state or opening external URLs.
+    ///
+    /// This method dispatches the provided message to the configured Airflow client (if present). It updates the `App` inside `self.app` with results or error popups, performs optimistic local updates where appropriate, and opens the web browser for navigation messages. If no client is configured it will handle `ConfigSelected` to switch clients and otherwise return immediately.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if URL construction for `OpenItem` fails or if underlying client calls propagate an error type that is converted into the returned `anyhow::Error`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use tokio::runtime::Runtime;
+    /// // Assume `worker` is created elsewhere and is mutable.
+    /// // let mut worker = create_worker(...);
+    /// // Runtime::new().unwrap().block_on(async {
+    /// //     worker.process_message(WorkerMessage::UpdateDags).await.unwrap();
+    /// // });
+    /// ```
     pub async fn process_message(&mut self, message: WorkerMessage) -> Result<()> {
         if self.client.is_none() {
             if let WorkerMessage::ConfigSelected(idx) = message {
@@ -409,6 +443,27 @@ impl Worker {
         Ok(())
     }
 
+    /// Switches the worker's Airflow client to the configuration at the given index and resets application state.
+    
+    ///
+    
+    /// This replaces the current client with a new client created from the selected configuration, sets
+    
+    /// `app.config.active_server` to the selected config's name, and clears the app state.
+    
+    ///
+    
+    /// # Examples
+    
+    ///
+    
+    /// ```no_run
+    
+    /// // assuming `worker` is a mutable Worker with populated configs
+    
+    /// worker.switch_airflow_client(0);
+    
+    /// ```
     pub fn switch_airflow_client(&mut self, idx: usize) {
         let selected_config = self.app.lock().unwrap().configs.filtered.items[idx].clone();
         self.client = crate::airflow::client::create_client(selected_config.clone()).ok();

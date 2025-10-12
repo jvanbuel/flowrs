@@ -16,6 +16,38 @@ pub mod model;
 pub mod state;
 pub mod worker;
 
+/// Runs the terminal-based UI main loop and spawns a background worker for the application.
+///
+/// The function draws the UI, processes user and internal events, dispatches panel-specific
+/// updates to the shared application state, sends messages to the worker, and handles global
+/// keybindings (including quitting and writing config). It also creates an Airflow client
+/// from the currently active server (if any) and passes it to the spawned worker.
+///
+/// # Parameters
+///
+/// - `terminal`: terminal instance used for rendering the UI.
+/// - `app`: shared application state wrapped in `Arc<Mutex<_>>`.
+///
+/// # Returns
+///
+/// `Ok(())` when the UI loop exits normally; an error if a terminal draw or configuration write
+/// operation fails.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::{Arc, Mutex};
+/// use tokio;
+/// use ratatui::Terminal;
+/// // Assume `MyBackend` implements `ratatui::backend::Backend` and `App::new()` exists.
+/// #[tokio::main]
+/// async fn main() -> anyhow::Result<()> {
+///     let backend = MyBackend::new();
+///     let mut terminal = Terminal::new(backend)?;
+///     let app = Arc::new(Mutex::new(App::new()));
+///     run_app(&mut terminal, app).await
+/// }
+/// ```
 pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> Result<()> {
     let mut events = EventGenerator::new(200);
     let ui_app = app.clone();

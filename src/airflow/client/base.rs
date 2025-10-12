@@ -14,6 +14,18 @@ pub struct BaseClient {
 }
 
 impl BaseClient {
+    /// Creates a new BaseClient configured for Airflow API communication.
+    ///
+    /// The returned client uses rustls TLS and a 5-second request timeout.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::airflow::client::base::BaseClient;
+    /// # use crate::airflow::config::AirflowConfig;
+    /// let cfg = AirflowConfig::default();
+    /// let client = BaseClient::new(cfg).unwrap();
+    /// ```
     pub fn new(config: AirflowConfig) -> Result<Self> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
@@ -22,7 +34,25 @@ impl BaseClient {
         Ok(Self { client, config })
     }
 
-    /// Build a base request with authentication for the specified API version
+    /// Builds an authenticated `reqwest::RequestBuilder` for the specified API version and endpoint.
+    ///
+    /// The returned request is configured with authentication according to this client's `AirflowConfig`:
+    /// - Basic: HTTP basic auth with the configured username and password.
+    /// - Token: bearer token obtained from a provided token string or by executing a configured command.
+    /// - Conveyor: bearer token obtained from the Conveyor managed service.
+    ///
+    /// Returns a `reqwest::RequestBuilder` ready to be sent, or an error if the base URL cannot be parsed,
+    /// the endpoint URL cannot be constructed, or token retrieval fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use reqwest::Method;
+    /// # use crate::airflow::client::base::BaseClient;
+    /// # let client: BaseClient = unimplemented!();
+    /// let builder = client.base_api(Method::GET, "dags", "api/v1").unwrap();
+    /// let request = builder.build().unwrap();
+    /// ```
     pub fn base_api(
         &self,
         method: Method,
@@ -70,6 +100,14 @@ impl BaseClient {
 }
 
 impl From<&AirflowConfig> for BaseClient {
+    /// Creates a `BaseClient` by cloning the provided `AirflowConfig`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let config = AirflowConfig::default();
+    /// let client = BaseClient::from(&config);
+    /// ```
     fn from(config: &AirflowConfig) -> Self {
         Self::new(config.clone()).unwrap()
     }

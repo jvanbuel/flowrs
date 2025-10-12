@@ -8,6 +8,21 @@ use super::V2Client;
 
 #[async_trait]
 impl LogOperations for V2Client {
+    /// Fetches the full log for a specific task instance try from the Airflow v2 API.
+    ///
+    /// Returns the task instance log converted to the crate's `Log` type.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// # async fn example() -> anyhow::Result<()> {
+    /// // `client` is an initialized `V2Client`
+    /// let client = /* V2Client::new(...) */ unimplemented!();
+    /// let log = client.get_task_logs("example_dag", "example_run", "example_task", 1).await?;
+    /// // use `log`
+    /// # Ok(())
+    /// # }
+    /// ```
     async fn get_task_logs(
         &self,
         dag_id: &str,

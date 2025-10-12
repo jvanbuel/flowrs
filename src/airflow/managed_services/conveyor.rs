@@ -64,6 +64,22 @@ pub fn list_conveyor_environments() -> Result<Vec<ConveyorEnvironment>> {
     Ok(environments)
 }
 
+/// Builds an AirflowConfig list for each Conveyor environment discovered from Conveyor.
+///
+/// Each returned `AirflowConfig` contains the environment name, a constructed endpoint pointing
+/// to the environment's Airflow service, `AirflowAuth::Conveyor` authentication, `ManagedService::Conveyor`,
+/// and an `AirflowVersion` derived from the environment's `airflow_version` value (`V2` by default).
+///
+/// # Returns
+///
+/// A `Vec<AirflowConfig>` containing one config entry per Conveyor environment.
+///
+/// # Examples
+///
+/// ```no_run
+/// let configs = get_conveyor_environment_servers().unwrap();
+/// assert!(configs.len() >= 0);
+/// ```
 pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
     let environments = list_conveyor_environments()?;
     let api_endpoint = get_conveyor_api_endpoint()?;

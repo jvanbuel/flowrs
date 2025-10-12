@@ -39,6 +39,18 @@ pub struct Tag {
 
 // From trait implementations for v1 models
 impl From<crate::airflow::model::v1::dag::DagResponse> for Dag {
+    /// Convert a v1 `DagResponse` into the common `Dag` model.
+    ///
+    /// Maps fields from the v1 API response into the shared `Dag` representation, supplying sensible defaults for optional booleans and numeric limits and converting nested tags.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use crate::airflow::model::common::dag::Dag;
+    /// # use crate::airflow::model::v1::dag::DagResponse;
+    /// // given a `DagResponse` named `response`:
+    /// let dag: Dag = response.into();
+    /// ```
     fn from(value: crate::airflow::model::v1::dag::DagResponse) -> Self {
         Dag {
             dag_id: value.dag_id,
@@ -71,6 +83,18 @@ impl From<crate::airflow::model::v1::dag::DagResponse> for Dag {
 }
 
 impl From<crate::airflow::model::v1::dag::DagCollectionResponse> for DagList {
+    /// Converts a v1 `DagCollectionResponse` into the common `DagList`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let v1 = crate::airflow::model::v1::dag::DagCollectionResponse {
+    ///     dags: vec![],
+    ///     total_entries: 0,
+    /// };
+    /// let list: crate::airflow::model::common::dag::DagList = v1.into();
+    /// assert_eq!(list.total_entries, 0);
+    /// ```
     fn from(value: crate::airflow::model::v1::dag::DagCollectionResponse) -> Self {
         DagList {
             dags: value.dags.into_iter().map(|d| d.into()).collect(),
@@ -80,6 +104,18 @@ impl From<crate::airflow::model::v1::dag::DagCollectionResponse> for DagList {
 }
 
 impl From<crate::airflow::model::v1::dag::DagTagResponse> for Tag {
+    /// Create a common `Tag` from a v1 `DagTagResponse` by copying the `name` field.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::airflow::model::v1::dag::DagTagResponse;
+    /// use crate::airflow::model::common::dag::Tag;
+    ///
+    /// let src = DagTagResponse { name: "etl".to_string() };
+    /// let tag: Tag = src.into();
+    /// assert_eq!(tag.name, "etl");
+    /// ```
     fn from(value: crate::airflow::model::v1::dag::DagTagResponse) -> Self {
         Tag { name: value.name }
     }
@@ -87,6 +123,20 @@ impl From<crate::airflow::model::v1::dag::DagTagResponse> for Tag {
 
 // From trait implementations for v2 models
 impl From<crate::airflow::model::v2::dag::Dag> for Dag {
+    /// Converts a v2 `Dag` into the common `Dag` model.
+    ///
+    /// Copies identifiers, display name, description, file location, status flags, timing fields, concurrency limits, owners, tags, file token, and timetable description from the source `crate::airflow::model::v2::dag::Dag`. The resulting `Dag` sets `is_active` to `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use crate::airflow::model::v2::dag as v2;
+    /// // Construct a minimal v2 DAG (fields omitted for brevity; real code should populate required fields)
+    /// let v2_dag: v2::Dag = Default::default();
+    /// let common_dag: crate::airflow::model::common::dag::Dag = v2_dag.into();
+    /// // `is_active` is unset in the common model
+    /// assert_eq!(common_dag.is_active, None);
+    /// ```
     fn from(value: crate::airflow::model::v2::dag::Dag) -> Self {
         Dag {
             dag_id: value.dag_id,
@@ -114,6 +164,15 @@ impl From<crate::airflow::model::v2::dag::Dag> for Dag {
 }
 
 impl From<crate::airflow::model::v2::dag::DagList> for DagList {
+    /// Convert a v2 `DagList` into the common `DagList`, converting each contained DAG and preserving the entry count.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let v2 = crate::airflow::model::v2::dag::DagList { dags: vec![], total_entries: 0 };
+    /// let list: crate::airflow::model::common::dag::DagList = v2.into();
+    /// assert_eq!(list.total_entries, 0);
+    /// ```
     fn from(value: crate::airflow::model::v2::dag::DagList) -> Self {
         DagList {
             dags: value.dags.into_iter().map(|d| d.into()).collect(),
@@ -123,6 +182,15 @@ impl From<crate::airflow::model::v2::dag::DagList> for DagList {
 }
 
 impl From<crate::airflow::model::v2::dag::Tag> for Tag {
+    /// Converts a v2 `Tag` into the common `Tag` model.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let v2_tag = crate::airflow::model::v2::dag::Tag { name: "analytics".into() };
+    /// let common_tag: crate::airflow::model::common::dag::Tag = v2_tag.into();
+    /// assert_eq!(common_tag.name, "analytics");
+    /// ```
     fn from(value: crate::airflow::model::v2::dag::Tag) -> Self {
         Tag { name: value.name }
     }

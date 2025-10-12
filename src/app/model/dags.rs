@@ -203,6 +203,19 @@ impl Model for DagModel {
 }
 
 impl Widget for &mut DagModel {
+    /// Render the DAGs table (with headers, rows, selection) into the provided buffer and paint any active popups.
+    ///
+    /// The rendered table reflects the current filtered items, selection state, per-row alternating styles,
+    /// and includes the filter widget, commands popup, and error popup when active.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut model = DagModel::new();
+    /// let area = Rect::new(0, 0, 100, 20);
+    /// let mut buf = Buffer::empty(area);
+    /// model.render(area, &mut buf);
+    /// ```
     fn render(self, area: Rect, buf: &mut Buffer) {
         let rects = if self.filter.is_enabled() {
             let rects = Layout::default()
