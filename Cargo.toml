@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-tui"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
 license = "MIT"
@@ -19,6 +19,8 @@ formula = "flowrs"
 [dependencies]
 ansi-to-tui = { version = "7.0.0" }
 anyhow = "1.0.100"
+aws-config = { version = "1.8.8" }
+aws-sdk-mwaa = "1.92.0"
 backtrace = "0.3.76"
 chrono = "0.4.42"
 async-trait = "0.1.89"

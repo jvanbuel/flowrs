@@ -80,6 +80,13 @@ impl BaseClient {
                 let token: String = ConveyorClient::get_token()?;
                 Ok(self.client.request(method, url).bearer_auth(token))
             }
+            AirflowAuth::Mwaa(auth) => {
+                info!("🔑 MWAA Auth: {}", auth.environment_name);
+                Ok(self
+                    .client
+                    .request(method, url)
+                    .header("Cookie", format!("session={}", auth.session_cookie)))
+            }
         }
     }
 }
