@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1](https://github.com/jvanbuel/flowrs/compare/v0.2.0...v0.2.1) - 2025-10-13
+
+### Other
+
+- Merge pull request #428 from jvanbuel/dependabot/cargo/toml-0.9.8
+- *(deps)* bump regex from 1.11.3 to 1.12.1
+
 ## [0.1.17](https://github.com/jvanbuel/flowrs/compare/v0.1.16...v0.1.17) - 2025-10-08
 
 ### Fixed
