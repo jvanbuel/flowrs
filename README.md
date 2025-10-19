@@ -32,7 +32,7 @@ cargo install flowrs-tui --locked
 The easiest way to user `flowrs` is with a managed Airflow service. The currently supported managed services are:
 
 - [x] Conveyor
-- [ ] Amazon Managed Workflows for Apache Airflow (MWAA)
+- [x] Amazon Managed Workflows for Apache Airflow (MWAA)
 - [ ] Google Cloud Composer
 - [ ] Astronomer
 
