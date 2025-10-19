@@ -29,7 +29,12 @@ pub enum Panel {
 }
 
 impl App {
+    #[allow(dead_code)]
     pub fn new(config: FlowrsConfig) -> Self {
+        Self::new_with_errors(config, vec![])
+    }
+
+    pub fn new_with_errors(config: FlowrsConfig, errors: Vec<String>) -> Self {
         let servers = &config.clone().servers.unwrap_or_default();
         let active_server = if let Some(active_server) = &config.active_server {
             servers.iter().find(|server| server.name == *active_server)
@@ -39,7 +44,7 @@ impl App {
         App {
             config,
             dags: DagModel::new(),
-            configs: ConfigModel::new(servers.clone()),
+            configs: ConfigModel::new_with_errors(servers.clone(), errors),
             dagruns: DagRunModel::new(),
             task_instances: TaskInstanceModel::new(),
             logs: LogModel::new(),

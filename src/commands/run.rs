@@ -26,13 +26,13 @@ impl RunCommand {
 
         // Read config file
         let path = self.file.as_ref().map(PathBuf::from);
-        let config = FlowrsConfig::from_file(path.as_ref())?
+        let (config, errors) = FlowrsConfig::from_file(path.as_ref())?
             .expand_managed_services()
             .await?;
 
         // setup terminal (includes panic hooks) and run app
         let mut terminal = ratatui::init();
-        let app = App::new(config);
+        let app = App::new_with_errors(config, errors);
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
 
         info!("Shutting down the terminal...");

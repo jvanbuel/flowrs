@@ -34,9 +34,11 @@ The easiest way to user `flowrs` is with a managed Airflow service. The currentl
 - [x] Conveyor
 - [x] Amazon Managed Workflows for Apache Airflow (MWAA)
 - [ ] Google Cloud Composer
-- [ ] Astronomer
+- [x] Astronomer
 
 To enable a managed service, run `flowrs config enable -m <service>`. This will add the configuration for the managed service to your configuration file, or prompt you for the necessary configuration details. On startup `flowrs` will then try to find and connect to all available managed service's Airflow instances.
+
+Note that for Astronomer, you need to set the `ASTRO_API_TOKEN` environment variable with your Astronomer API token (Organization, Workspace or Deployment) to be able to connect to the service.
 
 ### Custom Airflow instances
 

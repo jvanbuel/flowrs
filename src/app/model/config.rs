@@ -13,6 +13,7 @@ use crate::ui::constants::{ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
+use super::popup::error::ErrorPopup;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::ui::common::create_headers;
 
@@ -21,6 +22,7 @@ pub struct ConfigModel {
     pub filtered: StatefulTable<AirflowConfig>,
     pub filter: Filter,
     pub commands: Option<&'static CommandPopUp<'static>>,
+    pub error_popup: Option<ErrorPopup>,
 }
 
 impl ConfigModel {
@@ -30,6 +32,23 @@ impl ConfigModel {
             filtered: StatefulTable::new(configs),
             filter: Filter::new(),
             commands: None,
+            error_popup: None,
+        }
+    }
+
+    pub fn new_with_errors(configs: Vec<AirflowConfig>, errors: Vec<String>) -> Self {
+        let error_popup = if errors.is_empty() {
+            None
+        } else {
+            Some(ErrorPopup::from_strings(errors))
+        };
+
+        ConfigModel {
+            all: configs.clone(),
+            filtered: StatefulTable::new(configs),
+            filter: Filter::new(),
+            commands: None,
+            error_popup,
         }
     }
 
@@ -58,6 +77,13 @@ impl Model for ConfigModel {
                     self.filter.update(key_event);
                     self.filter_configs();
                     return (None, vec![]);
+                } else if self.error_popup.is_some() {
+                    match key_event.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            self.error_popup = None;
+                        }
+                        _ => (),
+                    }
                 } else if let Some(_commands) = &mut self.commands {
                     match key_event.code {
                         KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter => {
@@ -180,6 +206,10 @@ impl Widget for &mut ConfigModel {
 
         if let Some(commands) = &self.commands {
             commands.render(area, buf);
+        }
+
+        if let Some(error_popup) = &self.error_popup {
+            error_popup.render(area, buf);
         }
     }
 }

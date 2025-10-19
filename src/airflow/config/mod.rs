@@ -8,6 +8,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
+use super::managed_services::astronomer::get_astronomer_environment_servers;
 use super::managed_services::conveyor::get_conveyor_environment_servers;
 use super::managed_services::mwaa::get_mwaa_environment_servers;
 use crate::CONFIG_FILE;
@@ -73,6 +74,7 @@ pub enum AirflowAuth {
     Token(TokenCmd),
     Conveyor,
     Mwaa(super::managed_services::mwaa::MwaaAuth),
+    Astronomer(super::managed_services::astronomer::AstronomerAuth),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -139,12 +141,25 @@ impl FlowrsConfig {
         Ok(config)
     }
 
+    fn extend_servers<I>(&mut self, new_servers: I)
+    where
+        I: IntoIterator<Item = AirflowConfig>,
+    {
+        match &mut self.servers {
+            Some(existing) => existing.extend(new_servers),
+            None => self.servers = Some(new_servers.into_iter().collect()),
+        }
+    }
+
     /// Expands the config by resolving managed services and adding their servers.
     /// This is an async convenience function that should be called after `from_file`/`from_str`
     /// when you need to resolve managed service environments.
-    pub async fn expand_managed_services(mut self) -> Result<Self> {
+    /// Returns a tuple of (config, errors) where errors contains any non-fatal errors encountered.
+    pub async fn expand_managed_services(mut self) -> Result<(Self, Vec<String>)> {
+        let mut all_errors = Vec::new();
+
         if self.managed_services.is_none() {
-            return Ok(self);
+            return Ok((self, all_errors));
         }
 
         let services = self.managed_services.clone().unwrap();
@@ -152,26 +167,16 @@ impl FlowrsConfig {
             match service {
                 ManagedService::Conveyor => {
                     let conveyor_servers = get_conveyor_environment_servers()?;
-                    if self.servers.is_none() {
-                        self.servers = Some(conveyor_servers);
-                    } else {
-                        let mut existing_servers = self.servers.clone().unwrap();
-                        existing_servers.extend(conveyor_servers);
-                        self.servers = Some(existing_servers);
-                    }
+                    self.extend_servers(conveyor_servers);
                 }
                 ManagedService::Mwaa => {
                     let mwaa_servers = get_mwaa_environment_servers().await?;
-                    if self.servers.is_none() {
-                        self.servers = Some(mwaa_servers);
-                    } else {
-                        let mut existing_servers = self.servers.clone().unwrap();
-                        existing_servers.extend(mwaa_servers);
-                        self.servers = Some(existing_servers);
-                    }
+                    self.extend_servers(mwaa_servers);
                 }
                 ManagedService::Astronomer => {
-                    log::warn!("ManagedService::Astronomer expansion not implemented; skipping");
+                    let (astronomer_servers, errors) = get_astronomer_environment_servers().await;
+                    all_errors.extend(errors);
+                    self.extend_servers(astronomer_servers);
                 }
                 ManagedService::Gcc => {
                     log::warn!("ManagedService::Gcc (Google Cloud Composer) expansion not implemented; skipping");
@@ -179,8 +184,11 @@ impl FlowrsConfig {
             }
         }
         let total = self.servers.as_ref().map_or(0, std::vec::Vec::len);
-        info!("Expanded config: servers={total}");
-        Ok(self)
+        info!(
+            "Expanded config: servers={total}, errors={}",
+            all_errors.len()
+        );
+        Ok((self, all_errors))
     }
 
     pub fn to_str(&self) -> Result<String> {
