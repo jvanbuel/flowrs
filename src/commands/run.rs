@@ -43,7 +43,9 @@ impl RunCommand {
 
         // create app and run it
         let path = self.file.as_ref().map(PathBuf::from);
-        let config = FlowrsConfig::from_file(path.as_ref())?;
+        let config = FlowrsConfig::from_file(path.as_ref())?
+            .expand_managed_services()
+            .await?;
         let app = App::new(config);
 
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;

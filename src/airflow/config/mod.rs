@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
 use super::managed_services::conveyor::get_conveyor_environment_servers;
+use super::managed_services::mwaa::get_mwaa_environment_servers;
 use crate::CONFIG_FILE;
 use anyhow::Result;
 
@@ -71,6 +72,7 @@ pub enum AirflowAuth {
     Basic(BasicAuth),
     Token(TokenCmd),
     Conveyor,
+    Mwaa(super::managed_services::mwaa::MwaaAuth),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -127,40 +129,58 @@ impl FlowrsConfig {
     }
 
     pub fn from_str(config: &str) -> Result<Self> {
-        let mut config: FlowrsConfig = toml::from_str(config)?;
-        info!("Config: {config:?}");
+        let config: FlowrsConfig = toml::from_str(config)?;
+        let num_serves = config.servers.as_ref().map_or(0, std::vec::Vec::len);
+        let num_managed = config
+            .managed_services
+            .as_ref()
+            .map_or(0, std::vec::Vec::len);
+        info!("Loaded config: servers={num_serves}, managed_services={num_managed}");
+        Ok(config)
+    }
 
-        // This should not happen here, but when the App has started
-        if config.managed_services.is_none() {
-            Ok(config)
-        } else {
-            let services = config.managed_services.clone().unwrap();
-            for service in services {
-                match service {
-                    ManagedService::Conveyor => {
-                        let conveyor_servers = get_conveyor_environment_servers()?;
-                        if config.servers.is_none() {
-                            config.servers = Some(conveyor_servers);
-                        } else {
-                            let mut existing_servers = config.servers.clone().unwrap();
-                            existing_servers.extend(conveyor_servers);
-                            config.servers = Some(existing_servers);
-                        }
-                    }
-                    ManagedService::Mwaa => {
-                        todo!();
-                    }
-                    ManagedService::Astronomer => {
-                        todo!();
-                    }
-                    ManagedService::Gcc => {
-                        todo!();
+    /// Expands the config by resolving managed services and adding their servers.
+    /// This is an async convenience function that should be called after `from_file`/`from_str`
+    /// when you need to resolve managed service environments.
+    pub async fn expand_managed_services(mut self) -> Result<Self> {
+        if self.managed_services.is_none() {
+            return Ok(self);
+        }
+
+        let services = self.managed_services.clone().unwrap();
+        for service in services {
+            match service {
+                ManagedService::Conveyor => {
+                    let conveyor_servers = get_conveyor_environment_servers()?;
+                    if self.servers.is_none() {
+                        self.servers = Some(conveyor_servers);
+                    } else {
+                        let mut existing_servers = self.servers.clone().unwrap();
+                        existing_servers.extend(conveyor_servers);
+                        self.servers = Some(existing_servers);
                     }
                 }
+                ManagedService::Mwaa => {
+                    let mwaa_servers = get_mwaa_environment_servers().await?;
+                    if self.servers.is_none() {
+                        self.servers = Some(mwaa_servers);
+                    } else {
+                        let mut existing_servers = self.servers.clone().unwrap();
+                        existing_servers.extend(mwaa_servers);
+                        self.servers = Some(existing_servers);
+                    }
+                }
+                ManagedService::Astronomer => {
+                    log::warn!("ManagedService::Astronomer expansion not implemented; skipping");
+                }
+                ManagedService::Gcc => {
+                    log::warn!("ManagedService::Gcc (Google Cloud Composer) expansion not implemented; skipping");
+                }
             }
-            info!("Updated Config: {config:?}");
-            Ok(config)
         }
+        let total = self.servers.as_ref().map_or(0, std::vec::Vec::len);
+        info!("Expanded config: servers={total}");
+        Ok(self)
     }
 
     pub fn to_str(&self) -> Result<String> {
