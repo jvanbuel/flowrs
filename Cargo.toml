@@ -55,7 +55,7 @@ throbber-widgets-tui = "0.9.0"
 tokio = { version = "1.47.1", features = ["full"] }
 toml = "0.9.8"
 url = "2.5.7"
-webbrowser = "1.0.5"
+webbrowser = "1.0.6"
 
 [dev-dependencies]
 mockito = "1.7.0"
