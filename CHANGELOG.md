@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1](https://github.com/jvanbuel/flowrs/compare/v0.3.0...v0.3.1) - 2025-10-22
+
+### Fixed
+
+- use built-in panic hooks of ratatui to restore terminal after panic
+
+### Other
+
+- *(deps)* bump regex from 1.12.1 to 1.12.2
+- Merge pull request #434 from jvanbuel/dependabot/cargo/webbrowser-1.0.6
+- Merge pull request #433 from jvanbuel/dependabot/cargo/clap-4.5.49
+- Merge pull request #436 from jvanbuel/dependabot/cargo/reqwest-0.12.24
+- *(deps)* bump reqwest from 0.12.23 to 0.12.24
+- Update support status for MWAA in README
+
 ## [0.1.17](https://github.com/jvanbuel/flowrs/compare/v0.1.16...v0.1.17) - 2025-10-08
 
 ### Fixed
