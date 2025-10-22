@@ -1,17 +1,8 @@
-use std::panic::PanicHookInfo;
+use std::fs::File;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::{
-    fs::File,
-    io::{self},
-};
 
 use clap::Parser;
-use crossterm::{
-    event::DisableMouseCapture,
-    execute,
-    terminal::{disable_raw_mode, LeaveAlternateScreen},
-};
 use log::{info, LevelFilter};
 use simplelog::{Config, WriteLogger};
 
@@ -33,12 +24,7 @@ impl RunCommand {
             setup_logging(&log_level)?;
         }
 
-        // setup panic hook
-        std::panic::set_hook(Box::new(move |panic| {
-            panic_hook(panic);
-        }));
-
-        // setup terminal
+        // setup terminal (includes panic hooks)
         let mut terminal = ratatui::init();
 
         // create app and run it
@@ -69,45 +55,6 @@ fn setup_logging(log_level: &str) -> Result<()> {
         _ => LevelFilter::Info,
     };
 
-    WriteLogger::init(
-        log_level,
-        Config::default(),
-        File::create(log_file).unwrap(),
-    )?;
+    WriteLogger::init(log_level, Config::default(), File::create(log_file)?)?;
     Ok(())
-}
-
-// #[cfg(debug_assertions)]
-fn panic_hook(info: &PanicHookInfo<'_>) {
-    use backtrace::Backtrace;
-    use crossterm::style::Print;
-
-    let (msg, location) = get_panic_info(info);
-
-    let stacktrace: String = format!("{:?}", Backtrace::new()).replace('\n', "\n\r");
-
-    disable_raw_mode().unwrap();
-    execute!(
-        io::stdout(),
-        LeaveAlternateScreen,
-        DisableMouseCapture,
-        Print(format!(
-            "thread '<unnamed>' panicked at '{msg}', {location}\n\r{stacktrace}"
-        )),
-    )
-    .unwrap();
-}
-
-fn get_panic_info(info: &PanicHookInfo<'_>) -> (String, String) {
-    let location = info.location().unwrap();
-
-    let msg = match info.payload().downcast_ref::<&'static str>() {
-        Some(s) => *s,
-        None => match info.payload().downcast_ref::<String>() {
-            Some(s) => &s[..],
-            None => "Box<Any>",
-        },
-    };
-
-    (msg.to_string(), format!("{location}"))
 }
