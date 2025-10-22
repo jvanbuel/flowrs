@@ -87,6 +87,13 @@ impl BaseClient {
                     .request(method, url)
                     .header("Cookie", format!("session={}", auth.session_cookie)))
             }
+            AirflowAuth::Astronomer(auth) => {
+                info!("🔑 Astronomer Auth");
+                Ok(self
+                    .client
+                    .request(method, url)
+                    .bearer_auth(&auth.api_token))
+            }
         }
     }
 }

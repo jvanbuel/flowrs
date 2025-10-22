@@ -72,47 +72,6 @@ Deploy Apache Airflow using Google Cloud Composer.
 
 See [gcp/README.md](gcp/README.md) for more information.
 
-## Quick Start
-
-### AWS Deployment
-
-```bash
-cd aws
-terraform init
-terraform plan
-terraform apply
-```
-
-See the AWS README for detailed configuration options and connecting to flowrs.
-
-### Other Platforms
-
-Other platforms are not yet implemented. Check the respective README files for status updates and planned features.
-
-## Connecting to flowrs
-
-After deploying an Airflow environment, you can add it to flowrs:
-
-```bash
-flowrs config add \
-  --name my-airflow \
-  --url <airflow-webserver-url> \
-  --auth-type <basic|token> \
-  [additional auth options]
-```
-
-For detailed connection instructions for each platform, see the platform-specific README files.
-
-## Architecture Considerations
-
-When choosing a platform, consider:
-
-- **Cost**: MWAA and Cloud Composer have base costs even when idle
-- **Scalability**: Cloud-native solutions auto-scale better
-- **Control**: Self-hosted (Astronomer Software) gives more control
-- **Maintenance**: Managed services reduce operational overhead
-- **Integration**: Choose based on existing cloud infrastructure
-
 ## Contributing
 
 To add a new platform:
