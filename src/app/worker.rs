@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::airflow::{model::common::Dag, traits::AirflowClient as AirflowClientTrait};
+use crate::airflow::model::common::Dag;
 
 use super::model::popup::error::ErrorPopup;
 use super::model::popup::taskinstances::mark::MarkState as taskMarkState;
@@ -13,7 +13,6 @@ use tokio::sync::mpsc::Receiver;
 
 pub struct Worker {
     app: Arc<Mutex<App>>,
-    client: Option<Arc<dyn AirflowClientTrait>>,
     rx: Receiver<WorkerMessage>,
 }
 
@@ -98,16 +97,8 @@ pub enum OpenItem {
 }
 
 impl Worker {
-    pub fn new(
-        app: Arc<Mutex<App>>,
-        client: Option<Arc<dyn AirflowClientTrait>>,
-        rx_worker: Receiver<WorkerMessage>,
-    ) -> Self {
-        Worker {
-            app,
-            client,
-            rx: rx_worker,
-        }
+    pub fn new(app: Arc<Mutex<App>>, rx_worker: Receiver<WorkerMessage>) -> Self {
+        Worker { app, rx: rx_worker }
     }
 
     pub async fn process_message(&mut self, message: WorkerMessage) -> Result<()> {
@@ -117,24 +108,36 @@ impl Worker {
             app.loading = true;
         }
 
-        if self.client.is_none() {
-            if let WorkerMessage::ConfigSelected(idx) = message {
-                self.switch_airflow_client(idx);
-            }
+        // Get the active client from the environment state
+        let client = {
+            let app = self.app.lock().unwrap();
+            app.environment_state.get_active_client()
+        };
+
+        if client.is_none() {
             // Reset loading state before returning
             let mut app = self.app.lock().unwrap();
+            app.dags.error_popup = Some(ErrorPopup::from_strings(vec![
+                "No active environment selected".into(),
+            ]));
             app.loading = false;
             return Ok(());
         }
-        let client = self.client.as_ref().unwrap();
+        let client = client.unwrap();
         match message {
             WorkerMessage::UpdateDags => {
                 let dag_list = client.list_dags().await;
                 let mut app = self.app.lock().unwrap();
                 match dag_list {
                     Ok(dag_list) => {
-                        app.dags.all = dag_list.dags;
-                        app.dags.filter_dags();
+                        // Store DAGs in the environment state
+                        if let Some(env) = app.environment_state.get_active_environment_mut() {
+                            for dag in &dag_list.dags {
+                                env.upsert_dag(dag.clone());
+                            }
+                        }
+                        // Sync panel data from environment state
+                        app.sync_panel_data();
                     }
                     Err(e) => {
                         app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
@@ -151,16 +154,20 @@ impl Worker {
             WorkerMessage::ConfigSelected(idx) => {
                 self.switch_airflow_client(idx);
             }
-            WorkerMessage::UpdateDagRuns { dag_id, clear } => {
+            WorkerMessage::UpdateDagRuns { dag_id, clear: _ } => {
                 let dag_runs = client.list_dagruns(&dag_id).await;
                 let mut app = self.app.lock().unwrap();
-                if clear {
-                    app.dagruns.dag_id = Some(dag_id);
-                }
+                // Note: dag_id is already set in the event loop before this runs
                 match dag_runs {
                     Ok(dag_runs) => {
-                        app.dagruns.all = dag_runs.dag_runs;
-                        app.dagruns.filter_dag_runs();
+                        // Store DAG runs in the environment state
+                        if let Some(env) = app.environment_state.get_active_environment_mut() {
+                            for dag_run in &dag_runs.dag_runs {
+                                env.upsert_dag_run(dag_run.clone());
+                            }
+                        }
+                        // Sync panel data from environment state to refresh with new API data
+                        app.sync_panel_data();
                     }
                     Err(e) => {
                         app.dagruns.error_popup =
@@ -171,18 +178,21 @@ impl Worker {
             WorkerMessage::UpdateTaskInstances {
                 dag_id,
                 dag_run_id,
-                clear,
+                clear: _,
             } => {
                 let task_instances = client.list_task_instances(&dag_id, &dag_run_id).await;
                 let mut app = self.app.lock().unwrap();
-                if clear {
-                    app.task_instances.dag_run_id = Some(dag_run_id);
-                    app.task_instances.dag_id = Some(dag_id);
-                }
+                // Note: dag_id and dag_run_id are already set in the event loop before this runs
                 match task_instances {
                     Ok(task_instances) => {
-                        app.task_instances.all = task_instances.task_instances;
-                        app.task_instances.filter_task_instances();
+                        // Store task instances in the environment state
+                        if let Some(env) = app.environment_state.get_active_environment_mut() {
+                            for task_instance in &task_instances.task_instances {
+                                env.upsert_task_instance(task_instance.clone());
+                            }
+                        }
+                        // Sync panel data from environment state to refresh with new API data
+                        app.sync_panel_data();
                     }
 
                     Err(e) => {
@@ -193,33 +203,36 @@ impl Worker {
                 }
             }
             WorkerMessage::GetDagCode { dag_id } => {
-                let current_dag: Dag;
+                let current_dag: Option<Dag>;
                 {
                     let app = self.app.lock().unwrap();
-                    current_dag = app
-                        .dags
-                        .get_dag_by_id(&dag_id)
-                        .expect("Dag not found")
-                        .clone();
+                    current_dag = app.environment_state.get_active_dag(&dag_id);
                 }
 
-                let dag_code = client.get_dag_code(&current_dag).await;
-                let mut app = self.app.lock().unwrap();
-                match dag_code {
-                    Ok(dag_code) => {
-                        app.dagruns.dag_code.set_code(&dag_code);
+                if let Some(current_dag) = current_dag {
+                    let dag_code = client.get_dag_code(&current_dag).await;
+                    let mut app = self.app.lock().unwrap();
+                    match dag_code {
+                        Ok(dag_code) => {
+                            app.dagruns.dag_code.set_code(&dag_code);
+                        }
+                        Err(e) => {
+                            app.dags.error_popup =
+                                Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                        }
                     }
-                    Err(e) => {
-                        app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
-                    }
+                } else {
+                    let mut app = self.app.lock().unwrap();
+                    app.dags.error_popup =
+                        Some(ErrorPopup::from_strings(vec!["DAG not found".to_string()]));
                 }
             }
             WorkerMessage::UpdateDagStats { clear } => {
                 let dag_ids = {
                     let app = self.app.lock().unwrap();
                     let dag_ids = app
-                        .dags
-                        .all
+                        .environment_state
+                        .get_active_dags()
                         .iter()
                         .map(|dag| dag.dag_id.clone())
                         .collect::<Vec<_>>();
@@ -257,7 +270,7 @@ impl Worker {
                 dag_run_id,
                 task_id,
                 task_try,
-                clear,
+                clear: _,
             } => {
                 debug!("Getting logs for task: {task_id}, try number {task_try}");
                 let logs = join_all(
@@ -267,20 +280,15 @@ impl Worker {
                 )
                 .await;
 
-                if clear {
-                    let mut app = self.app.lock().unwrap();
-                    app.logs.dag_id = Some(dag_id);
-                    app.logs.dag_run_id = Some(dag_run_id);
-                    app.logs.task_id = Some(task_id);
-                }
+                // Note: dag_id, dag_run_id, and task_id are already set in the event loop before this runs
 
                 let mut app = self.app.lock().unwrap();
-                app.logs.all.clear();
+                let mut collected_logs = Vec::new();
                 for log in logs {
                     match log {
                         Ok(log) => {
                             debug!("Got log: {log:?}");
-                            app.logs.all.push(log);
+                            collected_logs.push(log);
                         }
                         Err(e) => {
                             debug!("Error getting logs: {e}");
@@ -289,6 +297,16 @@ impl Worker {
                         }
                     }
                 }
+
+                // Store logs in the environment state
+                if !collected_logs.is_empty() {
+                    if let Some(env) = app.environment_state.get_active_environment_mut() {
+                        env.add_task_logs(&dag_id, &dag_run_id, &task_id, collected_logs);
+                    }
+                }
+
+                // Sync panel data from environment state to refresh with new API data
+                app.sync_panel_data();
             }
             WorkerMessage::MarkDagRun {
                 dag_run_id,
@@ -404,12 +422,29 @@ impl Worker {
     }
 
     pub fn switch_airflow_client(&mut self, idx: usize) {
-        let selected_config = self.app.lock().unwrap().configs.filtered.items[idx].clone();
-        self.client = crate::airflow::client::create_client(&selected_config).ok();
-
         let mut app = self.app.lock().unwrap();
-        app.config.active_server = Some(selected_config.name.clone());
+        let selected_config = app.configs.filtered.items[idx].clone();
+        let env_name = selected_config.name.clone();
+
+        // Check if environment already exists, if not create it
+        if !app.environment_state.environments.contains_key(&env_name) {
+            if let Ok(client) = crate::airflow::client::create_client(&selected_config) {
+                let env_data = crate::app::environment_state::EnvironmentData::new(client);
+                app.environment_state
+                    .add_environment(env_name.clone(), env_data);
+            }
+        }
+
+        // Set this as the active environment
+        app.environment_state
+            .set_active_environment(env_name.clone());
+        app.config.active_server = Some(env_name);
+
+        // Clear the view state but NOT the environment data
         app.clear_state();
+
+        // Sync panel data from the new environment
+        app.sync_panel_data();
     }
 
     pub async fn run(&mut self) -> Result<()> {

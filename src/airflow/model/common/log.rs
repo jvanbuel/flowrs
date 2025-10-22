@@ -3,7 +3,7 @@ use crate::airflow::client::v1;
 use crate::airflow::client::v2;
 
 /// Common Log model used by the application
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Log {
     pub continuation_token: Option<String>,
     pub content: String,
