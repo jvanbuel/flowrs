@@ -123,6 +123,10 @@ fn get_conveyor_api_endpoint() -> Result<String> {
     let profiles_config: ConveyorProfiles =
         toml::from_str(&profiles_content).context("Failed to parse profiles.toml")?;
 
+    if profiles_config.activeprofile.as_str() == "default" {
+        return Ok("https://app.conveyordata.com".to_string());
+    }
+
     let active_profile = profiles_config
         .profiles
         .get(&profiles_config.activeprofile)

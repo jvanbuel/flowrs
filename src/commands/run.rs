@@ -24,16 +24,15 @@ impl RunCommand {
             setup_logging(&log_level)?;
         }
 
-        // setup terminal (includes panic hooks)
-        let mut terminal = ratatui::init();
-
-        // create app and run it
+        // Read config file
         let path = self.file.as_ref().map(PathBuf::from);
         let config = FlowrsConfig::from_file(path.as_ref())?
             .expand_managed_services()
             .await?;
-        let app = App::new(config);
 
+        // setup terminal (includes panic hooks) and run app
+        let mut terminal = ratatui::init();
+        let app = App::new(config);
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
 
         info!("Shutting down the terminal...");
