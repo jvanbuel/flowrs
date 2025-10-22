@@ -11,6 +11,7 @@ use worker::{Worker, WorkerMessage};
 
 use crate::{airflow::client::create_client, ui::draw_ui};
 
+pub mod environment_state;
 pub mod events;
 pub mod model;
 pub mod state;
@@ -23,28 +24,39 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
 
     let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
 
-    log::info!("Starting worker");
-    let airflow_client;
+    log::info!("Initializing environment state");
     {
-        let app = app.lock().unwrap();
-        let previously_active_server = &app.config.active_server;
-        let airflow_config = match previously_active_server {
-            Some(server) => app
-                .config
-                .servers
-                .as_ref()
-                .and_then(|servers| servers.iter().find(|s| s.name == *server)),
-            _ => None,
-        };
-        airflow_client = airflow_config.and_then(|config| create_client(config).ok());
+        let mut app = app.lock().unwrap();
+
+        // Clone servers to avoid borrow checker issues
+        let servers = app.config.servers.clone();
+        let active_server_name = app.config.active_server.clone();
+
+        // Initialize all environments with their clients
+        if let Some(servers) = servers {
+            for server_config in servers {
+                if let Ok(client) = create_client(&server_config) {
+                    let env_data = environment_state::EnvironmentData::new(client);
+                    app.environment_state
+                        .add_environment(server_config.name.clone(), env_data);
+                } else {
+                    log::error!(
+                        "Failed to create client for server '{}'; skipping",
+                        server_config.name
+                    );
+                }
+            }
+        }
+
+        // Set the active environment if one was configured
+        if let Some(active_server_name) = active_server_name {
+            app.environment_state
+                .set_active_environment(active_server_name);
+        }
     }
 
     log::info!("Spawning worker");
-    tokio::spawn(async move {
-        Worker::new(worker_app, airflow_client, rx_worker)
-            .run()
-            .await
-    });
+    tokio::spawn(async move { Worker::new(worker_app, rx_worker).run().await });
 
     loop {
         terminal.draw(|f| {
@@ -65,8 +77,62 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
                 }
             };
 
+            // Process messages and sync cached data immediately
+            for message in &messages {
+                // Set context IDs and sync cached data before worker processes the message
+                {
+                    let mut app = app.lock().unwrap();
+                    match message {
+                        WorkerMessage::UpdateDagRuns { dag_id, clear } => {
+                            if *clear {
+                                app.dagruns.dag_id = Some(dag_id.clone());
+                                // Sync cached data immediately
+                                app.dagruns.all = app.environment_state.get_active_dag_runs(dag_id);
+                                app.dagruns.filter_dag_runs();
+                            }
+                        }
+                        WorkerMessage::UpdateTaskInstances {
+                            dag_id,
+                            dag_run_id,
+                            clear,
+                        } => {
+                            if *clear {
+                                app.task_instances.dag_id = Some(dag_id.clone());
+                                app.task_instances.dag_run_id = Some(dag_run_id.clone());
+                                // Sync cached data immediately
+                                app.task_instances.all = app
+                                    .environment_state
+                                    .get_active_task_instances(dag_id, dag_run_id);
+                                app.task_instances.filter_task_instances();
+                            }
+                        }
+                        WorkerMessage::UpdateTaskLogs {
+                            dag_id,
+                            dag_run_id,
+                            task_id,
+                            clear,
+                            ..
+                        } => {
+                            if *clear {
+                                app.logs.dag_id = Some(dag_id.clone());
+                                app.logs.dag_run_id = Some(dag_run_id.clone());
+                                app.logs.task_id = Some(task_id.clone());
+                                // Sync cached data immediately
+                                app.logs.all = app
+                                    .environment_state
+                                    .get_active_task_logs(dag_id, dag_run_id, task_id);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            // Now send messages to worker for async processing
             for message in messages {
-                tx_worker.send(message).await.unwrap();
+                if let Err(e) = tx_worker.send(message).await {
+                    log::error!("Failed to send message to worker: {e}");
+                }
             }
             if fall_through_event.is_none() {
                 continue;
@@ -105,8 +171,14 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
                         app.config.write_to_file()?;
                         return Ok(());
                     }
-                    KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => app.next_panel(),
-                    KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.previous_panel(),
+                    KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
+                        app.next_panel();
+                        app.sync_panel_data();
+                    }
+                    KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => {
+                        app.previous_panel();
+                        app.sync_panel_data();
+                    }
                     _ => {}
                 }
             }
