@@ -53,7 +53,7 @@ impl ConfigModel {
     }
 
     pub fn filter_configs(&mut self) {
-        let prefix = &self.filter.prefix;
+        let prefix = self.filter.prefix();
         let dags = &self.all;
         let filtered_configs = match prefix {
             Some(prefix) => self
