@@ -56,7 +56,7 @@ impl TaskInstanceModel {
     }
 
     pub fn filter_task_instances(&mut self) {
-        let prefix = &self.filter.prefix;
+        let prefix = self.filter.prefix();
         let filtered_task_instances = match prefix {
             Some(prefix) => &self
                 .all
@@ -67,6 +67,30 @@ impl TaskInstanceModel {
             None => &self.all,
         };
         self.filtered.items = filtered_task_instances.clone();
+    }
+
+    fn update_autocomplete_candidates(&mut self) {
+        // Get the search prefix from the filter's state machine
+        let prefix = match self.filter.search_prefix() {
+            Some(p) if !p.is_empty() => p,
+            _ => {
+                self.filter.set_autocomplete_candidates(Vec::new());
+                return;
+            }
+        };
+
+        // Get all task_ids that start with the current prefix, sorted alphabetically
+        let mut candidates: Vec<String> = self
+            .all
+            .iter()
+            .map(|task_instance| task_instance.task_id.clone())
+            .filter(|task_id| task_id.starts_with(prefix))
+            .collect();
+
+        candidates.sort();
+        candidates.dedup();
+
+        self.filter.set_autocomplete_candidates(candidates);
     }
 
     #[allow(dead_code)]
@@ -114,7 +138,10 @@ impl Model for TaskInstanceModel {
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
-                    self.filter.update(key_event);
+                    let should_update_candidates = self.filter.update(key_event);
+                    if should_update_candidates {
+                        self.update_autocomplete_candidates();
+                    }
                     self.filter_task_instances();
                     return (None, vec![]);
                 } else if let Some(_error_popup) = &mut self.error_popup {
