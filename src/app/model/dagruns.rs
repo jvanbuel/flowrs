@@ -84,16 +84,18 @@ impl DagRunModel {
 
     pub fn filter_dag_runs(&mut self) {
         let prefix = &self.filter.prefix;
-        let filtered_dag_runs = match prefix {
-            Some(prefix) => &self
+        let mut filtered_dag_runs = match prefix {
+            Some(prefix) => self
                 .all
                 .iter()
                 .filter(|dagrun| dagrun.dag_run_id.contains(prefix))
                 .cloned()
                 .collect::<Vec<DagRun>>(),
-            None => &self.all,
+            None => self.all.clone(),
         };
-        self.filtered.items = filtered_dag_runs.clone();
+        // Sort by start_date in descending order (most recent first)
+        filtered_dag_runs.sort_by(|a, b| b.start_date.cmp(&a.start_date));
+        self.filtered.items = filtered_dag_runs;
     }
 
     pub fn current(&self) -> Option<&DagRun> {
