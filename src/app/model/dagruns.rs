@@ -82,6 +82,84 @@ impl DagRunModel {
         }
     }
 
+    /// Calculate duration in seconds for a DAG run
+    /// Returns None if `start_date` is not available
+    fn calculate_duration(dag_run: &DagRun) -> Option<f64> {
+        let start = dag_run.start_date?;
+        let end = dag_run
+            .end_date
+            .unwrap_or_else(time::OffsetDateTime::now_utc);
+        Some((end - start).as_seconds_f64())
+    }
+
+    /// Format duration as human-readable string (e.g., "2h 30m", "45s", "1d 3h")
+    fn format_duration(seconds: f64) -> String {
+        if seconds < 60.0 {
+            format!("{seconds:.0}s")
+        } else if seconds < 3600.0 {
+            let minutes = (seconds / 60.0).floor();
+            let secs = (seconds % 60.0).floor();
+            if secs > 0.0 {
+                format!("{minutes:.0}m {secs:.0}s")
+            } else {
+                format!("{minutes:.0}m")
+            }
+        } else if seconds < 86400.0 {
+            let hours = (seconds / 3600.0).floor();
+            let minutes = ((seconds % 3600.0) / 60.0).floor();
+            if minutes > 0.0 {
+                format!("{hours:.0}h {minutes:.0}m")
+            } else {
+                format!("{hours:.0}h")
+            }
+        } else {
+            let days = (seconds / 86400.0).floor();
+            let hours = ((seconds % 86400.0) / 3600.0).floor();
+            if hours > 0.0 {
+                format!("{days:.0}d {hours:.0}h")
+            } else {
+                format!("{days:.0}d")
+            }
+        }
+    }
+
+    /// Create a text-based duration gauge line
+    /// The gauge will normalize durations to show relative progress within visible items
+    fn create_duration_gauge(
+        duration_seconds: f64,
+        max_duration: f64,
+        color: ratatui::style::Color,
+        width: usize,
+    ) -> Line<'static> {
+        const FILLED_CHAR: &str = "─";
+        const EMPTY_CHAR: &str = "─";
+
+        // Calculate the ratio (0.0 to 1.0)
+        let ratio = if max_duration > 0.0 {
+            (duration_seconds / max_duration).min(1.0)
+        } else {
+            0.0
+        };
+
+        // Calculate how many characters should be filled
+        #[allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            clippy::cast_precision_loss
+        )]
+        let filled_width = (ratio * width as f64).round() as usize;
+        let empty_width = width.saturating_sub(filled_width);
+
+        // Create the gauge string
+        let filled = FILLED_CHAR.repeat(filled_width);
+        let empty = EMPTY_CHAR.repeat(empty_width);
+
+        Line::from(vec![
+            Span::styled(filled, Style::default().fg(color).bold()),
+            Span::styled(empty, Style::default().fg(color).dim()),
+        ])
+    }
+
     pub fn filter_dag_runs(&mut self) {
         let prefix = self.filter.prefix();
         let mut filtered_dag_runs = match prefix {
@@ -378,12 +456,59 @@ impl Widget for &mut DagRunModel {
                 .split(area)
         };
 
-        let headers = ["State", "DAG Run ID", "Logical Date", "Type"];
+        let headers = [
+            "State",
+            "Start Date",
+            "Logical Date",
+            "Trigger",
+            "Duration",
+            "Time",
+        ];
         let header_row = create_headers(headers);
         let header =
             Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
 
+        // Calculate max duration for normalization
+        let max_duration = self
+            .filtered
+            .items
+            .iter()
+            .filter_map(DagRunModel::calculate_duration)
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or(1.0);
+
+        // Calculate the width available for the Duration column
+        // Total width - borders(2) - state(5) - start_date(20) - logical_date(20) - trigger(11) - time(10) - column spacing(10)
+        let table_inner_width = rects[0].width.saturating_sub(2); // Subtract borders
+        let fixed_columns_width = 5 + 20 + 20 + 11 + 10 + 10; // State + Start Date + Logical Date + Trigger + Time + spacing between columns
+        let gauge_width = table_inner_width
+            .saturating_sub(fixed_columns_width)
+            .max(10) as usize;
+
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
+            let state_color = match item.state.as_str() {
+                "success" => AirflowStateColor::Success.into(),
+                "running" => AirflowStateColor::Running.into(),
+                "failed" => AirflowStateColor::Failed.into(),
+                "queued" => AirflowStateColor::Queued.into(),
+                _ => AirflowStateColor::None.into(),
+            };
+
+            let (duration_cell, time_cell) =
+                if let Some(duration) = DagRunModel::calculate_duration(item) {
+                    (
+                        DagRunModel::create_duration_gauge(
+                            duration,
+                            max_duration,
+                            state_color,
+                            gauge_width,
+                        ),
+                        Line::from(DagRunModel::format_duration(duration)),
+                    )
+                } else {
+                    (Line::from("-"), Line::from("-"))
+                };
+
             Row::new(vec![
                 Line::from(match item.state.as_str() {
                     "success" => {
@@ -400,10 +525,13 @@ impl Widget for &mut DagRunModel {
                     }
                     _ => Span::styled("■", DEFAULT_STYLE.fg(AirflowStateColor::None.into())),
                 }),
-                Line::from(Span::styled(
-                    item.dag_run_id.as_str(),
-                    Style::default().add_modifier(Modifier::BOLD),
-                )),
+                Line::from(if let Some(date) = item.start_date {
+                    date.format(&format_description::parse(TIME_FORMAT).unwrap())
+                        .unwrap()
+                        .clone()
+                } else {
+                    "None".to_string()
+                }),
                 Line::from(if let Some(date) = item.logical_date {
                     date.format(&format_description::parse(TIME_FORMAT).unwrap())
                         .unwrap()
@@ -412,6 +540,8 @@ impl Widget for &mut DagRunModel {
                     "None".to_string()
                 }),
                 Line::from(item.run_type.as_str()),
+                duration_cell,
+                time_cell,
             ])
             .style(if self.marked.contains(&idx) {
                 DEFAULT_STYLE.bg(MARKED_COLOR)
@@ -424,10 +554,12 @@ impl Widget for &mut DagRunModel {
         let t = Table::new(
             rows,
             &[
-                Constraint::Length(6),
-                Constraint::Fill(1),
-                Constraint::Length(20),
-                Constraint::Length(11),
+                Constraint::Length(5),  // State
+                Constraint::Length(20), // Start Date
+                Constraint::Length(20), // Logical Date
+                Constraint::Length(11), // Trigger type
+                Constraint::Fill(1),    // Duration gauge (expands)
+                Constraint::Length(10), // Time (formatted duration)
             ],
         )
         .header(header)
