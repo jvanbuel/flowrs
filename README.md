@@ -49,3 +49,35 @@ If you're self-hosting an Airflow instance, or your favorite managed service is 
 This creates an entry in a `~/.flowrs` configuration file. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` configuration screen.
 
 Only basic authentication and bearer token authentication are supported. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
+
+## Development
+
+### Building from Source
+
+To build `flowrs` from source:
+
+```bash
+cargo build --release
+```
+
+### Checking Dependencies
+
+To check if dependencies are up to date, use the provided Makefile target:
+
+```bash
+make check-deps
+```
+
+This will automatically install `cargo-outdated` if not already present and display any outdated dependencies.
+
+Alternatively, you can use `cargo-outdated` directly:
+
+```bash
+cargo install cargo-outdated
+cargo outdated --root-deps-only
+```
+
+Dependencies are automatically monitored via:
+- **Dependabot**: Configured for weekly updates
+- **GitHub Actions**: Weekly dependency check workflow that creates issues for outdated dependencies
+

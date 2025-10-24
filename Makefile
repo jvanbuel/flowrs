@@ -20,3 +20,8 @@ rotating_logo:
 
 run:
 	FLOWRS_LOG=debug cargo run
+
+check-deps:
+	@echo "Checking for outdated dependencies..."
+	@which cargo-outdated > /dev/null 2>&1 || (echo "Installing cargo-outdated..." && cargo install cargo-outdated --locked)
+	@cargo outdated --root-deps-only

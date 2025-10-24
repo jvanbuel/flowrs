@@ -1,0 +1,93 @@
+name: Dependency Check
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-outdated:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install cargo-outdated
+        run: cargo install cargo-outdated --locked
+
+      - name: Check for outdated dependencies
+        id: outdated
+        run: |
+          echo "Checking for outdated dependencies..."
+          cargo outdated --root-deps-only --format json > outdated.json
+          cat outdated.json
+          
+          # Check if there are any outdated dependencies
+          if jq -e '.dependencies | length > 0' outdated.json > /dev/null; then
+            echo "has_outdated=true" >> $GITHUB_OUTPUT
+            echo "### Outdated Dependencies Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The following dependencies have newer versions available:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Package | Current | Latest | Kind |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------|---------|--------|------|" >> $GITHUB_STEP_SUMMARY
+            jq -r '.dependencies[] | "| \(.name) | \(.project) | \(.latest) | \(.kind) |"' outdated.json >> $GITHUB_STEP_SUMMARY
+          else
+            echo "has_outdated=false" >> $GITHUB_OUTPUT
+            echo "✅ All dependencies are up to date!" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Create or update issue
+        if: steps.outdated.outputs.has_outdated == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create a formatted issue body
+          {
+            echo "## Outdated Dependencies Detected"
+            echo ""
+            echo "The following dependencies have newer versions available:"
+            echo ""
+            echo "| Package | Current | Latest | Kind |"
+            echo "|---------|---------|--------|------|"
+            jq -r '.dependencies[] | "| \(.name) | \(.project) | \(.latest) | \(.kind) |"' outdated.json
+            echo ""
+            echo "---"
+            echo ""
+            echo "Please review and update these dependencies. Note that Dependabot is configured for weekly updates,"
+            echo "but this check provides visibility into all outdated dependencies."
+            echo ""
+            echo "_This issue was automatically created by the [Dependency Check workflow](https://github.com/${{ github.repository }}/actions/workflows/dependency-check.yml)._"
+          } > issue_body.md
+          
+          # Check if an issue already exists
+          ISSUE_NUMBER=$(gh issue list --label "dependencies" --state open --json number,title --jq '.[] | select(.title | contains("Outdated Dependencies")) | .number' | head -n 1)
+          
+          if [ -z "$ISSUE_NUMBER" ]; then
+            # Create new issue
+            gh issue create \
+              --title "Outdated Dependencies Detected" \
+              --body-file issue_body.md \
+              --label "dependencies"
+          else
+            # Update existing issue
+            gh issue comment "$ISSUE_NUMBER" --body-file issue_body.md
+          fi
