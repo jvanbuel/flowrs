@@ -20,7 +20,7 @@ formula = "flowrs"
 ansi-to-tui = { version = "7.0.0" }
 anyhow = "1.0.100"
 aws-config = { version = "1.8.11" }
-aws-sdk-mwaa = "1.94.0"
+aws-sdk-mwaa = "1.96.0"
 backtrace = "0.3.76"
 chrono = "0.4.42"
 async-trait = "0.1.89"
