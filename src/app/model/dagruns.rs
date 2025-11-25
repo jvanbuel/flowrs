@@ -83,7 +83,7 @@ impl DagRunModel {
     }
 
     pub fn filter_dag_runs(&mut self) {
-        let prefix = &self.filter.prefix;
+        let prefix = self.filter.prefix();
         let mut filtered_dag_runs = match prefix {
             Some(prefix) => self
                 .all
@@ -96,6 +96,30 @@ impl DagRunModel {
         // Sort by start_date in descending order (most recent first)
         filtered_dag_runs.sort_by(|a, b| b.start_date.cmp(&a.start_date));
         self.filtered.items = filtered_dag_runs;
+    }
+
+    fn update_autocomplete_candidates(&mut self) {
+        // Get the search prefix from the filter's state machine
+        let prefix = match self.filter.search_prefix() {
+            Some(p) if !p.is_empty() => p,
+            _ => {
+                self.filter.set_autocomplete_candidates(Vec::new());
+                return;
+            }
+        };
+
+        // Get all dag_run_ids that start with the current prefix, sorted alphabetically
+        let mut candidates: Vec<String> = self
+            .all
+            .iter()
+            .map(|dagrun| dagrun.dag_run_id.clone())
+            .filter(|dag_run_id| dag_run_id.starts_with(prefix))
+            .collect();
+
+        candidates.sort();
+        candidates.dedup();
+
+        self.filter.set_autocomplete_candidates(candidates);
     }
 
     pub fn current(&self) -> Option<&DagRun> {
@@ -140,7 +164,10 @@ impl Model for DagRunModel {
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
-                    self.filter.update(key_event);
+                    let should_update_candidates = self.filter.update(key_event);
+                    if should_update_candidates {
+                        self.update_autocomplete_candidates();
+                    }
                     self.filter_dag_runs();
                     return (None, vec![]);
                 } else if let Some(_error_popup) = &mut self.error_popup {

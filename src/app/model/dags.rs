@@ -46,7 +46,7 @@ impl DagModel {
     }
 
     pub fn filter_dags(&mut self) {
-        let prefix = &self.filter.prefix;
+        let prefix = self.filter.prefix();
         let filtered_dags = match prefix {
             Some(prefix) => &self
                 .all
@@ -57,6 +57,30 @@ impl DagModel {
             None => &self.all,
         };
         self.filtered.items = filtered_dags.clone();
+    }
+
+    fn update_autocomplete_candidates(&mut self) {
+        // Get the search prefix from the filter's state machine
+        let prefix = match self.filter.search_prefix() {
+            Some(p) if !p.is_empty() => p,
+            _ => {
+                self.filter.set_autocomplete_candidates(Vec::new());
+                return;
+            }
+        };
+
+        // Get all dag_ids that start with the current prefix, sorted alphabetically
+        let mut candidates: Vec<String> = self
+            .all
+            .iter()
+            .map(|dag| dag.dag_id.clone())
+            .filter(|dag_id| dag_id.starts_with(prefix))
+            .collect();
+
+        candidates.sort();
+        candidates.dedup();
+
+        self.filter.set_autocomplete_candidates(candidates);
     }
 
     pub fn current(&mut self) -> Option<&mut Dag> {
@@ -94,7 +118,10 @@ impl Model for DagModel {
             }
             FlowrsEvent::Key(key_event) => {
                 if self.filter.is_enabled() {
-                    self.filter.update(key_event);
+                    let should_update_candidates = self.filter.update(key_event);
+                    if should_update_candidates {
+                        self.update_autocomplete_candidates();
+                    }
                     self.filter_dags();
                     return (None, vec![]);
                 } else if let Some(_error_popup) = &mut self.error_popup {
