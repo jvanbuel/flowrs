@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3](https://github.com/jvanbuel/flowrs/compare/v0.4.2...v0.4.3) - 2025-11-25
+
+### Other
+
+- *(deps)* bump aws-sdk-mwaa from 1.94.0 to 1.96.0 ([#454](https://github.com/jvanbuel/flowrs/pull/454))
+- *(deps)* bump aws-config from 1.8.10 to 1.8.11 ([#456](https://github.com/jvanbuel/flowrs/pull/456))
+- *(deps)* bump clap from 4.5.51 to 4.5.53 ([#455](https://github.com/jvanbuel/flowrs/pull/455))
+- *(deps)* bump aws-config from 1.8.8 to 1.8.10 ([#451](https://github.com/jvanbuel/flowrs/pull/451))
+- Merge pull request #452 from jvanbuel/dependabot/cargo/clap-4.5.51
+
 ## [0.4.2](https://github.com/jvanbuel/flowrs/compare/v0.4.1...v0.4.2) - 2025-10-23
 
 ### Fixed
