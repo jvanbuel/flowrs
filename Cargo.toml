@@ -58,7 +58,7 @@ url = "2.5.7"
 webbrowser = "1.0.6"
 
 [dev-dependencies]
-mockito = "1.7.0"
+mockito = "1.7.1"
 
 # The profile that 'dist' will build with
 [profile.dist]
