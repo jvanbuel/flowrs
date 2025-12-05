@@ -66,6 +66,13 @@ pub struct AirflowConfig {
     pub managed: Option<ManagedService>,
     #[serde(default)]
     pub version: AirflowVersion,
+    /// Request timeout in seconds. Defaults to 30 seconds if not specified.
+    #[serde(default = "default_timeout")]
+    pub timeout_secs: u64,
+}
+
+fn default_timeout() -> u64 {
+    30
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -248,6 +255,7 @@ managed_services = ["Conveyor"]
 name = "bla"
 endpoint = "http://localhost:8080"
 version = "V2"
+timeout_secs = 30
 
 [servers.auth.Basic]
 username = "airflow"
@@ -273,6 +281,7 @@ password = "airflow"
                 }),
                 managed: None,
                 version: AirflowVersion::V2,
+                timeout_secs: default_timeout(),
             }]),
             managed_services: Some(vec![ManagedService::Conveyor]),
             active_server: None,

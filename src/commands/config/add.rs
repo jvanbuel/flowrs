@@ -11,7 +11,7 @@ use crate::{
     },
     commands::config::model::{validate_endpoint, ConfigOption},
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 impl AddCommand {
     pub fn run(&self) -> Result<()> {
@@ -45,6 +45,7 @@ impl AddCommand {
                     auth: AirflowAuth::Basic(BasicAuth { username, password }),
                     managed: None,
                     version,
+                    timeout_secs: 30,
                 }
             }
             ConfigOption::Token(_) => {
@@ -56,8 +57,8 @@ impl AddCommand {
                         .arg("-c")
                         .arg(cmd)
                         .output()
-                        .expect("failed to execute process");
-                    token = String::from_utf8(output.stdout)?;
+                        .with_context(|| format!("Failed to execute token command: {cmd}"))?;
+                    token = String::from_utf8(output.stdout)?.trim().to_string();
                 } else {
                     token = inquire::Text::new("token").prompt()?;
                 }
@@ -71,6 +72,7 @@ impl AddCommand {
                     }),
                     managed: None,
                     version,
+                    timeout_secs: 30,
                 }
             }
         };

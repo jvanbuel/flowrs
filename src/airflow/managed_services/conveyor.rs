@@ -87,6 +87,7 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
                 auth: AirflowAuth::Conveyor,
                 managed: Some(ManagedService::Conveyor),
                 version,
+                timeout_secs: 30,
             }
         })
         .collect();
