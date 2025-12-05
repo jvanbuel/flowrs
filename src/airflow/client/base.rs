@@ -18,7 +18,7 @@ pub struct BaseClient {
 impl BaseClient {
     pub fn new(config: AirflowConfig) -> Result<Self> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(5))
+            .timeout(Duration::from_secs(config.timeout_secs))
             .use_rustls_tls()
             .build()?;
         Ok(Self { client, config })

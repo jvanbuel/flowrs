@@ -7,7 +7,7 @@ use log::debug;
 use model::Model;
 use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
-use worker::{Worker, WorkerMessage};
+use worker::{Dispatcher, WorkerMessage};
 
 use crate::{airflow::client::create_client, ui::draw_ui};
 
@@ -55,8 +55,8 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
         }
     }
 
-    log::info!("Spawning worker");
-    tokio::spawn(async move { Worker::new(worker_app, rx_worker).run().await });
+    log::info!("Spawning dispatcher");
+    tokio::spawn(async move { Dispatcher::new(worker_app).run(rx_worker).await });
 
     loop {
         terminal.draw(|f| {
