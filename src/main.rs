@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use clap::Parser;
@@ -9,12 +8,12 @@ mod app;
 mod commands;
 mod ui;
 
+use airflow::config::paths::ConfigPaths;
 use anyhow::Result;
 use commands::config::model::ConfigCommand;
 use commands::run::RunCommand;
-use dirs::home_dir;
 
-static CONFIG_FILE: LazyLock<PathBuf> = LazyLock::new(|| home_dir().unwrap().join(".flowrs"));
+pub static CONFIG_PATHS: LazyLock<ConfigPaths> = LazyLock::new(ConfigPaths::resolve);
 
 #[derive(Parser)]
 #[clap(name="flowrs", bin_name="flowrs", version, about, before_help=ASCII_LOGO)]

@@ -65,7 +65,22 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
         })?;
 
         if let Some(event) = events.next().await {
-            // First handle panel specific events, and send messages to the event channel
+            // First check if global warning popup is showing and handle its dismissal
+            if let FlowrsEvent::Key(key) = &event {
+                let mut app = app.lock().unwrap();
+                if app.warning_popup.is_some() {
+                    match key.code {
+                        KeyCode::Char('q') | KeyCode::Esc => {
+                            app.warning_popup = None;
+                        }
+                        _ => (),
+                    }
+                    // Consume the event when warning popup is showing
+                    continue;
+                }
+            }
+
+            // Then handle panel specific events, and send messages to the event channel
             let (fall_through_event, messages) = {
                 let mut app = app.lock().unwrap();
                 match app.active_panel {

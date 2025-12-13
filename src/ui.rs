@@ -79,4 +79,9 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         }
         Panel::Logs => app.logs.render(panel_area, f.buffer_mut()),
     }
+
+    // Render global warning popup on top of all panels
+    if let Some(warning_popup) = &app.warning_popup {
+        warning_popup.render(panel_area, f.buffer_mut());
+    }
 }

@@ -2,6 +2,7 @@ use crate::airflow::config::FlowrsConfig;
 use crate::app::environment_state::EnvironmentStateContainer;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
+use crate::app::model::popup::warning::WarningPopup;
 use throbber_widgets_tui::ThrobberState;
 
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
@@ -19,6 +20,8 @@ pub struct App {
     pub loading: bool,
     pub startup: bool,
     pub throbber_state: ThrobberState,
+    /// Global warning popup shown on startup (e.g., legacy config conflict)
+    pub warning_popup: Option<WarningPopup>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -33,16 +36,27 @@ pub enum Panel {
 impl App {
     #[allow(dead_code)]
     pub fn new(config: FlowrsConfig) -> Self {
-        Self::new_with_errors(config, vec![])
+        Self::new_with_errors_and_warnings(config, vec![], vec![])
     }
 
-    pub fn new_with_errors(config: FlowrsConfig, errors: Vec<String>) -> Self {
+    pub fn new_with_errors_and_warnings(
+        config: FlowrsConfig,
+        errors: Vec<String>,
+        warnings: Vec<String>,
+    ) -> Self {
         let servers = &config.clone().servers.unwrap_or_default();
         let active_server = if let Some(active_server) = &config.active_server {
             servers.iter().find(|server| server.name == *active_server)
         } else {
             None
         };
+
+        let warning_popup = if warnings.is_empty() {
+            None
+        } else {
+            Some(WarningPopup::new(warnings))
+        };
+
         App {
             config,
             environment_state: EnvironmentStateContainer::new(),
@@ -59,6 +73,7 @@ impl App {
             loading: true,
             startup: true,
             throbber_state: ThrobberState::default(),
+            warning_popup,
         }
     }
 
