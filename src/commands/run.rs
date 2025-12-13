@@ -9,6 +9,7 @@ use simplelog::{Config, WriteLogger};
 use crate::airflow::config::FlowrsConfig;
 use crate::app::run_app;
 use crate::app::state::App;
+use crate::CONFIG_PATHS;
 use anyhow::Result;
 
 #[derive(Parser, Debug)]
@@ -30,9 +31,25 @@ impl RunCommand {
             .expand_managed_services()
             .await?;
 
+        // Generate warnings for legacy config conflict (only when no explicit --file)
+        let mut warnings = Vec::new();
+        if self.file.is_none() && CONFIG_PATHS.has_legacy_conflict {
+            let legacy_path = dirs::home_dir()
+                .map(|h| h.join(".flowrs"))
+                .unwrap_or_else(|| PathBuf::from("~/.flowrs"));
+            warnings.push(format!(
+                "Configuration file found in both locations:\n  \
+                 - {} (active)\n  \
+                 - {} (ignored)\n\n\
+                 Consider removing the legacy file.",
+                CONFIG_PATHS.write_path.display(),
+                legacy_path.display()
+            ));
+        }
+
         // setup terminal (includes panic hooks) and run app
         let mut terminal = ratatui::init();
-        let app = App::new_with_errors(config, errors);
+        let app = App::new_with_errors_and_warnings(config, errors, warnings);
         run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
 
         info!("Shutting down the terminal...");

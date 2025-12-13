@@ -8,6 +8,9 @@ Flowrs is a Terminal User Interface (TUI) application for Apache Airflow built w
 
 ## Build and Development Commands
 
+### Requirements
+- **Minimum Supported Rust Version (MSRV):** 1.80.0 (required for `std::sync::LazyLock`)
+
 ### Building
 - `cargo build`: Build the project in debug mode
 - `cargo build --release`: Build optimized release binary
@@ -28,7 +31,15 @@ Flowrs is a Terminal User Interface (TUI) application for Apache Airflow built w
 
 ## Configuration
 
-Flowrs stores configuration in `~/.flowrs` (TOML format). The config file is referenced via `CONFIG_FILE` static in `src/main.rs:17`.
+Flowrs stores configuration in TOML format, following the XDG Base Directory Specification:
+- **Primary (XDG):** `$XDG_CONFIG_HOME/flowrs/config.toml` (defaults to `~/.config/flowrs/config.toml`)
+- **Legacy fallback:** `~/.flowrs` (read if XDG path doesn't exist)
+
+Config paths are managed via `CONFIG_PATHS` static in `src/main.rs`, which uses the `ConfigPaths` struct from `src/airflow/config/paths.rs`. Writes always go to the XDG path; reads check XDG first, then legacy. A warning popup is shown if both files exist.
+
+For detailed background on the XDG migration from the legacy `~/.flowrs` config file, see:
+- `docs/plans/2025-12-13-xdg-config-design.md` - Design rationale and decisions
+- `docs/plans/2025-12-13-xdg-config-implementation.md` - Implementation details
 
 Configuration structure:
 - `servers`: Array of Airflow server configurations

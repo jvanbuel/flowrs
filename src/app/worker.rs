@@ -136,6 +136,58 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         app.loading = true;
     }
 
+    // Handle messages that don't require an active client first
+    if let WorkerMessage::ConfigSelected(idx) = message {
+        let mut app = app
+            .lock()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire app lock: {e}"))?;
+
+        let Some(selected_config) = app.configs.filtered.items.get(idx).cloned() else {
+            log::error!(
+                "Config index {idx} out of bounds (total: {})",
+                app.configs.filtered.items.len()
+            );
+            app.configs.error_popup = Some(ErrorPopup::from_strings(vec![format!(
+                "Configuration index {idx} not found"
+            )]));
+            app.loading = false;
+            return Ok(());
+        };
+        let env_name = selected_config.name.clone();
+
+        // Check if environment already exists, if not create it
+        if !app.environment_state.environments.contains_key(&env_name) {
+            match crate::airflow::client::create_client(&selected_config) {
+                Ok(client) => {
+                    let env_data = crate::app::environment_state::EnvironmentData::new(client);
+                    app.environment_state
+                        .add_environment(env_name.clone(), env_data);
+                }
+                Err(e) => {
+                    log::error!("Failed to create client for '{env_name}': {e}");
+                    app.configs.error_popup = Some(ErrorPopup::from_strings(vec![format!(
+                        "Failed to connect to '{env_name}': {e}"
+                    )]));
+                    app.loading = false;
+                    return Ok(());
+                }
+            }
+        }
+
+        // Set this as the active environment
+        app.environment_state
+            .set_active_environment(env_name.clone());
+        app.config.active_server = Some(env_name);
+
+        // Clear the view state but NOT the environment data
+        app.clear_state();
+
+        // Sync panel data from the new environment
+        app.sync_panel_data();
+        app.loading = false;
+        return Ok(());
+    }
+
     // Get the active client from the environment state
     let client = {
         let app = app.lock().unwrap();
@@ -179,30 +231,9 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
                 app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
             }
         }
-        WorkerMessage::ConfigSelected(idx) => {
-            let mut app = app.lock().unwrap();
-            let selected_config = app.configs.filtered.items[idx].clone();
-            let env_name = selected_config.name.clone();
-
-            // Check if environment already exists, if not create it
-            if !app.environment_state.environments.contains_key(&env_name) {
-                if let Ok(client) = crate::airflow::client::create_client(&selected_config) {
-                    let env_data = crate::app::environment_state::EnvironmentData::new(client);
-                    app.environment_state
-                        .add_environment(env_name.clone(), env_data);
-                }
-            }
-
-            // Set this as the active environment
-            app.environment_state
-                .set_active_environment(env_name.clone());
-            app.config.active_server = Some(env_name);
-
-            // Clear the view state but NOT the environment data
-            app.clear_state();
-
-            // Sync panel data from the new environment
-            app.sync_panel_data();
+        WorkerMessage::ConfigSelected(_) => {
+            // Handled above before client check
+            unreachable!("ConfigSelected should be handled before client check");
         }
         WorkerMessage::UpdateDagRuns { dag_id, clear: _ } => {
             let dag_runs = client.list_dagruns(&dag_id).await;

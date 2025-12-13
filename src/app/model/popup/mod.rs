@@ -4,6 +4,7 @@ pub mod dagruns;
 pub mod dags;
 pub mod error;
 pub mod taskinstances;
+pub mod warning;
 
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 

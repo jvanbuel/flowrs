@@ -624,7 +624,7 @@ mod tests {
         assert_eq!(DagRunModel::format_duration(7200.0), "2h");
         // Days
         assert_eq!(DagRunModel::format_duration(90000.0), "1d 1h");
-        assert_eq!(DagRunModel::format_duration(172800.0), "2d");
+        assert_eq!(DagRunModel::format_duration(172_800.0), "2d");
     }
 
     #[test]

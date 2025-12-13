@@ -1,3 +1,5 @@
+pub mod paths;
+
 use std::fmt::{Display, Formatter};
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -11,7 +13,7 @@ use strum::EnumIter;
 use super::managed_services::astronomer::get_astronomer_environment_servers;
 use super::managed_services::conveyor::get_conveyor_environment_servers;
 use super::managed_services::mwaa::get_mwaa_environment_servers;
-use crate::CONFIG_FILE;
+use crate::CONFIG_PATHS;
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
@@ -115,7 +117,7 @@ impl FlowrsConfig {
             servers: None,
             managed_services: None,
             active_server: None,
-            path: Some(CONFIG_FILE.as_path().to_path_buf()),
+            path: Some(CONFIG_PATHS.write_path.clone()),
         }
     }
 
@@ -124,8 +126,8 @@ impl FlowrsConfig {
             .filter(|p| p.exists())
             .cloned()
             .unwrap_or_else(|| {
-                // No valid path was provided by the user, use the default path
-                let default_path = CONFIG_FILE.as_path().to_path_buf();
+                // No valid path was provided by the user, use the default read path
+                let default_path = CONFIG_PATHS.read_path.clone();
                 info!("Using configuration path: {}", default_path.display());
                 default_path
             });
@@ -206,7 +208,13 @@ impl FlowrsConfig {
         let path = self
             .path
             .clone()
-            .unwrap_or(CONFIG_FILE.as_path().to_path_buf());
+            .unwrap_or_else(|| CONFIG_PATHS.write_path.clone());
+
+        // Create parent directory if it doesn't exist (for XDG path)
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -308,6 +316,6 @@ password = "airflow"
         assert!(config.is_ok());
 
         let config = config.unwrap();
-        assert_eq!(config.path.unwrap(), CONFIG_FILE.as_path().to_path_buf());
+        assert_eq!(config.path.unwrap(), CONFIG_PATHS.read_path);
     }
 }
