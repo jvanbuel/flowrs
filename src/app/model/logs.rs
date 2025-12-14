@@ -96,22 +96,16 @@ impl Model for LogModel {
                 }
                 match key.code {
                     KeyCode::Char('l') | KeyCode::Right => {
-                        if !self.all.is_empty() {
-                            if self.current == self.all.len() - 1 {
-                                self.current = 0;
-                            } else {
-                                self.current += 1;
-                            }
+                        if !self.all.is_empty() && self.current < self.all.len() - 1 {
+                            self.current += 1;
                         }
                     }
                     KeyCode::Char('h') | KeyCode::Left => {
-                        if !self.all.is_empty() {
-                            if self.current == 0 {
-                                self.current = self.all.len() - 1;
-                            } else {
-                                self.current -= 1;
-                            }
+                        if self.all.is_empty() || self.current == 0 {
+                            // Navigate back to previous panel
+                            return (Some(FlowrsEvent::Key(*key)), vec![]);
                         }
+                        self.current -= 1;
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
                         self.vertical_scroll = self.vertical_scroll.saturating_add(1);
@@ -158,11 +152,9 @@ impl Widget for &mut LogModel {
                 .style(DEFAULT_STYLE)
                 .block(
                     Block::default()
-                        .border_type(BorderType::Plain)
-                        .borders(Borders::ALL)
-                        .title(" Logs ")
-                        .border_style(BORDER_STYLE)
-                        .title_style(TITLE_STYLE),
+                        .border_type(BorderType::Rounded)
+                        .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
+                        .border_style(BORDER_STYLE),
                 )
                 .render(area, buffer);
             return;
@@ -175,11 +167,9 @@ impl Widget for &mut LogModel {
         let tabs = Tabs::new(tab_titles)
             .block(
                 Block::default()
-                    .border_type(BorderType::Plain)
-                    .title(" Logs ")
-                    .borders(Borders::ALL)
-                    .border_style(BORDER_STYLE)
-                    .title_style(TITLE_STYLE),
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
+                    .border_style(BORDER_STYLE),
             )
             .select(self.current % self.all.len())
             .highlight_style(

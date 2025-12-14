@@ -14,7 +14,7 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY, TITLE_STYLE};
+use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
@@ -296,11 +296,10 @@ impl Widget for &mut DagModel {
         .header(header)
         .block({
             let block = Block::default()
-                .border_type(BorderType::Plain)
-                .borders(Borders::ALL)
-                .title(" DAGs - Press <?> to see available commands ")
+                .border_type(BorderType::Rounded)
+                .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
-                .title_style(TITLE_STYLE);
+                .title(" Press <?> to see available commands ");
             if self.filter.is_active() {
                 block.title_bottom(format!(
                     " Filter: {} ",

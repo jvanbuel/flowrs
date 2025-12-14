@@ -1128,6 +1128,7 @@ dependencies = [
  "time",
  "tokio",
  "toml",
+ "unicode-width 0.2.0",
  "url",
  "webbrowser",
 ]

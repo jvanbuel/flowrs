@@ -18,7 +18,7 @@ use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
     ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE,
-    TABLE_HEADER_STYLE, TITLE_STYLE,
+    TABLE_HEADER_STYLE,
 };
 use crate::ui::TIME_FORMAT;
 
@@ -406,11 +406,10 @@ impl Widget for &mut TaskInstanceModel {
         .header(header)
         .block({
             let block = Block::default()
-                .border_type(BorderType::Plain)
-                .borders(Borders::ALL)
-                .title(" TaskInstances - Press <?> to see available commands ")
+                .border_type(BorderType::Rounded)
+                .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
-                .title_style(TITLE_STYLE);
+                .title(" Press <?> to see available commands ");
             match (self.visual_mode, self.filter.is_active()) {
                 (true, true) => block.title_bottom(format!(
                     " -- VISUAL ({} selected) -- | Filter: {} ",
