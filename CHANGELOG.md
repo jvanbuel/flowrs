@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2](https://github.com/jvanbuel/flowrs/compare/v0.7.1...v0.7.2) - 2025-12-14
+
+### Added
+
+- add breadcrumb navigation and styled filter indicators
+
 ## [0.7.1](https://github.com/jvanbuel/flowrs/compare/v0.7.0...v0.7.1) - 2025-12-14
 
 ### Added
