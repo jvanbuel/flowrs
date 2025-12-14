@@ -2,8 +2,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
-    style::{Modifier, Stylize},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
 };
 use strum::Display;
 
@@ -13,7 +12,10 @@ use crate::{
         model::{popup::popup_area, Model},
         worker::WorkerMessage,
     },
-    ui::constants::DEFAULT_STYLE,
+    ui::theme::{
+        BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED, DEFAULT_STYLE,
+        SURFACE_STYLE, TITLE_STYLE,
+    },
 };
 pub struct MarkTaskInstancePopup {
     pub dag_id: String,
@@ -101,11 +103,12 @@ impl Model for MarkTaskInstancePopup {
 
 impl Widget for &mut MarkTaskInstancePopup {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let area = popup_area(area, 50, 50);
+        // Smaller popup: 35% width, auto height
+        let area = popup_area(area, 35, 30);
 
         let [_, header, options, _] = Layout::vertical([
+            Constraint::Length(1),
             Constraint::Length(2),
-            Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Min(1),
         ])
@@ -115,72 +118,79 @@ impl Widget for &mut MarkTaskInstancePopup {
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .title("Mark Task Instance")
+            .title(" Mark Task Instance ")
             .border_style(DEFAULT_STYLE)
-            .style(DEFAULT_STYLE)
-            .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
+            .style(SURFACE_STYLE)
+            .title_style(TITLE_STYLE);
 
-        let text = Paragraph::new("Select the status to mark this TaskInstance with:")
+        let text = Paragraph::new("Select status:")
             .style(DEFAULT_STYLE)
-            .block(Block::default().border_type(BorderType::Rounded))
-            .centered()
-            .wrap(Wrap { trim: true });
+            .centered();
 
-        let [_, success, _, failed, _, queued, _] = Layout::horizontal([
+        let [_, success, _, failed, _, skipped, _] = Layout::horizontal([
             Constraint::Fill(1),
+            Constraint::Length(11),
+            Constraint::Length(2),
             Constraint::Length(10),
-            Constraint::Percentage(5),
-            Constraint::Length(10),
-            Constraint::Percentage(5),
-            Constraint::Length(10),
+            Constraint::Length(2),
+            Constraint::Length(11),
             Constraint::Fill(1),
         ])
         .areas(options);
 
-        let success_text = Paragraph::new("Success")
-            .style(if self.status == MarkState::Success {
-                DEFAULT_STYLE.reversed()
-            } else {
-                DEFAULT_STYLE
-            })
+        // Success button
+        let (success_style, success_border) = if self.status == MarkState::Success {
+            (BUTTON_SELECTED, BORDER_SELECTED)
+        } else {
+            (BUTTON_DEFAULT, BORDER_DEFAULT)
+        };
+        let success_btn = Paragraph::new("Success")
+            .style(success_style)
             .centered()
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL),
+                    .borders(Borders::ALL)
+                    .border_style(success_style.fg(success_border)),
             );
 
-        let failed_text = Paragraph::new("Failed")
-            .style(if self.status == MarkState::Failed {
-                DEFAULT_STYLE.reversed()
-            } else {
-                DEFAULT_STYLE
-            })
+        // Failed button
+        let (failed_style, failed_border) = if self.status == MarkState::Failed {
+            (BUTTON_SELECTED, BORDER_SELECTED)
+        } else {
+            (BUTTON_DEFAULT, BORDER_DEFAULT)
+        };
+        let failed_btn = Paragraph::new("Failed")
+            .style(failed_style)
             .centered()
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL),
+                    .borders(Borders::ALL)
+                    .border_style(failed_style.fg(failed_border)),
             );
 
-        let queued_text = Paragraph::new("Skipped")
-            .style(if self.status == MarkState::Skipped {
-                DEFAULT_STYLE.reversed()
-            } else {
-                DEFAULT_STYLE
-            })
+        // Skipped button
+        let (skipped_style, skipped_border) = if self.status == MarkState::Skipped {
+            (BUTTON_SELECTED, BORDER_SELECTED)
+        } else {
+            (BUTTON_DEFAULT, BORDER_DEFAULT)
+        };
+        let skipped_btn = Paragraph::new("Skipped")
+            .style(skipped_style)
             .centered()
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL),
+                    .borders(Borders::ALL)
+                    .border_style(skipped_style.fg(skipped_border)),
             );
 
-        Clear.render(area, buffer); //this clears out the background
+        Clear.render(area, buffer);
         popup_block.render(area, buffer);
         text.render(header, buffer);
-        success_text.render(success, buffer);
-        failed_text.render(failed, buffer);
-        queued_text.render(queued, buffer);
+        success_btn.render(success, buffer);
+        failed_btn.render(failed, buffer);
+        skipped_btn.render(skipped, buffer);
     }
 }

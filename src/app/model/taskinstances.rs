@@ -8,7 +8,6 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::format_description;
@@ -16,7 +15,11 @@ use time::format_description;
 use crate::airflow::model::common::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
-use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
+use crate::ui::constants::AirflowStateColor;
+use crate::ui::theme::{
+    ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE,
+    TABLE_HEADER_STYLE, TITLE_STYLE,
+};
 use crate::ui::TIME_FORMAT;
 
 use super::popup::taskinstances::clear::ClearTaskInstancePopup;
@@ -341,12 +344,9 @@ impl Widget for &mut TaskInstanceModel {
                 .split(area)
         };
 
-        let selected_style = Style::default().add_modifier(Modifier::REVERSED);
-
         let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
         let header_row = create_headers(headers);
-        let header =
-            Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
@@ -385,11 +385,11 @@ impl Widget for &mut TaskInstanceModel {
                     .visual_selection()
                     .is_some_and(|r| r.contains(&idx))
                 {
-                    DEFAULT_STYLE.bg(MARKED_COLOR)
+                    MARKED_STYLE
                 } else if (idx % 2) == 0 {
                     DEFAULT_STYLE
                 } else {
-                    DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
+                    ALT_ROW_STYLE
                 },
             )
         });
@@ -406,9 +406,11 @@ impl Widget for &mut TaskInstanceModel {
         .header(header)
         .block({
             let block = Block::default()
-                .border_type(BorderType::Rounded)
+                .border_type(BorderType::Plain)
                 .borders(Borders::ALL)
-                .title("TaskInstances - Press <?> to see available commands");
+                .title(" TaskInstances - Press <?> to see available commands ")
+                .border_style(BORDER_STYLE)
+                .title_style(TITLE_STYLE);
             if self.visual_mode {
                 block.title_bottom(format!(
                     " -- VISUAL ({} selected) -- ",
@@ -418,8 +420,7 @@ impl Widget for &mut TaskInstanceModel {
                 block
             }
         })
-        .style(DEFAULT_STYLE)
-        .row_highlight_style(selected_style);
+        .row_highlight_style(SELECTED_ROW_STYLE);
 
         StatefulWidget::render(t, rects[0], buffer, &mut self.filtered.state);
 

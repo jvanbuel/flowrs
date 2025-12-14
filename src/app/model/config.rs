@@ -2,14 +2,13 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Stylize};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::{OpenItem, WorkerMessage};
-use crate::ui::constants::{ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
+use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
@@ -155,13 +154,9 @@ impl Widget for &mut ConfigModel {
                 .margin(0)
                 .split(area)
         };
-        let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
-
         let headers = ["Name", "Endpoint", "Managed", "Version"];
         let header_row = create_headers(headers);
-
-        let header =
-            Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
         let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
             Row::new(vec![
@@ -180,7 +175,7 @@ impl Widget for &mut ConfigModel {
             .style(if (idx % 2) == 0 {
                 DEFAULT_STYLE
             } else {
-                DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
+                ALT_ROW_STYLE
             })
         });
 
@@ -196,12 +191,13 @@ impl Widget for &mut ConfigModel {
         .header(header)
         .block(
             Block::default()
-                .border_type(BorderType::Rounded)
+                .border_type(BorderType::Plain)
                 .borders(Borders::ALL)
-                .title("Config"),
+                .title(" Config ")
+                .border_style(BORDER_STYLE)
+                .title_style(TITLE_STYLE),
         )
-        .style(DEFAULT_STYLE)
-        .row_highlight_style(selected_style);
+        .row_highlight_style(SELECTED_ROW_STYLE);
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 
         if let Some(commands) = &self.commands {
