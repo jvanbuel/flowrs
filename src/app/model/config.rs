@@ -2,13 +2,14 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::text::Line;
+use ratatui::style::{Modifier, Style};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::{OpenItem, WorkerMessage};
-use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
+use crate::ui::theme::{ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
@@ -195,11 +196,11 @@ impl Widget for &mut ConfigModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if self.filter.is_active() {
-                block.title_bottom(format!(
-                    " Filter: {} ",
-                    self.filter.prefix.as_ref().unwrap()
-                ))
+            if let Some(prefix) = self.filter.prefix() {
+                block.title_bottom(Line::from(Span::styled(
+                    format!(" Filter: {prefix} "),
+                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                )))
             } else {
                 block
             }
