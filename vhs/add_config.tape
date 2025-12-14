@@ -15,14 +15,16 @@ Sleep 0.5s
 Enter
 Sleep 0.5s
 Enter
-Type "airflow"
 Sleep 0.5s
 Enter
 Type "airflow"
 Sleep 0.5s
 Enter
 Type "airflow"
-Sleep 250ms
+Sleep 0.5s
+Enter
+Type "airflow"
+Sleep 0.5s
 Enter
 Sleep 1s
 
