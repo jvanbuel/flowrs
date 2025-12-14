@@ -1,4 +1,5 @@
 use crate::app::state::{App, Panel};
+use crate::ui::tabs::{TabBar, TAB_BAR_HEIGHT};
 use crate::ui::theme::{HEADER_BG, HEADER_FG};
 use init_screen::render_init_screen;
 use ratatui::layout::{Constraint, Layout};
@@ -12,6 +13,7 @@ use throbber_widgets_tui::Throbber;
 pub mod common;
 pub mod constants;
 mod init_screen;
+pub mod tabs;
 pub mod theme;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
@@ -24,9 +26,13 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     }
     app.startup = false;
 
-    // Always split area vertically to reserve top line for header
-    let [top_line, panel_area] =
-        Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(f.area());
+    // Split area vertically: header (1 line), tab bar (3 lines), panel (remaining)
+    let [top_line, tab_area, panel_area] = Layout::vertical([
+        Constraint::Length(1),
+        Constraint::Length(TAB_BAR_HEIGHT),
+        Constraint::Min(0),
+    ])
+    .areas(f.area());
 
     // First, fill the entire top line with header background
     let header_bg_block = Block::default().style(Style::default().bg(HEADER_BG));
@@ -52,6 +58,17 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
             .throbber_set(throbber_widgets_tui::OGHAM_C);
         f.render_stateful_widget(throbber, throbber_area, &mut app.throbber_state);
     }
+
+    // Render tab bar
+    let active_tab_index = match app.active_panel {
+        Panel::Config => 0,
+        Panel::Dag => 1,
+        Panel::DAGRun => 2,
+        Panel::TaskInstance => 3,
+        Panel::Logs => 4,
+    };
+    let tab_bar = TabBar::new(active_tab_index);
+    f.render_widget(tab_bar, tab_area);
 
     // Only frame has the ability to set the cursor position, so we need to control the cursor filter from here
     // Not very elegant, and quite some duplication... Should be refactored

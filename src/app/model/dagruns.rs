@@ -586,15 +586,14 @@ impl Widget for &mut DagRunModel {
         .header(header)
         .block({
             let block = Block::default()
-                .border_type(BorderType::Plain)
-                .borders(Borders::ALL)
-                .title(if let Some(dag_id) = &self.dag_id {
-                    format!(" DAGRuns ({dag_id}) - press <?> to see available commands ")
-                } else {
-                    " DAGRuns ".to_string()
-                })
+                .border_type(BorderType::Rounded)
+                .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
-                .title_style(TITLE_STYLE);
+                .title(if let Some(dag_id) = &self.dag_id {
+                    format!(" {dag_id} | Press <?> to see available commands ")
+                } else {
+                    " Press <?> to see available commands ".to_string()
+                });
             match (self.visual_mode, self.filter.is_active()) {
                 (true, true) => block.title_bottom(format!(
                     " -- VISUAL ({} selected) -- | Filter: {} ",

@@ -8,7 +8,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::{OpenItem, WorkerMessage};
-use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE};
+use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
@@ -191,11 +191,10 @@ impl Widget for &mut ConfigModel {
         .header(header)
         .block({
             let block = Block::default()
-                .border_type(BorderType::Plain)
-                .borders(Borders::ALL)
-                .title(" Config ")
+                .border_type(BorderType::Rounded)
+                .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
-                .title_style(TITLE_STYLE);
+                .title(" Press <?> to see available commands ");
             if self.filter.is_active() {
                 block.title_bottom(format!(
                     " Filter: {} ",
