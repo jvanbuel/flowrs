@@ -189,14 +189,22 @@ impl Widget for &mut ConfigModel {
             ],
         )
         .header(header)
-        .block(
-            Block::default()
+        .block({
+            let block = Block::default()
                 .border_type(BorderType::Plain)
                 .borders(Borders::ALL)
                 .title(" Config ")
                 .border_style(BORDER_STYLE)
-                .title_style(TITLE_STYLE),
-        )
+                .title_style(TITLE_STYLE);
+            if self.filter.is_active() {
+                block.title_bottom(format!(
+                    " Filter: {} ",
+                    self.filter.prefix.as_ref().unwrap()
+                ))
+            } else {
+                block
+            }
+        })
         .row_highlight_style(SELECTED_ROW_STYLE);
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 

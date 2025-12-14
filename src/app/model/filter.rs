@@ -38,6 +38,11 @@ impl Filter {
         self.enabled
     }
 
+    /// Returns true if a filter is active (has non-empty prefix)
+    pub fn is_active(&self) -> bool {
+        self.prefix.as_ref().is_some_and(|p| !p.is_empty())
+    }
+
     pub fn prefix(&self) -> Option<&String> {
         self.prefix.as_ref()
     }

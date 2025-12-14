@@ -411,13 +411,21 @@ impl Widget for &mut TaskInstanceModel {
                 .title(" TaskInstances - Press <?> to see available commands ")
                 .border_style(BORDER_STYLE)
                 .title_style(TITLE_STYLE);
-            if self.visual_mode {
-                block.title_bottom(format!(
+            match (self.visual_mode, self.filter.is_active()) {
+                (true, true) => block.title_bottom(format!(
+                    " -- VISUAL ({} selected) -- | Filter: {} ",
+                    self.visual_selection_count(),
+                    self.filter.prefix.as_ref().unwrap()
+                )),
+                (true, false) => block.title_bottom(format!(
                     " -- VISUAL ({} selected) -- ",
                     self.visual_selection_count()
-                ))
-            } else {
-                block
+                )),
+                (false, true) => block.title_bottom(format!(
+                    " Filter: {} ",
+                    self.filter.prefix.as_ref().unwrap()
+                )),
+                (false, false) => block,
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
