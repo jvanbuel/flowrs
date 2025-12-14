@@ -20,8 +20,8 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
-    ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE,
-    TABLE_HEADER_STYLE, TITLE_STYLE,
+    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE,
+    SURFACE_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE,
 };
 use crate::ui::TIME_FORMAT;
 
@@ -589,26 +589,33 @@ impl Widget for &mut DagRunModel {
                 .border_type(BorderType::Rounded)
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
-                .title(if let Some(dag_id) = &self.dag_id {
-                    format!(" {dag_id} | Press <?> to see available commands ")
-                } else {
-                    " Press <?> to see available commands ".to_string()
-                });
-            match (self.visual_mode, self.filter.is_active()) {
-                (true, true) => block.title_bottom(format!(
-                    " -- VISUAL ({} selected) -- | Filter: {} ",
-                    self.visual_selection_count(),
-                    self.filter.prefix.as_ref().unwrap()
-                )),
-                (true, false) => block.title_bottom(format!(
-                    " -- VISUAL ({} selected) -- ",
-                    self.visual_selection_count()
-                )),
-                (false, true) => block.title_bottom(format!(
-                    " Filter: {} ",
-                    self.filter.prefix.as_ref().unwrap()
-                )),
-                (false, false) => block,
+                .title(" Press <?> to see available commands ");
+            match (self.visual_mode, self.filter.prefix()) {
+                (true, Some(prefix)) => block.title_bottom(Line::from(vec![
+                    Span::raw(" -- VISUAL ("),
+                    Span::styled(
+                        format!("{}", self.visual_selection_count()),
+                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(" selected) -- | "),
+                    Span::styled(
+                        format!("Filter: {prefix} "),
+                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    ),
+                ])),
+                (true, None) => block.title_bottom(Line::from(vec![
+                    Span::raw(" -- VISUAL ("),
+                    Span::styled(
+                        format!("{}", self.visual_selection_count()),
+                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw(" selected) -- "),
+                ])),
+                (false, Some(prefix)) => block.title_bottom(Line::from(Span::styled(
+                    format!(" Filter: {prefix} "),
+                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                ))),
+                (false, None) => block,
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);

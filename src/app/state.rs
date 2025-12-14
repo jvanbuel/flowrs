@@ -1,11 +1,19 @@
+use std::sync::LazyLock;
+
 use crate::airflow::config::FlowrsConfig;
 use crate::app::environment_state::EnvironmentStateContainer;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
 use crate::app::model::popup::warning::WarningPopup;
 use throbber_widgets_tui::ThrobberState;
+use time::format_description::BorrowedFormatItem;
 
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
+
+/// Cached date format for breadcrumb display (YYYY-MM-DD)
+static BREADCRUMB_DATE_FORMAT: LazyLock<Vec<BorrowedFormatItem<'static>>> = LazyLock::new(|| {
+    time::format_description::parse("[year]-[month]-[day]").expect("Invalid date format")
+});
 
 pub struct App {
     pub config: FlowrsConfig,
@@ -106,6 +114,79 @@ impl App {
         self.dagruns.all.clear();
         self.task_instances.all.clear();
         self.logs.all.clear();
+    }
+
+    /// Generate breadcrumb string showing navigation context.
+    /// Returns a path like `"dev > dag_example > manual_2025... > task_1"`
+    pub fn breadcrumb(&self) -> Option<String> {
+        let mut parts: Vec<String> = Vec::new();
+
+        // Always start with the active environment (config) name if set
+        if let Some(env_name) = &self.config.active_server {
+            parts.push(env_name.clone());
+        } else {
+            return None; // No breadcrumb if no environment selected
+        }
+
+        // Add DAG if we're past the Config panel
+        if self.active_panel != Panel::Config && self.active_panel != Panel::Dag {
+            if let Some(dag_id) = &self.dagruns.dag_id {
+                // Truncate long dag_id
+                let truncated = Self::truncate_breadcrumb_part(dag_id, 25);
+                parts.push(truncated);
+            }
+        }
+
+        // Add DAG Run logical date if we're at TaskInstance or Logs panel
+        if self.active_panel == Panel::TaskInstance || self.active_panel == Panel::Logs {
+            // Get logical_date from the first task instance (they all share the same dag run)
+            if let Some(task_instance) = self.task_instances.filtered.items.first() {
+                if let Some(logical_date) = task_instance.logical_date {
+                    let formatted = logical_date
+                        .format(&BREADCRUMB_DATE_FORMAT)
+                        .unwrap_or_else(|_| "unknown".to_string());
+                    parts.push(formatted);
+                }
+            } else if let Some(dag_run_id) = &self.task_instances.dag_run_id {
+                // Fallback to dag_run_id if no task instances loaded yet
+                let truncated = Self::truncate_breadcrumb_part(dag_run_id, 20);
+                parts.push(truncated);
+            }
+        }
+
+        // Add Task if we're at Logs panel
+        if self.active_panel == Panel::Logs {
+            if let Some(task_id) = &self.logs.task_id {
+                // Truncate long task_id
+                let truncated = Self::truncate_breadcrumb_part(task_id, 20);
+                parts.push(truncated);
+            }
+        }
+
+        if parts.len() > 1 || self.active_panel != Panel::Config {
+            Some(parts.join(" > "))
+        } else if parts.len() == 1 {
+            Some(parts[0].clone())
+        } else {
+            None
+        }
+    }
+
+    /// Truncate a string for breadcrumb display, adding "..." if needed.
+    /// Uses char boundaries to avoid panicking on multi-byte UTF-8 characters.
+    fn truncate_breadcrumb_part(s: &str, max_chars: usize) -> String {
+        let char_count = s.chars().count();
+        if char_count <= max_chars {
+            s.to_string()
+        } else {
+            // Find the byte index at the char boundary for truncation
+            let truncate_at = max_chars.saturating_sub(3);
+            let byte_index = s
+                .char_indices()
+                .nth(truncate_at)
+                .map_or(s.len(), |(idx, _)| idx);
+            format!("{}...", &s[..byte_index])
+        }
     }
 
     /// Sync panel data from `environment_state`

@@ -1,10 +1,10 @@
 use crate::app::state::{App, Panel};
 use crate::ui::tabs::{TabBar, TAB_BAR_HEIGHT};
-use crate::ui::theme::{HEADER_BG, HEADER_FG};
+use crate::ui::theme::{HEADER_BG, HEADER_FG, TEXT_PRIMARY};
 use init_screen::render_init_screen;
 use ratatui::layout::{Constraint, Layout};
-use ratatui::style::Style;
-use ratatui::text::Line;
+use ratatui::style::{Modifier, Style};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Widget};
 use ratatui::Frame;
 use std::sync::{Arc, Mutex};
@@ -42,11 +42,33 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     let [app_info, throbber_area] =
         Layout::horizontal([Constraint::Min(0), Constraint::Length(20)]).areas(top_line);
 
-    // Render app name and version on the left - prominent purple header
+    // Render app name and version on the left, with breadcrumb - prominent purple header
     let version = env!("CARGO_PKG_VERSION");
+    let breadcrumb = app.breadcrumb();
+
+    let header_line = if let Some(ref crumb) = breadcrumb {
+        Line::from(vec![
+            Span::styled(
+                format!(" Flowrs v{version} "),
+                Style::default().fg(HEADER_FG).bg(HEADER_BG),
+            ),
+            Span::styled(
+                format!(" {crumb} "),
+                Style::default()
+                    .fg(TEXT_PRIMARY)
+                    .bg(HEADER_BG)
+                    .add_modifier(Modifier::ITALIC),
+            ),
+        ])
+    } else {
+        Line::from(Span::styled(
+            format!(" Flowrs v{version} "),
+            Style::default().fg(HEADER_FG).bg(HEADER_BG),
+        ))
+    };
+
     f.render_widget(
-        Paragraph::new(Line::from(format!(" Flowrs v{version} ")))
-            .style(Style::default().fg(HEADER_FG).bg(HEADER_BG)),
+        Paragraph::new(header_line).style(Style::default().bg(HEADER_BG)),
         app_info,
     );
 
