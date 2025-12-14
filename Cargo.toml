@@ -70,3 +70,7 @@ panic = "abort"
 
 [lints.clippy]
 pedantic = "warn"
+
+
+[profile.dist]
+inherits = "release"
