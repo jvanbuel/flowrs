@@ -184,14 +184,17 @@ impl EnvironmentStateContainer {
         self.get_active_environment().map(|env| env.client.clone())
     }
 
-    /// Get all DAGs for the active environment
+    /// Get all DAGs for the active environment, sorted alphabetically by `dag_id`
     pub fn get_active_dags(&self) -> Vec<Dag> {
         self.get_active_environment()
             .map(|env| {
-                env.dags
+                let mut dags: Vec<Dag> = env
+                    .dags
                     .values()
                     .map(|dag_data| dag_data.dag.clone())
-                    .collect()
+                    .collect();
+                dags.sort_by(|a, b| a.dag_id.cmp(&b.dag_id));
+                dags
             })
             .unwrap_or_default()
     }

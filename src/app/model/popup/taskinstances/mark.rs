@@ -14,7 +14,7 @@ use crate::{
     },
     ui::theme::{
         BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED, DEFAULT_STYLE,
-        SURFACE_STYLE, TITLE_STYLE,
+        SURFACE_STYLE,
     },
 };
 pub struct MarkTaskInstancePopup {
@@ -118,12 +118,10 @@ impl Widget for &mut MarkTaskInstancePopup {
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .title(" Mark Task Instance ")
             .border_style(DEFAULT_STYLE)
-            .style(SURFACE_STYLE)
-            .title_style(TITLE_STYLE);
+            .style(SURFACE_STYLE);
 
-        let text = Paragraph::new("Select status:")
+        let text = Paragraph::new("Mark status as")
             .style(DEFAULT_STYLE)
             .centered();
 
