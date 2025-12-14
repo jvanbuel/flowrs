@@ -1,7 +1,8 @@
 use crate::app::state::{App, Panel};
-use crate::ui::constants::DEFAULT_STYLE;
+use crate::ui::theme::{HEADER_BG, HEADER_FG};
 use init_screen::render_init_screen;
 use ratatui::layout::{Constraint, Layout};
+use ratatui::style::Style;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph, Widget};
 use ratatui::Frame;
@@ -11,6 +12,7 @@ use throbber_widgets_tui::Throbber;
 pub mod common;
 pub mod constants;
 mod init_screen;
+pub mod theme;
 
 pub const TIME_FORMAT: &str = "[year]-[month]-[day] [hour]:[minute]:[second]";
 
@@ -22,18 +24,23 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     }
     app.startup = false;
 
-    // Always split area vertically to reserve top line for throbber
+    // Always split area vertically to reserve top line for header
     let [top_line, panel_area] =
         Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).areas(f.area());
+
+    // First, fill the entire top line with header background
+    let header_bg_block = Block::default().style(Style::default().bg(HEADER_BG));
+    f.render_widget(header_bg_block, top_line);
 
     // Split top line horizontally to align throbber to the right
     let [app_info, throbber_area] =
         Layout::horizontal([Constraint::Min(0), Constraint::Length(20)]).areas(top_line);
 
-    // Render app name and version on the left
+    // Render app name and version on the left - prominent purple header
     let version = env!("CARGO_PKG_VERSION");
     f.render_widget(
-        Paragraph::new(Line::from(format!(" Flowrs v{version}"))).style(DEFAULT_STYLE),
+        Paragraph::new(Line::from(format!(" Flowrs v{version} ")))
+            .style(Style::default().fg(HEADER_FG).bg(HEADER_BG)),
         app_info,
     );
 
@@ -41,13 +48,9 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     if app.loading {
         let throbber = Throbber::default()
             .label("Fetching data...")
-            .style(DEFAULT_STYLE)
+            .style(Style::default().fg(HEADER_FG).bg(HEADER_BG))
             .throbber_set(throbber_widgets_tui::OGHAM_C);
         f.render_stateful_widget(throbber, throbber_area, &mut app.throbber_state);
-    } else {
-        // Render empty block with background when not loading
-        let empty_block = Block::default().style(DEFAULT_STYLE);
-        f.render_widget(empty_block, throbber_area);
     }
 
     // Only frame has the ability to set the cursor position, so we need to control the cursor filter from here

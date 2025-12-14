@@ -4,7 +4,7 @@ use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::style::{Color, Modifier, Style, Stylize};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
@@ -13,7 +13,8 @@ use crate::airflow::model::common::{Dag, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
-use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE};
+use crate::ui::constants::AirflowStateColor;
+use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY, TITLE_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
@@ -221,20 +222,16 @@ impl Widget for &mut DagModel {
                 .margin(0)
                 .split(area)
         };
-        let selected_style = DEFAULT_STYLE.add_modifier(Modifier::REVERSED);
-
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
-        let header = Row::new(header_row)
-            .style(DEFAULT_STYLE.reversed())
-            .add_modifier(Modifier::BOLD);
+        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
         let rows =
             self.filtered.items.iter().enumerate().map(|(idx, item)| {
                 Row::new(vec![
                     if item.is_paused {
-                        Line::from(Span::styled("🔘", Style::default()))
+                        Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
                     } else {
-                        Line::from(Span::styled("🔵", Style::default()))
+                        Line::from(Span::styled("𖣘", Style::default().fg(Color::Rgb(30, 144, 255))))
                     },
                     Line::from(Span::styled(
                         item.dag_id.as_str(),
@@ -282,7 +279,7 @@ impl Widget for &mut DagModel {
                 .style(if (idx % 2) == 0 {
                     DEFAULT_STYLE
                 } else {
-                    DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
+                    ALT_ROW_STYLE
                 })
             });
         let t = Table::new(
@@ -299,13 +296,13 @@ impl Widget for &mut DagModel {
         .header(header)
         .block(
             Block::default()
-                .border_type(BorderType::Rounded)
+                .border_type(BorderType::Plain)
                 .borders(Borders::ALL)
-                .title("DAGs - Press <?> to see available commands")
-                .border_style(DEFAULT_STYLE)
-                .style(DEFAULT_STYLE),
+                .title(" DAGs - Press <?> to see available commands ")
+                .border_style(BORDER_STYLE)
+                .title_style(TITLE_STYLE),
         )
-        .row_highlight_style(selected_style);
+        .row_highlight_style(SELECTED_ROW_STYLE);
 
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 

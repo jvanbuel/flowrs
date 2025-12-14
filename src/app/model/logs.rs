@@ -2,7 +2,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Text},
     widgets::{
         Block, BorderType, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
@@ -17,7 +17,7 @@ use crate::{
         events::custom::FlowrsEvent,
         worker::{OpenItem, WorkerMessage},
     },
-    ui::constants::DM_RGB,
+    ui::theme::{ACCENT, BORDER_STYLE, DEFAULT_STYLE, TITLE_STYLE},
 };
 
 use super::popup::error::ErrorPopup;
@@ -155,11 +155,14 @@ impl Widget for &mut LogModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
         if self.all.is_empty() {
             Paragraph::new("No logs available")
+                .style(DEFAULT_STYLE)
                 .block(
                     Block::default()
-                        .border_type(BorderType::Rounded)
+                        .border_type(BorderType::Plain)
                         .borders(Borders::ALL)
-                        .title("Logs"),
+                        .title(" Logs ")
+                        .border_style(BORDER_STYLE)
+                        .title_style(TITLE_STYLE),
                 )
                 .render(area, buffer);
             return;
@@ -172,17 +175,19 @@ impl Widget for &mut LogModel {
         let tabs = Tabs::new(tab_titles)
             .block(
                 Block::default()
-                    .border_type(BorderType::Rounded)
-                    .title("Logs")
-                    .borders(Borders::ALL),
+                    .border_type(BorderType::Plain)
+                    .title(" Logs ")
+                    .borders(Borders::ALL)
+                    .border_style(BORDER_STYLE)
+                    .title_style(TITLE_STYLE),
             )
             .select(self.current % self.all.len())
             .highlight_style(
                 Style::default()
-                    .fg(Color::Yellow)
+                    .fg(ACCENT)
                     .add_modifier(Modifier::BOLD),
             )
-            .style(Style::default().fg(DM_RGB));
+            .style(DEFAULT_STYLE);
 
         // Render the tabs
         tabs.render(area, buffer);
@@ -221,12 +226,14 @@ impl Widget for &mut LogModel {
             let paragraph = Paragraph::new(content)
                 .block(
                     Block::default()
-                        .border_type(BorderType::Rounded)
+                        .border_type(BorderType::Plain)
                         .borders(Borders::ALL)
-                        .title("Content"),
+                        .title(" Content ")
+                        .border_style(BORDER_STYLE)
+                        .title_style(TITLE_STYLE),
                 )
                 .wrap(Wrap { trim: true })
-                .style(Style::default().fg(Color::White))
+                .style(DEFAULT_STYLE)
                 .scroll((self.vertical_scroll as u16, 0));
 
             // Render the selected log's content

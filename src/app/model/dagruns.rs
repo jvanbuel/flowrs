@@ -18,7 +18,11 @@ use time::format_description;
 use crate::airflow::model::common::DagRun;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
-use crate::ui::constants::{AirflowStateColor, ALTERNATING_ROW_COLOR, DEFAULT_STYLE, MARKED_COLOR};
+use crate::ui::constants::AirflowStateColor;
+use crate::ui::theme::{
+    ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE,
+    TABLE_HEADER_STYLE, TITLE_STYLE,
+};
 use crate::ui::TIME_FORMAT;
 
 use super::popup::commands_help::CommandPopUp;
@@ -494,8 +498,7 @@ impl Widget for &mut DagRunModel {
             "Time",
         ];
         let header_row = create_headers(headers);
-        let header =
-            Row::new(header_row).style(DEFAULT_STYLE.reversed().add_modifier(Modifier::BOLD));
+        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
         // Calculate max duration for normalization
         let max_duration = self
@@ -561,11 +564,11 @@ impl Widget for &mut DagRunModel {
                     .visual_selection()
                     .is_some_and(|r| r.contains(&idx))
                 {
-                    DEFAULT_STYLE.bg(MARKED_COLOR)
+                    MARKED_STYLE
                 } else if (idx % 2) == 0 {
                     DEFAULT_STYLE
                 } else {
-                    DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
+                    ALT_ROW_STYLE
                 },
             )
         });
@@ -583,14 +586,15 @@ impl Widget for &mut DagRunModel {
         .header(header)
         .block({
             let block = Block::default()
-                .border_type(BorderType::Rounded)
+                .border_type(BorderType::Plain)
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
-                    format!("DAGRuns ({dag_id}) - press <?> to see available commands")
+                    format!(" DAGRuns ({dag_id}) - press <?> to see available commands ")
                 } else {
-                    "DAGRuns".to_string()
+                    " DAGRuns ".to_string()
                 })
-                .style(DEFAULT_STYLE);
+                .border_style(BORDER_STYLE)
+                .title_style(TITLE_STYLE);
             if self.visual_mode {
                 block.title_bottom(format!(
                     " -- VISUAL ({} selected) -- ",
@@ -600,7 +604,7 @@ impl Widget for &mut DagRunModel {
                 block
             }
         })
-        .row_highlight_style(DEFAULT_STYLE.reversed());
+        .row_highlight_style(SELECTED_ROW_STYLE);
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 
         if let Some(cached_lines) = &self.dag_code.cached_lines {
@@ -609,10 +613,10 @@ impl Widget for &mut DagRunModel {
             let popup = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
-                .title("DAG Code")
-                .border_style(DEFAULT_STYLE)
-                .style(DEFAULT_STYLE)
-                .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
+                .title(" DAG Code ")
+                .border_style(BORDER_STYLE)
+                .style(SURFACE_STYLE)
+                .title_style(TITLE_STYLE);
 
             #[allow(clippy::cast_possible_truncation)]
             let code_text = Paragraph::new(cached_lines.clone())

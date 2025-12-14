@@ -2,8 +2,7 @@ use crossterm::event::KeyCode;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
-    style::{Modifier, Stylize},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
 };
 
 use crate::{
@@ -12,7 +11,10 @@ use crate::{
         model::{popup::popup_area, Model},
         worker::WorkerMessage,
     },
-    ui::constants::DEFAULT_STYLE,
+    ui::theme::{
+        BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED, DEFAULT_STYLE,
+        SURFACE_STYLE, TITLE_STYLE,
+    },
 };
 
 pub struct TriggerDagRunPopUp {
@@ -65,11 +67,12 @@ KeyCode::Left | KeyCode::Right => {
 
 impl Widget for &mut TriggerDagRunPopUp {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let area = popup_area(area, 50, 50);
+        // Smaller popup: 35% width, auto height
+        let area = popup_area(area, 40, 30);
 
         let [_, header, options, _] = Layout::vertical([
+            Constraint::Length(1),
             Constraint::Length(2),
-            Constraint::Length(3),
             Constraint::Length(3),
             Constraint::Min(1),
         ])
@@ -79,56 +82,60 @@ impl Widget for &mut TriggerDagRunPopUp {
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .title("Trigger DAG Run")
+            .title(" Trigger DAG Run ")
             .border_style(DEFAULT_STYLE)
-            .style(DEFAULT_STYLE)
-            .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
+            .style(SURFACE_STYLE)
+            .title_style(TITLE_STYLE);
 
-        let text = Paragraph::new("Are you sure you want to trigger a new DAG Run?")
+        let text = Paragraph::new("Trigger a new DAG Run?")
             .style(DEFAULT_STYLE)
-            .block(Block::default().border_type(BorderType::Rounded))
-            .centered()
-            .wrap(Wrap { trim: true });
+            .centered();
 
         let [_, yes, _, no, _] = Layout::horizontal([
             Constraint::Fill(1),
-            Constraint::Length(7),
-            Constraint::Percentage(5),
-            Constraint::Length(7),
+            Constraint::Length(8),
+            Constraint::Length(2),
+            Constraint::Length(8),
             Constraint::Fill(1),
         ])
         .areas(options);
 
-        let yes_text = Paragraph::new("Yes")
-            .style(if self.confirm {
-                DEFAULT_STYLE.reversed()
-            } else {
-                DEFAULT_STYLE
-            })
+        // Yes button
+        let (yes_style, yes_border) = if self.confirm {
+            (BUTTON_SELECTED, BORDER_SELECTED)
+        } else {
+            (BUTTON_DEFAULT, BORDER_DEFAULT)
+        };
+        let yes_btn = Paragraph::new("Yes")
+            .style(yes_style)
             .centered()
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL),
+                    .borders(Borders::ALL)
+                    .border_style(yes_style.fg(yes_border)),
             );
 
-        let no_text = Paragraph::new("No")
-            .style(if self.confirm {
-                DEFAULT_STYLE
-            } else {
-                DEFAULT_STYLE.reversed()
-            })
+        // No button
+        let (no_style, no_border) = if !self.confirm {
+            (BUTTON_SELECTED, BORDER_SELECTED)
+        } else {
+            (BUTTON_DEFAULT, BORDER_DEFAULT)
+        };
+        let no_btn = Paragraph::new("No")
+            .style(no_style)
             .centered()
             .block(
                 Block::default()
                     .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL),
+                    .borders(Borders::ALL)
+                    .border_style(no_style.fg(no_border)),
             );
 
-        Clear.render(area, buffer); //this clears out the background
+        Clear.render(area, buffer);
         popup_block.render(area, buffer);
         text.render(header, buffer);
-        yes_text.render(yes, buffer);
-        no_text.render(no, buffer);
+        yes_btn.render(yes, buffer);
+        no_btn.render(no, buffer);
     }
 }
