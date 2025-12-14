@@ -10,9 +10,14 @@ pub static TASK_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
             description: "Clear a task instance",
         },
         Command {
+            name: "Visual",
+            key_binding: "V",
+            description: "Enter visual selection mode",
+        },
+        Command {
             name: "Mark",
             key_binding: "m",
-            description: "Mark a task instance",
+            description: "Mark selected task instance(s)",
         },
         Command {
             name: "Filter",

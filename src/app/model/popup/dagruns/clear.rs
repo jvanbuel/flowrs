@@ -16,15 +16,15 @@ use crate::{
 };
 
 pub struct ClearDagRunPopup {
-    pub dag_run_id: String,
+    pub dag_run_ids: Vec<String>,
     pub dag_id: String,
     pub confirm: bool,
 }
 
 impl ClearDagRunPopup {
-    pub fn new(dag_run_id: String, dag_id: String) -> Self {
+    pub fn new(dag_run_ids: Vec<String>, dag_id: String) -> Self {
         ClearDagRunPopup {
-            dag_run_id,
+            dag_run_ids,
             dag_id,
             confirm: false,
         }
@@ -37,14 +37,17 @@ impl Model for ClearDagRunPopup {
             match key_event.code {
                 KeyCode::Enter => {
                     // On Enter, we always return the key event, so the parent can close the popup
-                    // If the confirm flag is set, we also return a WorkerMessage to clear the dag run
+                    // If the confirm flag is set, we also return WorkerMessages to clear the dag runs
                     if self.confirm {
                         return (
                             Some(FlowrsEvent::Key(*key_event)),
-                            vec![WorkerMessage::ClearDagRun {
-                                dag_run_id: self.dag_run_id.clone(),
-                                dag_id: self.dag_id.clone(),
-                            }],
+                            self.dag_run_ids
+                                .iter()
+                                .map(|dag_run_id| WorkerMessage::ClearDagRun {
+                                    dag_run_id: dag_run_id.clone(),
+                                    dag_id: self.dag_id.clone(),
+                                })
+                                .collect(),
                         );
                     }
                     return (Some(FlowrsEvent::Key(*key_event)), vec![]);
@@ -87,7 +90,15 @@ impl Widget for &mut ClearDagRunPopup {
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
 
-        let text = Paragraph::new("Are you sure you want to clear this DAG Run?")
+        let message = if self.dag_run_ids.len() == 1 {
+            "Are you sure you want to clear this DAG Run?".to_string()
+        } else {
+            format!(
+                "Are you sure you want to clear {} DAG Runs?",
+                self.dag_run_ids.len()
+            )
+        };
+        let text = Paragraph::new(message)
             .style(DEFAULT_STYLE)
             .block(Block::default().border_type(BorderType::Rounded))
             .centered()
