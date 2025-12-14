@@ -18,16 +18,16 @@ use crate::{
 pub struct ClearTaskInstancePopup {
     pub dag_run_id: String,
     pub dag_id: String,
-    pub task_id: String,
+    pub task_ids: Vec<String>,
     pub confirm: bool,
 }
 
 impl ClearTaskInstancePopup {
-    pub fn new(dag_run_id: &str, dag_id: &str, task_id: &str) -> Self {
+    pub fn new(dag_run_id: &str, dag_id: &str, task_ids: Vec<String>) -> Self {
         ClearTaskInstancePopup {
             dag_run_id: dag_run_id.to_string(),
             dag_id: dag_id.to_string(),
-            task_id: task_id.to_string(),
+            task_ids,
             confirm: false,
         }
     }
@@ -39,15 +39,18 @@ impl Model for ClearTaskInstancePopup {
             match key_event.code {
                 KeyCode::Enter => {
                     // On Enter, we always return the key event, so the parent can close the popup
-                    // If the confirm flag is set, we also return a WorkerMessage to clear the dag run
+                    // If the confirm flag is set, we also return WorkerMessages to clear the task instances
                     if self.confirm {
                         return (
                             Some(FlowrsEvent::Key(*key_event)),
-                            vec![WorkerMessage::ClearTaskInstance {
-                                dag_run_id: self.dag_run_id.clone(),
-                                dag_id: self.dag_id.clone(),
-                                task_id: self.task_id.clone(),
-                            }],
+                            self.task_ids
+                                .iter()
+                                .map(|task_id| WorkerMessage::ClearTaskInstance {
+                                    dag_run_id: self.dag_run_id.clone(),
+                                    dag_id: self.dag_id.clone(),
+                                    task_id: task_id.clone(),
+                                })
+                                .collect(),
                         );
                     }
                     return (Some(FlowrsEvent::Key(*key_event)), vec![]);
@@ -89,7 +92,15 @@ impl Widget for &mut ClearTaskInstancePopup {
             .style(DEFAULT_STYLE)
             .title_style(DEFAULT_STYLE.add_modifier(Modifier::BOLD));
 
-        let text = Paragraph::new("Are you sure you want to clear this Task Instance?")
+        let message = if self.task_ids.len() == 1 {
+            "Are you sure you want to clear this Task Instance?".to_string()
+        } else {
+            format!(
+                "Are you sure you want to clear {} Task Instances?",
+                self.task_ids.len()
+            )
+        };
+        let text = Paragraph::new(message)
             .style(DEFAULT_STYLE)
             .block(Block::default().border_type(BorderType::Rounded))
             .centered()

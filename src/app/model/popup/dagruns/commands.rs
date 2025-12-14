@@ -15,14 +15,14 @@ pub static DAGRUN_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
             description: "Show DAG code",
         },
         Command {
-            name: "Mark",
-            key_binding: "m",
-            description: "Mark a DAG run",
+            name: "Visual",
+            key_binding: "V",
+            description: "Enter visual selection mode",
         },
         Command {
-            name: "Mark multiple",
-            key_binding: "M",
-            description: "Mark multiple DAG runs",
+            name: "Mark",
+            key_binding: "m",
+            description: "Mark selected DAG run(s)",
         },
         Command {
             name: "Trigger",

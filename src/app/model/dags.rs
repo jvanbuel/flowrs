@@ -121,7 +121,11 @@ impl Model for DagModel {
                             self.filtered.previous();
                         }
                         KeyCode::Char('G') => {
-                            self.filtered.state.select_last();
+                            if !self.filtered.items.is_empty() {
+                                self.filtered
+                                    .state
+                                    .select(Some(self.filtered.items.len() - 1));
+                            }
                         }
                         KeyCode::Char('p') => match self.current() {
                             Some(dag) => {

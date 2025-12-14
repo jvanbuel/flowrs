@@ -7,6 +7,7 @@ use ratatui::widgets::{
     Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
     ScrollbarState, StatefulWidget, Table, Widget, Wrap,
 };
+use std::ops::RangeInclusive;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxSet;
@@ -36,7 +37,8 @@ pub struct DagRunModel {
     pub all: Vec<DagRun>,
     pub filtered: StatefulTable<DagRun>,
     pub filter: Filter,
-    pub marked: Vec<usize>,
+    pub visual_mode: bool,
+    pub visual_anchor: Option<usize>,
     pub popup: Option<DagRunPopUp>,
     pub commands: Option<&'static CommandPopUp<'static>>,
     pub error_popup: Option<ErrorPopup>,
@@ -73,7 +75,8 @@ impl DagRunModel {
             all: vec![],
             filtered: StatefulTable::new(vec![]),
             filter: Filter::new(),
-            marked: vec![],
+            visual_mode: false,
+            visual_anchor: None,
             popup: None,
             commands: None,
             error_popup: None,
@@ -183,6 +186,46 @@ impl DagRunModel {
             .map(|i| &self.filtered.items[i])
     }
 
+    /// Returns the inclusive range of selected indices, if in visual mode
+    fn visual_selection(&self) -> Option<RangeInclusive<usize>> {
+        if !self.visual_mode {
+            return None;
+        }
+        let anchor = self.visual_anchor?;
+        let cursor = self.filtered.state.selected()?;
+        let (start, end) = if anchor <= cursor {
+            (anchor, cursor)
+        } else {
+            (cursor, anchor)
+        };
+        Some(start..=end)
+    }
+
+    /// Returns count of selected items (for bottom border display)
+    fn visual_selection_count(&self) -> usize {
+        self.visual_selection()
+            .map_or(0, |r| r.end() - r.start() + 1)
+    }
+
+    /// Returns selected DAG run IDs for passing to mark popup
+    fn selected_dag_run_ids(&self) -> Vec<String> {
+        match self.visual_selection() {
+            Some(range) => range
+                .filter_map(|i| self.filtered.items.get(i))
+                .map(|item| item.dag_run_id.clone())
+                .collect(),
+            None => {
+                // Normal mode: just current item
+                self.filtered
+                    .state
+                    .selected()
+                    .and_then(|i| self.filtered.items.get(i))
+                    .map(|item| vec![item.dag_run_id.clone()])
+                    .unwrap_or_default()
+            }
+        }
+    }
+
     pub fn mark_dag_run(&mut self, dag_run_id: &str, status: &str) {
         self.filtered.items.iter_mut().for_each(|dag_run| {
             if dag_run.dag_run_id == dag_run_id {
@@ -247,6 +290,8 @@ impl Model for DagRunModel {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
                                         self.popup = None;
+                                        self.visual_mode = false;
+                                        self.visual_anchor = None;
                                     }
                                     _ => {}
                                 }
@@ -260,7 +305,8 @@ impl Model for DagRunModel {
                                 match key_event.code {
                                     KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
                                         self.popup = None;
-                                        self.marked = vec![];
+                                        self.visual_mode = false;
+                                        self.visual_anchor = None;
                                     }
                                     _ => {}
                                 }
@@ -307,6 +353,14 @@ impl Model for DagRunModel {
                     }
                 } else {
                     match key_event.code {
+                        KeyCode::Esc => {
+                            if self.visual_mode {
+                                self.visual_mode = false;
+                                self.visual_anchor = None;
+                                return (None, vec![]);
+                            }
+                            return (Some(FlowrsEvent::Key(*key_event)), vec![]);
+                        }
                         KeyCode::Down | KeyCode::Char('j') => {
                             self.filtered.next();
                         }
@@ -314,7 +368,11 @@ impl Model for DagRunModel {
                             self.filtered.previous();
                         }
                         KeyCode::Char('G') => {
-                            self.filtered.state.select_last();
+                            if !self.filtered.items.is_empty() {
+                                self.filtered
+                                    .state
+                                    .select(Some(self.filtered.items.len() - 1));
+                            }
                         }
                         KeyCode::Char('g') => {
                             if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
@@ -327,30 +385,25 @@ impl Model for DagRunModel {
                                 self.event_buffer.push(FlowrsEvent::Key(*key_event));
                             }
                         }
+                        KeyCode::Char('V') => {
+                            if let Some(cursor) = self.filtered.state.selected() {
+                                self.visual_mode = true;
+                                self.visual_anchor = Some(cursor);
+                            }
+                        }
                         KeyCode::Char('t') => {
                             self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
                                 self.dag_id.clone().unwrap(),
                             )));
                         }
                         KeyCode::Char('m') => {
-                            if let Some(index) = self.filtered.state.selected() {
-                                self.marked.push(index);
-
-                                self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
-                                    self.marked
-                                        .iter()
-                                        .map(|i| self.filtered.items[*i].dag_run_id.clone())
-                                        .collect(),
-                                    self.current().unwrap().dag_id.clone(),
-                                )));
-                            }
-                        }
-                        KeyCode::Char('M') => {
-                            if let Some(index) = self.filtered.state.selected() {
-                                if self.marked.contains(&index) {
-                                    self.marked.retain(|&i| i != index);
-                                } else {
-                                    self.marked.push(index);
+                            let dag_run_ids = self.selected_dag_run_ids();
+                            if let Some(dag_id) = &self.dag_id {
+                                if !dag_run_ids.is_empty() {
+                                    self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
+                                        dag_run_ids,
+                                        dag_id.clone(),
+                                    )));
                                 }
                             }
                         }
@@ -372,11 +425,14 @@ impl Model for DagRunModel {
                             }
                         }
                         KeyCode::Char('c') => {
-                            if let (Some(dag_run), Some(dag_id)) = (self.current(), &self.dag_id) {
-                                self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
-                                    dag_run.dag_run_id.clone(),
-                                    dag_id.clone(),
-                                )));
+                            let dag_run_ids = self.selected_dag_run_ids();
+                            if let Some(dag_id) = &self.dag_id {
+                                if !dag_run_ids.is_empty() {
+                                    self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
+                                        dag_run_ids,
+                                        dag_id.clone(),
+                                    )));
+                                }
                             }
                         }
                         KeyCode::Enter => {
@@ -500,13 +556,18 @@ impl Widget for &mut DagRunModel {
                 duration_cell,
                 time_cell,
             ])
-            .style(if self.marked.contains(&idx) {
-                DEFAULT_STYLE.bg(MARKED_COLOR)
-            } else if (idx % 2) == 0 {
-                DEFAULT_STYLE
-            } else {
-                DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
-            })
+            .style(
+                if self
+                    .visual_selection()
+                    .is_some_and(|r| r.contains(&idx))
+                {
+                    DEFAULT_STYLE.bg(MARKED_COLOR)
+                } else if (idx % 2) == 0 {
+                    DEFAULT_STYLE
+                } else {
+                    DEFAULT_STYLE.bg(ALTERNATING_ROW_COLOR)
+                },
+            )
         });
         let t = Table::new(
             rows,
@@ -520,8 +581,8 @@ impl Widget for &mut DagRunModel {
             ],
         )
         .header(header)
-        .block(
-            Block::default()
+        .block({
+            let block = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::ALL)
                 .title(if let Some(dag_id) = &self.dag_id {
@@ -529,8 +590,16 @@ impl Widget for &mut DagRunModel {
                 } else {
                     "DAGRuns".to_string()
                 })
-                .style(DEFAULT_STYLE),
-        )
+                .style(DEFAULT_STYLE);
+            if self.visual_mode {
+                block.title_bottom(format!(
+                    " -- VISUAL ({} selected) -- ",
+                    self.visual_selection_count()
+                ))
+            } else {
+                block
+            }
+        })
         .row_highlight_style(DEFAULT_STYLE.reversed());
         StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
 
