@@ -14,7 +14,7 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY, TITLE_STYLE};
+use crate::ui::theme::{ALT_ROW_STYLE, BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY, TITLE_STYLE};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
@@ -231,7 +231,7 @@ impl Widget for &mut DagModel {
                     if item.is_paused {
                         Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
                     } else {
-                        Line::from(Span::styled("𖣘", Style::default().fg(Color::Rgb(30, 144, 255))))
+                        Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
                     },
                     Line::from(Span::styled(
                         item.dag_id.as_str(),

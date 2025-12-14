@@ -34,9 +34,8 @@ impl RunCommand {
         // Generate warnings for legacy config conflict (only when no explicit --file)
         let mut warnings = Vec::new();
         if self.file.is_none() && CONFIG_PATHS.has_legacy_conflict {
-            let legacy_path = dirs::home_dir()
-                .map(|h| h.join(".flowrs"))
-                .unwrap_or_else(|| PathBuf::from("~/.flowrs"));
+            let legacy_path =
+                dirs::home_dir().map_or_else(|| PathBuf::from("~/.flowrs"), |h| h.join(".flowrs"));
             warnings.push(format!(
                 "Configuration file found in both locations:\n  \
                  - {} (active)\n  \

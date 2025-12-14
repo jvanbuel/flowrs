@@ -8,13 +8,10 @@ use ratatui::{
 use crate::{
     app::{
         events::custom::FlowrsEvent,
-        model::{popup::popup_area, Model},
+        model::{popup::{popup_area, themed_button}, Model},
         worker::WorkerMessage,
     },
-    ui::theme::{
-        BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED, DEFAULT_STYLE,
-        SURFACE_STYLE, TITLE_STYLE,
-    },
+    ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
 };
 
 pub struct TriggerDagRunPopUp {
@@ -67,8 +64,17 @@ KeyCode::Left | KeyCode::Right => {
 
 impl Widget for &mut TriggerDagRunPopUp {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        // Smaller popup: 35% width, auto height
+        // Smaller popup: 40% width, auto height
         let area = popup_area(area, 40, 30);
+
+        let popup_block = Block::default()
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .border_style(BORDER_STYLE)
+            .style(SURFACE_STYLE);
+
+        // Use inner area for content layout to avoid overlapping the border
+        let inner = popup_block.inner(area);
 
         let [_, header, options, _] = Layout::vertical([
             Constraint::Length(1),
@@ -77,15 +83,7 @@ impl Widget for &mut TriggerDagRunPopUp {
             Constraint::Min(1),
         ])
         .flex(Flex::Center)
-        .areas(area);
-
-        let popup_block = Block::default()
-            .border_type(BorderType::Rounded)
-            .borders(Borders::ALL)
-            .title(" Trigger DAG Run ")
-            .border_style(DEFAULT_STYLE)
-            .style(SURFACE_STYLE)
-            .title_style(TITLE_STYLE);
+        .areas(inner);
 
         let text = Paragraph::new("Trigger a new DAG Run?")
             .style(DEFAULT_STYLE)
@@ -100,37 +98,8 @@ impl Widget for &mut TriggerDagRunPopUp {
         ])
         .areas(options);
 
-        // Yes button
-        let (yes_style, yes_border) = if self.confirm {
-            (BUTTON_SELECTED, BORDER_SELECTED)
-        } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
-        };
-        let yes_btn = Paragraph::new("Yes")
-            .style(yes_style)
-            .centered()
-            .block(
-                Block::default()
-                    .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL)
-                    .border_style(yes_style.fg(yes_border)),
-            );
-
-        // No button
-        let (no_style, no_border) = if !self.confirm {
-            (BUTTON_SELECTED, BORDER_SELECTED)
-        } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
-        };
-        let no_btn = Paragraph::new("No")
-            .style(no_style)
-            .centered()
-            .block(
-                Block::default()
-                    .border_type(BorderType::Rounded)
-                    .borders(Borders::ALL)
-                    .border_style(no_style.fg(no_border)),
-            );
+        let yes_btn = themed_button("Yes", self.confirm);
+        let no_btn = themed_button("No", !self.confirm);
 
         Clear.render(area, buffer);
         popup_block.render(area, buffer);

@@ -17,11 +17,11 @@ A comprehensive visual overhaul for Flowrs TUI, creating a polished dark theme w
 
 | Role | Color | Hex | Usage |
 |------|-------|-----|-------|
-| Background | Deep charcoal | `#1A1B26` | Main app background |
-| Surface | Soft charcoal | `#24253A` | Panels, alternating rows, popup backgrounds |
-| Primary | Rich purple | `#7663E7` | Default text, borders, structural elements |
+| Background | Deep charcoal | `#1E202A` | Main app background |
+| Surface | Soft charcoal | `#323746` | Panels, alternating rows, popup backgrounds |
+| Primary | Rich purple | `#8A76FF` | Default text, borders, structural elements |
 | Primary muted | Soft lavender | `#9D8FD9` | Secondary text, disabled states |
-| Accent | Emerald | `#00C896` | Selections, focus states, interactive highlights |
+| Accent | Emerald | `#00DCA0` | Selections, focus states, interactive highlights |
 
 ### Semantic Colors (Airflow States)
 
@@ -52,12 +52,14 @@ Selected state combines:
 
 ### Table Row Selection
 
+Note: Terminal backgrounds do not support alpha transparency. The design uses solid-color approximations.
+
 | State | Background | Left indicator |
 |-------|------------|----------------|
-| Default | `#1A1B26` | None |
-| Alternating | `#24253A` | None |
-| Selected | `#00C89615` (emerald 8% opacity) | 2px solid emerald bar |
-| Marked (visual selection mode) | `#7663E715` (purple 8% opacity) | Small purple square |
+| Default | Terminal default (no bg set) | None |
+| Alternating | `ALT_ROW_BG`: `#1E202A` | None |
+| Selected | `SELECTED_BG`: `#00503C` (emerald 8% opacity approximation) | 2px solid emerald bar |
+| Marked (visual selection mode) | `MARKED_BG`: `#503278` (purple 8% opacity approximation) | Small purple square |
 
 ## Spacing & Layout
 
@@ -83,39 +85,39 @@ Selected state combines:
 
 ## Implementation Approach
 
-### New Theme Module
+### Theme Module
 
-Create `src/ui/theme.rs` to centralize all styling:
+The theme is implemented in `src/ui/theme.rs` using public constants for colors and styles:
 
 ```rust
-pub struct Theme {
-    pub bg: Color,
-    pub surface: Color,
-    pub primary: Color,
-    pub primary_muted: Color,
-    pub accent: Color,
-    // ... semantic colors
-}
+// Color constants
+pub const PURPLE: Color = Color::Rgb(138, 118, 255);     // #8A76FF
+pub const ACCENT: Color = Color::Rgb(0, 220, 160);       // #00DCA0
+pub const SURFACE: Color = Color::Rgb(50, 55, 70);       // #323746
+pub const SELECTED_BG: Color = Color::Rgb(0, 80, 60);    // #00503C
 
-pub static THEME: LazyLock<Theme> = LazyLock::new(|| Theme::default());
+// Style constants
+pub const BUTTON_DEFAULT: Style = Style { fg: Some(TEXT_PRIMARY), bg: Some(SURFACE), ... };
+pub const BUTTON_SELECTED: Style = Style { fg: Some(ACCENT), bg: Some(SELECTED_BG), ... };
+pub const ALT_ROW_STYLE: Style = Style { fg: Some(TEXT_PRIMARY), bg: Some(ALT_ROW_BG), ... };
+pub const SELECTED_ROW_STYLE: Style = Style { fg: None, bg: Some(SELECTED_BG), ... };
 ```
 
-Replace scattered `DEFAULT_STYLE` usage with semantic accessors like `THEME.button_selected()`, `THEME.row_alt()`.
+Replace scattered `DEFAULT_STYLE` usage with the appropriate semantic constants (`BUTTON_SELECTED`, `BUTTON_DEFAULT`, `ALT_ROW_STYLE`, `SELECTED_ROW_STYLE`, `SURFACE_STYLE`, etc.).
 
 ### Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/ui/constants.rs` | Replace `DEFAULT_STYLE` and colors with new `Theme` |
-| `src/ui/theme.rs` | New file - theme struct and style builders |
-| `src/app/model/popup/*.rs` | Update button rendering for new selection styles |
-| `src/app/model/*.rs` | Update table row rendering for new selection/alternating styles |
+| `src/ui/theme.rs` | Centralized color and style constants |
+| `src/app/model/popup/*.rs` | Update button rendering to use `BUTTON_SELECTED`, `BUTTON_DEFAULT` |
+| `src/app/model/*.rs` | Update table row rendering to use `ALT_ROW_STYLE`, `SELECTED_ROW_STYLE` |
 | `src/ui.rs` | Update header bar rendering |
 
 ### Migration Strategy
-1. Create theme module with all colors/styles defined
-2. Migrate one component at a time (start with popups)
-3. Keep backward compatibility during migration
+1. Import theme constants from `src/ui/theme.rs`
+2. Replace `DEFAULT_STYLE` with appropriate semantic constant
+3. Migrate one component at a time (start with popups)
 
 ## Out of Scope
 

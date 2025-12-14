@@ -1,3 +1,16 @@
+//! Centralized theme module for Flowrs TUI.
+//!
+//! This module provides a comprehensive dark theme with:
+//! - Color palette for text, accents, backgrounds, and semantic states
+//! - Pre-built Style constants for common UI elements
+//! - Consistent styling across tables, popups, buttons, and panels
+//!
+//! # Usage
+//! Import the constants you need:
+//! ```ignore
+//! use crate::ui::theme::{BUTTON_SELECTED, BORDER_STYLE, ACCENT};
+//! ```
+
 use ratatui::style::{Color, Modifier, Style};
 
 // =============================================================================
@@ -38,6 +51,9 @@ pub const STATE_UP_FOR_RETRY: Color = Color::Rgb(255, 179, 71); // #FFB347
 pub const STATE_UP_FOR_RESCHEDULE: Color = Color::Rgb(111, 231, 219); // #6FE7DB
 pub const STATE_SKIPPED: Color = Color::Rgb(255, 142, 198); // #FF8EC6
 pub const STATE_UPSTREAM_FAILED: Color = Color::Rgb(255, 165, 0); // #FFA500
+
+// DAG status colors
+pub const DAG_ACTIVE: Color = Color::Rgb(30, 144, 255); // #1E90FF - Blue for active (unpaused) DAGs
 
 // =============================================================================
 // STYLES

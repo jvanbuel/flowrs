@@ -139,7 +139,7 @@ impl DagRunModel {
         width: usize,
     ) -> Line<'static> {
         const FILLED_CHAR: &str = "─";
-        const EMPTY_CHAR: &str = "─";
+        const EMPTY_CHAR: &str = " ";
 
         // Calculate the ratio (0.0 to 1.0)
         let ratio = if max_duration > 0.0 {
