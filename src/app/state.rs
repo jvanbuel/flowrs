@@ -55,11 +55,10 @@ impl App {
         warnings: Vec<String>,
     ) -> Self {
         let servers = &config.clone().servers.unwrap_or_default();
-        let active_server = if let Some(active_server) = &config.active_server {
-            servers.iter().find(|server| server.name == *active_server)
-        } else {
-            None
-        };
+        let active_server = config
+            .active_server
+            .as_ref()
+            .and_then(|name| servers.iter().find(|server| &server.name == name));
 
         let warning_popup = if warnings.is_empty() {
             None
@@ -125,11 +124,8 @@ impl App {
         let mut parts: Vec<String> = Vec::new();
 
         // Always start with the active environment (config) name if set
-        if let Some(env_name) = &self.config.active_server {
-            parts.push(env_name.clone());
-        } else {
-            return None; // No breadcrumb if no environment selected
-        }
+        let env_name = self.config.active_server.as_ref()?;
+        parts.push(env_name.clone());
 
         // Add DAG if we're past the Config panel
         if self.active_panel != Panel::Config && self.active_panel != Panel::Dag {
