@@ -157,7 +157,7 @@ mod tests {
         table.previous();
         assert_eq!(table.state.selected(), Some(0));
         
-        // Should wrap to last item (2)
+        // From index 0, wrapping backwards goes to last item (index 2)
         table.previous();
         assert_eq!(table.state.selected(), Some(2));
         
@@ -200,11 +200,11 @@ mod tests {
         // Manually set selection to 0
         table.state.select(Some(0));
         
-        // Previous from 0 should wrap to last (using saturating_sub)
+        // Previous from 0 wraps to last (index 1)
         table.previous();
         assert_eq!(table.state.selected(), Some(1));
         
-        // Next from last should wrap to first
+        // Next from last wraps to first (index 0)
         table.next();
         assert_eq!(table.state.selected(), Some(0));
     }
