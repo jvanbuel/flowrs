@@ -167,11 +167,10 @@ impl Widget for &mut ConfigModel {
             Row::new(vec![
                 Line::from(item.name.as_str()),
                 Line::from(item.endpoint.as_str()),
-                Line::from(if let Some(managed_service) = &item.managed {
-                    managed_service.to_string()
-                } else {
-                    "None".to_string()
-                }),
+                Line::from(
+                    item.managed
+                        .as_ref().map_or_else(|| "None".to_string(), std::string::ToString::to_string),
+                ),
                 Line::from(match item.version {
                     crate::airflow::config::AirflowVersion::V2 => "v2",
                     crate::airflow::config::AirflowVersion::V3 => "v3",

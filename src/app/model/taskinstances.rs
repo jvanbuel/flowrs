@@ -338,11 +338,9 @@ impl Widget for &mut TaskInstanceModel {
                 } else {
                     "None".to_string()
                 }),
-                Line::from(if let Some(i) = item.duration {
-                    format!("{i}")
-                } else {
-                    "None".to_string()
-                }),
+                Line::from(
+                    item.duration.map_or_else(|| "None".to_string(), |i| format!("{i}")),
+                ),
                 Line::from(if let Some(state) = &item.state {
                     match state.as_str() {
                         "success" => state_to_colored_square(AirflowStateColor::Success),

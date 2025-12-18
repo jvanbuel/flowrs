@@ -62,11 +62,7 @@ impl DagRunOperations for V1Client {
     }
 
     async fn trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()> {
-        let body = if let Some(date) = logical_date {
-            serde_json::json!({ "logical_date": date })
-        } else {
-            serde_json::json!({})
-        }; // Somehow Airflow V1 API does not accept null for logical_date
+        let body = logical_date.map_or_else(|| serde_json::json!({}), |date| serde_json::json!({ "logical_date": date })); // Somehow Airflow V1 API does not accept null for logical_date
 
         let resp: Response = self
             .base_api(Method::POST, &format!("dags/{dag_id}/dagRuns"))?
