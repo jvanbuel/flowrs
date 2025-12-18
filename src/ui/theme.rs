@@ -43,9 +43,9 @@ pub const SELECTED_BG: Color = Color::Rgb(0, 80, 60); // #00503C - Teal/emerald 
 pub const MARKED_BG: Color = Color::Rgb(80, 50, 120); // #503278 - Purple for visual mode
 
 // Semantic colors (Airflow states)
-pub const STATE_SUCCESS: Color = Color::Rgb(80, 200, 120); // #50C878
+pub const STATE_SUCCESS: Color = Color::Rgb(0, 153, 0); // #009900 - Dark green
 pub const STATE_FAILED: Color = Color::Rgb(255, 107, 107); // #FF6B6B
-pub const STATE_RUNNING: Color = Color::Rgb(34, 255, 170); // #22FFAA
+pub const STATE_RUNNING: Color = Color::Rgb(155, 255, 155); // #9BFF9B - Light green
 pub const STATE_QUEUED: Color = Color::Rgb(128, 128, 128); // #808080
 pub const STATE_UP_FOR_RETRY: Color = Color::Rgb(255, 179, 71); // #FFB347
 pub const STATE_UP_FOR_RESCHEDULE: Color = Color::Rgb(111, 231, 219); // #6FE7DB
