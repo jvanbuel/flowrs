@@ -54,7 +54,7 @@ impl<T> StatefulTable<T> {
                 if i == 0 {
                     self.items.len().saturating_sub(1)
                 } else {
-                    i.saturating_sub(1)
+                    i - 1
                 }
             }
             None => 0,
