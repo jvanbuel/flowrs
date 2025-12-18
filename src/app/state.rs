@@ -30,6 +30,8 @@ pub struct App {
     pub throbber_state: ThrobberState,
     /// Global warning popup shown on startup (e.g., legacy config conflict)
     pub warning_popup: Option<WarningPopup>,
+    /// Whether the terminal window has focus (used to pause refreshes when unfocused)
+    pub focused: bool,
 }
 
 #[derive(Clone, PartialEq)]
@@ -82,6 +84,7 @@ impl App {
             startup: true,
             throbber_state: ThrobberState::default(),
             warning_popup,
+            focused: true,
         }
     }
 

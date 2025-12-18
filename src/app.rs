@@ -65,6 +65,26 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
         })?;
 
         if let Some(event) = events.next().await {
+            // Handle focus changes first
+            match &event {
+                FlowrsEvent::FocusGained => {
+                    app.lock().unwrap().focused = true;
+                    continue;
+                }
+                FlowrsEvent::FocusLost => {
+                    app.lock().unwrap().focused = false;
+                    continue;
+                }
+                _ => {}
+            }
+
+            // Skip tick processing when unfocused (no automatic refreshes)
+            if let FlowrsEvent::Tick = &event {
+                if !app.lock().unwrap().focused {
+                    continue;
+                }
+            }
+
             // First check if global warning popup is showing and handle its dismissal
             if let FlowrsEvent::Key(key) = &event {
                 let mut app = app.lock().unwrap();
