@@ -8,7 +8,10 @@ use ratatui::{
 use crate::{
     app::{
         events::custom::FlowrsEvent,
-        model::{popup::{popup_area, themed_button}, Model},
+        model::{
+            popup::{popup_area, themed_button},
+            Model,
+        },
         worker::WorkerMessage,
     },
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
@@ -51,8 +54,11 @@ impl Model for ClearDagRunPopup {
                     }
                     return (Some(FlowrsEvent::Key(*key_event)), vec![]);
                 }
-                KeyCode::Char('j' | 'k' | 'h' | 'l') | KeyCode::Down | KeyCode::Up |
-KeyCode::Left | KeyCode::Right => {
+                KeyCode::Char('j' | 'k' | 'h' | 'l')
+                | KeyCode::Down
+                | KeyCode::Up
+                | KeyCode::Left
+                | KeyCode::Right => {
                     // For any movement vim key, we toggle the confirm flag, and we consume the event
                     self.confirm = !self.confirm;
                     return (None, vec![]);
@@ -96,9 +102,7 @@ impl Widget for &mut ClearDagRunPopup {
         } else {
             format!("Clear {} DAG Runs?", self.dag_run_ids.len())
         };
-        let text = Paragraph::new(message)
-            .style(DEFAULT_STYLE)
-            .centered();
+        let text = Paragraph::new(message).style(DEFAULT_STYLE).centered();
 
         let [_, yes, _, no, _] = Layout::horizontal([
             Constraint::Fill(1),

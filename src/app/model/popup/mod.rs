@@ -12,9 +12,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-use crate::ui::theme::{
-    BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED,
-};
+use crate::ui::theme::{BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED};
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 #[allow(dead_code)]
@@ -34,14 +32,11 @@ pub fn themed_button(text: &str, selected: bool) -> Paragraph<'_> {
         (BUTTON_DEFAULT, BORDER_DEFAULT)
     };
 
-    Paragraph::new(text)
-        .style(style)
-        .centered()
-        .block(
-            Block::default()
-                .border_type(BorderType::Rounded)
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(border_color))
-                .style(style),
-        )
+    Paragraph::new(text).style(style).centered().block(
+        Block::default()
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border_color))
+            .style(style),
+    )
 }

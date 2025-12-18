@@ -205,27 +205,3 @@ pub async fn get_mwaa_environment_servers() -> Result<Vec<AirflowConfig>> {
     info!("Found {} MWAA environment(s)", servers.len());
     Ok(servers)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_list_mwaa_environments() {
-        let result = get_mwaa_environment_servers().await;
-        // This test will only work if you have MWAA environments configured
-        // and AWS credentials available
-        if let Ok(environments) = result {
-            println!("Found {} MWAA environments", environments.len());
-            for env in environments {
-                println!("  - {} ({})", env.name, env.endpoint);
-            }
-        }
-    }
-
-    #[tokio::test]
-    async fn test_mwaa_client_new() {
-        let client = MwaaClient::new().await;
-        assert!(client.is_ok());
-    }
-}

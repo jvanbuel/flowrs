@@ -258,12 +258,9 @@ impl Model for TaskInstanceModel {
                                 if let (Some(dag_id), Some(dag_run_id)) =
                                     (&self.dag_id, &self.dag_run_id)
                                 {
-                                    self.popup =
-                                        Some(TaskInstancePopUp::Mark(MarkTaskInstancePopup::new(
-                                            task_ids,
-                                            dag_id,
-                                            dag_run_id,
-                                        )));
+                                    self.popup = Some(TaskInstancePopUp::Mark(
+                                        MarkTaskInstancePopup::new(task_ids, dag_id, dag_run_id),
+                                    ));
                                 }
                             }
                         }
@@ -273,12 +270,9 @@ impl Model for TaskInstanceModel {
                                 (&self.dag_id, &self.dag_run_id)
                             {
                                 if !task_ids.is_empty() {
-                                    self.popup =
-                                        Some(TaskInstancePopUp::Clear(ClearTaskInstancePopup::new(
-                                            dag_run_id,
-                                            dag_id,
-                                            task_ids,
-                                        )));
+                                    self.popup = Some(TaskInstancePopUp::Clear(
+                                        ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
+                                    ));
                                 }
                             }
                         }
@@ -324,9 +318,9 @@ impl Model for TaskInstanceModel {
                 }
                 (None, vec![])
             }
-            FlowrsEvent::Mouse
-            | FlowrsEvent::FocusGained
-            | FlowrsEvent::FocusLost => (Some(event.clone()), vec![]),
+            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
+                (Some(event.clone()), vec![])
+            }
         }
     }
 }
@@ -384,10 +378,7 @@ impl Widget for &mut TaskInstanceModel {
                 Line::from(format!("{:?}", item.try_number)),
             ])
             .style(
-                if self
-                    .visual_selection()
-                    .is_some_and(|r| r.contains(&idx))
-                {
+                if self.visual_selection().is_some_and(|r| r.contains(&idx)) {
                     MARKED_STYLE
                 } else if (idx % 2) == 0 {
                     DEFAULT_STYLE

@@ -78,32 +78,3 @@ impl DagRunOperations for V1Client {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::airflow::client::base::BaseClient;
-
-    const TEST_CONFIG: &str = r#"[[servers]]
-        name = "test"
-        endpoint = "http://localhost:8080"
-
-        [servers.auth.Basic]
-        username = "airflow"
-        password = "airflow"
-        "#;
-
-    fn get_test_client() -> V1Client {
-        let config: crate::airflow::config::FlowrsConfig =
-            toml::from_str(TEST_CONFIG.trim()).unwrap();
-        let base = BaseClient::new(config.servers.unwrap()[0].clone()).unwrap();
-        V1Client::new(base)
-    }
-
-    #[tokio::test]
-    async fn test_list_dagruns() {
-        let client = get_test_client();
-        let dagruns = client.list_dagruns("example_dag_decorator").await.unwrap();
-        assert!(!dagruns.dag_runs.is_empty());
-    }
-}

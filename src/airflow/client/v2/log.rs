@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use log::debug;
 use reqwest::Method;
 
-use crate::airflow::{model::common::Log, traits::LogOperations};
 use super::model;
+use crate::airflow::{model::common::Log, traits::LogOperations};
 
 use super::V2Client;
 

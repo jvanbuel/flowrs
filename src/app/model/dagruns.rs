@@ -471,9 +471,7 @@ impl Model for DagRunModel {
                     }
                 }
             }
-            FlowrsEvent::Mouse
-            | FlowrsEvent::FocusGained
-            | FlowrsEvent::FocusLost => {}
+            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {}
         }
         (Some(event.clone()), vec![])
     }
@@ -567,10 +565,7 @@ impl Widget for &mut DagRunModel {
                 time_cell,
             ])
             .style(
-                if self
-                    .visual_selection()
-                    .is_some_and(|r| r.contains(&idx))
-                {
+                if self.visual_selection().is_some_and(|r| r.contains(&idx)) {
                     MARKED_STYLE
                 } else if (idx % 2) == 0 {
                     DEFAULT_STYLE

@@ -50,7 +50,11 @@ impl From<v1::model::dagrun::DAGRunResponse> for DagRun {
 impl From<v1::model::dagrun::DAGRunCollectionResponse> for DagRunList {
     fn from(value: v1::model::dagrun::DAGRunCollectionResponse) -> Self {
         DagRunList {
-            dag_runs: value.dag_runs.into_iter().map(std::convert::Into::into).collect(),
+            dag_runs: value
+                .dag_runs
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             total_entries: value.total_entries,
         }
     }
@@ -79,7 +83,11 @@ impl From<v2::model::dagrun::DagRun> for DagRun {
 impl From<v2::model::dagrun::DagRunList> for DagRunList {
     fn from(value: v2::model::dagrun::DagRunList) -> Self {
         DagRunList {
-            dag_runs: value.dag_runs.into_iter().map(std::convert::Into::into).collect(),
+            dag_runs: value
+                .dag_runs
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             total_entries: value.total_entries,
         }
     }
