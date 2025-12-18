@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3](https://github.com/jvanbuel/flowrs/compare/v0.7.2...v0.7.3) - 2025-12-18
+
+### Other
+
+- Address code review comments: optimize test code
+- Fix DAG run sorting to use logical_date instead of start_date
+- Update STATE_RUNNING color to bright lime green for better distinction from success state
+
 ## [0.7.2](https://github.com/jvanbuel/flowrs/compare/v0.7.1...v0.7.2) - 2025-12-14
 
 ### Added
