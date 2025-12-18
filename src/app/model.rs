@@ -14,7 +14,7 @@ pub trait Model {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct StatefulTable<T> {
     pub state: TableState,
     pub items: Vec<T>,

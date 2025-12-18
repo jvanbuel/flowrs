@@ -29,6 +29,7 @@ use super::popup::taskinstances::TaskInstancePopUp;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
+#[derive(Default)]
 pub struct TaskInstanceModel {
     pub dag_id: Option<String>,
     pub dag_run_id: Option<String>,
@@ -46,20 +47,7 @@ pub struct TaskInstanceModel {
 
 impl TaskInstanceModel {
     pub fn new() -> Self {
-        TaskInstanceModel {
-            dag_id: None,
-            dag_run_id: None,
-            all: vec![],
-            filtered: StatefulTable::new(vec![]),
-            filter: Filter::new(),
-            popup: None,
-            visual_mode: false,
-            visual_anchor: None,
-            commands: None,
-            error_popup: None,
-            ticks: 0,
-            event_buffer: vec![],
-        }
+        Self::default()
     }
 
     pub fn filter_task_instances(&mut self) {
@@ -129,12 +117,6 @@ impl TaskInstanceModel {
                     .unwrap_or_default()
             }
         }
-    }
-}
-
-impl Default for TaskInstanceModel {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
