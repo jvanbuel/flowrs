@@ -35,6 +35,7 @@ use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPo
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
+#[derive(Default)]
 pub struct DagRunModel {
     pub dag_id: Option<String>,
     pub dag_code: DagCodeWidget,
@@ -73,20 +74,7 @@ impl DagCodeWidget {
 
 impl DagRunModel {
     pub fn new() -> Self {
-        DagRunModel {
-            dag_id: None,
-            dag_code: DagCodeWidget::default(),
-            all: vec![],
-            filtered: StatefulTable::new(vec![]),
-            filter: Filter::new(),
-            visual_mode: false,
-            visual_anchor: None,
-            popup: None,
-            commands: None,
-            error_popup: None,
-            ticks: 0,
-            event_buffer: vec![],
-        }
+        Self::default()
     }
 
     /// Calculate duration in seconds for a DAG run.
@@ -241,12 +229,6 @@ impl DagRunModel {
                 dag_run.state = status.to_string();
             }
         });
-    }
-}
-
-impl Default for DagRunModel {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

@@ -23,6 +23,7 @@ use crate::{
 use super::popup::error::ErrorPopup;
 use super::Model;
 
+#[derive(Default)]
 pub struct LogModel {
     pub dag_id: Option<String>,
     pub dag_run_id: Option<String>,
@@ -38,24 +39,7 @@ pub struct LogModel {
 
 impl LogModel {
     pub fn new() -> Self {
-        LogModel {
-            dag_id: None,
-            dag_run_id: None,
-            task_id: None,
-            tries: None,
-            all: vec![],
-            current: 0,
-            error_popup: None,
-            ticks: 0,
-            vertical_scroll: 0,
-            vertical_scroll_state: ScrollbarState::default(),
-        }
-    }
-}
-
-impl Default for LogModel {
-    fn default() -> Self {
-        Self::new()
+        Self::default()
     }
 }
 

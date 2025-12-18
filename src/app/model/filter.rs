@@ -8,11 +8,12 @@ use ratatui::{
 
 use crate::ui::constants::DEFAULT_STYLE;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CursorState {
     pub position: Position,
 }
 
+#[derive(Default)]
 pub struct Filter {
     pub enabled: bool,
     pub prefix: Option<String>,
@@ -21,13 +22,7 @@ pub struct Filter {
 
 impl Filter {
     pub fn new() -> Filter {
-        Filter {
-            enabled: false,
-            prefix: None,
-            cursor: CursorState {
-                position: Position::default(),
-            },
-        }
+        Self::default()
     }
 
     pub fn toggle(&mut self) {
@@ -75,12 +70,6 @@ impl Filter {
     }
     pub fn cursor_position(&self) -> &Position {
         &self.cursor.position
-    }
-}
-
-impl Default for Filter {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

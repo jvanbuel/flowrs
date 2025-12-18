@@ -24,6 +24,7 @@ use super::popup::error::ErrorPopup;
 use super::{filter::Filter, Model, StatefulTable};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
+#[derive(Default)]
 pub struct DagModel {
     pub all: Vec<Dag>,
     pub dag_stats: HashMap<String, Vec<DagStatistic>>,
@@ -37,16 +38,7 @@ pub struct DagModel {
 
 impl DagModel {
     pub fn new() -> Self {
-        DagModel {
-            all: vec![],
-            dag_stats: HashMap::new(),
-            filtered: StatefulTable::new(vec![]),
-            filter: Filter::new(),
-            ticks: 0,
-            commands: None,
-            error_popup: None,
-            event_buffer: vec![],
-        }
+        Self::default()
     }
 
     pub fn filter_dags(&mut self) {
@@ -71,12 +63,6 @@ impl DagModel {
     }
     pub fn get_dag_by_id(&self, dag_id: &str) -> Option<&Dag> {
         self.all.iter().find(|dag| dag.dag_id == dag_id)
-    }
-}
-
-impl Default for DagModel {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
