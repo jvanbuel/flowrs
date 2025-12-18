@@ -32,7 +32,11 @@ impl Widget for &WarningPopup {
         let popup = Block::default()
             .border_type(BorderType::Rounded)
             .title("Warning - Press <Esc> or <q> to close")
-            .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            .title_style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Yellow));
 

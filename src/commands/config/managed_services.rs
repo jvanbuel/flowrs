@@ -10,7 +10,9 @@ use anyhow::Result;
 
 impl ManagedServiceCommand {
     pub fn run(&self) -> Result<()> {
-        let managed_service = if let Some(managed_service) = self.managed_service.clone() { managed_service } else {
+        let managed_service = if let Some(managed_service) = self.managed_service.clone() {
+            managed_service
+        } else {
             let managed_service: ManagedService =
                 Select::new("managed service", ManagedService::iter().collect()).prompt()?;
             managed_service
@@ -39,7 +41,9 @@ impl ManagedServiceCommand {
     }
 
     pub fn disable(&self) -> Result<()> {
-        let managed_service = if let Some(managed_service) = self.managed_service.clone() { managed_service } else {
+        let managed_service = if let Some(managed_service) = self.managed_service.clone() {
+            managed_service
+        } else {
             let managed_service: ManagedService =
                 Select::new("managed service", ManagedService::iter().collect()).prompt()?;
             managed_service

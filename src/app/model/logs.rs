@@ -138,9 +138,7 @@ impl Model for LogModel {
                     _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
                 }
             }
-            FlowrsEvent::Mouse
-            | FlowrsEvent::FocusGained
-            | FlowrsEvent::FocusLost => (),
+            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => (),
         }
 
         (None, vec![])
@@ -174,11 +172,7 @@ impl Widget for &mut LogModel {
                     .border_style(BORDER_STYLE),
             )
             .select(self.current % self.all.len())
-            .highlight_style(
-                Style::default()
-                    .fg(ACCENT)
-                    .add_modifier(Modifier::BOLD),
-            )
+            .highlight_style(Style::default().fg(ACCENT).add_modifier(Modifier::BOLD))
             .style(DEFAULT_STYLE);
 
         // Render the tabs

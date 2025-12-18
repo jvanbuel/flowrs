@@ -9,7 +9,9 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::{OpenItem, WorkerMessage};
-use crate::ui::theme::{ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
+use crate::ui::theme::{
+    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE,
+};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
@@ -133,9 +135,9 @@ impl Model for ConfigModel {
                 }
                 (None, vec![])
             }
-            FlowrsEvent::Mouse
-            | FlowrsEvent::FocusGained
-            | FlowrsEvent::FocusLost => (Some(event.clone()), vec![]),
+            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
+                (Some(event.clone()), vec![])
+            }
         }
     }
 }

@@ -52,6 +52,12 @@ impl Widget for &CommandPopUp<'_> {
 
 pub struct DefaultCommands(pub Vec<Command<'static>>);
 
+impl Default for DefaultCommands {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DefaultCommands {
     pub fn new() -> Self {
         Self(vec![

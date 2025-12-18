@@ -134,12 +134,12 @@ impl FlowrsConfig {
 
         // If no config at the default path, return an empty (default) config
         let toml_config = std::fs::read_to_string(&path).unwrap_or_default();
-        let mut config = Self::from_str(&toml_config)?;
+        let mut config = Self::parse_toml(&toml_config)?;
         config.path = Some(path.clone());
         Ok(config)
     }
 
-    pub fn from_str(config: &str) -> Result<Self> {
+    pub fn parse_toml(config: &str) -> Result<Self> {
         let config: FlowrsConfig = toml::from_str(config)?;
         let num_serves = config.servers.as_ref().map_or(0, std::vec::Vec::len);
         let num_managed = config
@@ -250,7 +250,7 @@ mod tests {
 
     #[test]
     fn test_get_config() {
-        let result = FlowrsConfig::from_str(TEST_CONFIG).unwrap();
+        let result = FlowrsConfig::parse_toml(TEST_CONFIG).unwrap();
         let servers = result.servers.unwrap();
         assert_eq!(servers.len(), 1);
         assert_eq!(servers[0].name, "test");
@@ -271,7 +271,7 @@ password = "airflow"
     "#;
     #[test]
     fn test_get_config_conveyor() {
-        let result = FlowrsConfig::from_str(TEST_CONFIG_CONVEYOR.trim()).unwrap();
+        let result = FlowrsConfig::parse_toml(TEST_CONFIG_CONVEYOR.trim()).unwrap();
         let services = result.managed_services.unwrap();
         assert_eq!(services.len(), 1);
         assert_eq!(services[0], ManagedService::Conveyor);

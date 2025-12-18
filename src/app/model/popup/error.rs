@@ -16,7 +16,10 @@ pub struct ErrorPopup {
 impl ErrorPopup {
     pub fn new(errors: &[Error]) -> Self {
         Self {
-            errors: errors.iter().map(std::string::ToString::to_string).collect(),
+            errors: errors
+                .iter()
+                .map(std::string::ToString::to_string)
+                .collect(),
         }
     }
 
@@ -50,9 +53,7 @@ impl Widget for &ErrorPopup {
             text.push_line(Line::from(vec![
                 Span::styled(
                     format!("Error {}: ", idx + 1),
-                    Style::default()
-                        .fg(Color::Red)
-                        .add_modifier(Modifier::BOLD),
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
                 ),
                 Span::styled(error.as_str(), Style::default().fg(Color::White)),
             ]));

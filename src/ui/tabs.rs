@@ -3,12 +3,7 @@
 //! The active tab "opens" into the content below by having no bottom border,
 //! while inactive tabs have a complete bottom border.
 
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::Style,
-    widgets::Widget,
-};
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 use unicode_width::UnicodeWidthStr;
 
 use super::theme::{BORDER_STYLE, PURPLE, TEXT_PRIMARY};
@@ -81,9 +76,9 @@ impl Widget for TabBar {
         let mut x = area.x;
 
         // Line positions
-        let y1 = area.y;      // Tab tops
-        let y2 = area.y + 1;  // Tab content
-        let y3 = area.y + 2;  // Tab bottoms / shared border line
+        let y1 = area.y; // Tab tops
+        let y2 = area.y + 1; // Tab content
+        let y3 = area.y + 2; // Tab bottoms / shared border line
 
         let tabs_total_width: u16 = TABS.iter().map(Tab::total_width).sum::<usize>() as u16;
         let has_right_extension = tabs_total_width < area.width;

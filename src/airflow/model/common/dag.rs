@@ -76,7 +76,11 @@ impl From<v1::model::dag::DagResponse> for Dag {
 impl From<v1::model::dag::DagCollectionResponse> for DagList {
     fn from(value: v1::model::dag::DagCollectionResponse) -> Self {
         DagList {
-            dags: value.dags.into_iter().map(std::convert::Into::into).collect(),
+            dags: value
+                .dags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             total_entries: value.total_entries,
         }
     }
@@ -109,7 +113,11 @@ impl From<v2::model::dag::Dag> for Dag {
             next_dagrun_data_interval_start: value.next_dagrun_data_interval_start,
             next_dagrun_data_interval_end: value.next_dagrun_data_interval_end,
             owners: value.owners,
-            tags: value.tags.into_iter().map(std::convert::Into::into).collect(),
+            tags: value
+                .tags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             file_token: value.file_token,
             timetable_description: value.timetable_description,
         }
@@ -119,7 +127,11 @@ impl From<v2::model::dag::Dag> for Dag {
 impl From<v2::model::dag::DagList> for DagList {
     fn from(value: v2::model::dag::DagList) -> Self {
         DagList {
-            dags: value.dags.into_iter().map(std::convert::Into::into).collect(),
+            dags: value
+                .dags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             total_entries: value.total_entries,
         }
     }

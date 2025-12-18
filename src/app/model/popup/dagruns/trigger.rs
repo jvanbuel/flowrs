@@ -8,7 +8,10 @@ use ratatui::{
 use crate::{
     app::{
         events::custom::FlowrsEvent,
-        model::{popup::{popup_area, themed_button}, Model},
+        model::{
+            popup::{popup_area, themed_button},
+            Model,
+        },
         worker::WorkerMessage,
     },
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
@@ -45,8 +48,11 @@ impl Model for TriggerDagRunPopUp {
                     }
                     return (Some(FlowrsEvent::Key(*key_event)), vec![]);
                 }
-                KeyCode::Char('j' | 'k' | 'h' | 'l') | KeyCode::Down | KeyCode::Up |
-KeyCode::Left | KeyCode::Right => {
+                KeyCode::Char('j' | 'k' | 'h' | 'l')
+                | KeyCode::Down
+                | KeyCode::Up
+                | KeyCode::Left
+                | KeyCode::Right => {
                     // For any movement vim key, we toggle the confirm flag, and we consume the event
                     self.confirm = !self.confirm;
                     return (None, vec![]);

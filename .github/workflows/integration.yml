@@ -1,0 +1,78 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  integration:
+    name: Integration (${{ matrix.airflow_version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - airflow_version: "2.10.4"
+            api_version: "v1"
+          - airflow_version: "3.0.1"
+            api_version: "v2"
+
+    services:
+      airflow:
+        image: apache/airflow:${{ matrix.airflow_version }}
+        env:
+          AIRFLOW__CORE__LOAD_EXAMPLES: "true"
+          AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////tmp/airflow.db
+          AIRFLOW__WEBSERVER__SECRET_KEY: test-secret-key
+          AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+          _AIRFLOW_DB_MIGRATE: "true"
+          _AIRFLOW_WWW_USER_CREATE: "true"
+          _AIRFLOW_WWW_USER_USERNAME: airflow
+          _AIRFLOW_WWW_USER_PASSWORD: airflow
+        ports:
+          - 8080:8080
+        options: >-
+          --entrypoint /bin/bash
+          --health-cmd "curl -f http://localhost:8080/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Start Airflow
+        run: |
+          docker exec ${{ job.services.airflow.id }} bash -c "
+            airflow db migrate &&
+            airflow users create --username airflow --password airflow --firstname Test --lastname User --role Admin --email test@example.com &&
+            airflow webserver --port 8080 &
+            airflow scheduler &
+            sleep 30
+          "
+
+      - name: Wait for Airflow API
+        run: |
+          timeout 120 bash -c '
+            until curl -sf -u airflow:airflow http://localhost:8080/api/v1/health; do
+              echo "Waiting for Airflow API..."
+              sleep 5
+            done
+          '
+          echo "Airflow API is ready"
+
+      - name: Run integration tests
+        env:
+          TEST_AIRFLOW_URL: http://localhost:8080
+          TEST_AIRFLOW_USERNAME: airflow
+          TEST_AIRFLOW_PASSWORD: airflow
+          TEST_API_VERSION: ${{ matrix.api_version }}
+        run: cargo test --test '*' -- --test-threads=1

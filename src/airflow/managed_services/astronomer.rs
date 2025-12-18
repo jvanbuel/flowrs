@@ -294,30 +294,3 @@ pub async fn get_astronomer_environment_servers() -> (Vec<AirflowConfig>, Vec<St
     );
     (servers, errors)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_list_astronomer_environments() {
-        let (environments, errors) = get_astronomer_environment_servers().await;
-        // This test will only work if you have ASTRO_API_TOKEN configured
-        // and Astronomer deployments available
-        println!("Found {} Astronomer deployments", environments.len());
-        for env in environments {
-            println!("  - {} ({})", env.name, env.endpoint);
-        }
-        if !errors.is_empty() {
-            println!("Errors: {errors:?}");
-        }
-    }
-
-    #[tokio::test]
-    async fn test_astronomer_client_new() {
-        let client = AstronomerClient::new();
-        if let Err(e) = &client {
-            println!("Expected error if ASTRO_API_TOKEN not set: {e}");
-        }
-    }
-}

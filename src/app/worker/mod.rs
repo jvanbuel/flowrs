@@ -10,8 +10,8 @@ use tokio::task::JoinSet;
 
 mod browser;
 mod config;
-mod dags;
 mod dagruns;
+mod dags;
 mod logs;
 mod taskinstances;
 
@@ -195,9 +195,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         }
         // Task instance operations
         WorkerMessage::UpdateTaskInstances {
-            dag_id,
-            dag_run_id,
-            ..
+            dag_id, dag_run_id, ..
         } => {
             taskinstances::handle_update_task_instances(&app, &client, &dag_id, &dag_run_id).await;
         }
@@ -206,8 +204,14 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             dag_id,
             dag_run_id,
         } => {
-            taskinstances::handle_clear_task_instance(&app, &client, &dag_id, &dag_run_id, &task_id)
-                .await;
+            taskinstances::handle_clear_task_instance(
+                &app,
+                &client,
+                &dag_id,
+                &dag_run_id,
+                &task_id,
+            )
+            .await;
         }
         WorkerMessage::MarkTaskInstance {
             task_id,

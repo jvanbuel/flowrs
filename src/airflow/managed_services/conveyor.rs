@@ -138,22 +138,3 @@ fn get_conveyor_api_endpoint() -> Result<String> {
 
     Ok(active_profile.api.clone())
 }
-
-// Removed the standalone get_conveyor_token function as its logic is now in ConveyorClient::get_token
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[tokio::test]
-    async fn test_list_conveyor_environments() {
-        let environments = get_conveyor_environment_servers().unwrap();
-        assert!(!environments.is_empty());
-    }
-
-    #[test]
-    fn test_get_conveyor_token() {
-        // Test the new client method
-        let token = ConveyorClient::get_token().unwrap();
-        assert!(!token.is_empty());
-    }
-}

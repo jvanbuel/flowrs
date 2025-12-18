@@ -14,7 +14,10 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::theme::{ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY};
+use crate::ui::theme::{
+    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE,
+    TABLE_HEADER_STYLE, TEXT_PRIMARY,
+};
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
@@ -200,9 +203,9 @@ impl Model for DagModel {
                 }
                 (None, vec![])
             }
-            FlowrsEvent::Mouse
-            | FlowrsEvent::FocusGained
-            | FlowrsEvent::FocusLost => (Some(event.clone()), vec![]),
+            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
+                (Some(event.clone()), vec![])
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::airflow::client::v1;
 use crate::airflow::client::v2;
+use serde::{Deserialize, Serialize};
 
 /// Common `DagStats` model used by the application
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,7 +25,11 @@ pub struct DagStatistic {
 impl From<v1::model::dagstats::DagStatsResponse> for DagStatsResponse {
     fn from(value: v1::model::dagstats::DagStatsResponse) -> Self {
         DagStatsResponse {
-            dags: value.dags.into_iter().map(std::convert::Into::into).collect(),
+            dags: value
+                .dags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             total_entries: value.total_entries,
         }
     }
@@ -35,7 +39,11 @@ impl From<v1::model::dagstats::DagStatistics> for DagStatistics {
     fn from(value: v1::model::dagstats::DagStatistics) -> Self {
         DagStatistics {
             dag_id: value.dag_id,
-            stats: value.stats.into_iter().map(std::convert::Into::into).collect(),
+            stats: value
+                .stats
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
         }
     }
 }
@@ -53,7 +61,11 @@ impl From<v1::model::dagstats::DagStatistic> for DagStatistic {
 impl From<v2::model::dagstats::DagStatsResponse> for DagStatsResponse {
     fn from(value: v2::model::dagstats::DagStatsResponse) -> Self {
         DagStatsResponse {
-            dags: value.dags.into_iter().map(std::convert::Into::into).collect(),
+            dags: value
+                .dags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
             total_entries: value.total_entries,
         }
     }
@@ -63,7 +75,11 @@ impl From<v2::model::dagstats::DagStatistics> for DagStatistics {
     fn from(value: v2::model::dagstats::DagStatistics) -> Self {
         DagStatistics {
             dag_id: value.dag_id,
-            stats: value.stats.into_iter().map(std::convert::Into::into).collect(),
+            stats: value
+                .stats
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
         }
     }
 }
