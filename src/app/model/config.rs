@@ -169,7 +169,8 @@ impl Widget for &mut ConfigModel {
                 Line::from(item.endpoint.as_str()),
                 Line::from(
                     item.managed
-                        .as_ref().map_or_else(|| "None".to_string(), std::string::ToString::to_string),
+                        .as_ref()
+                        .map_or_else(|| "None".to_string(), ToString::to_string),
                 ),
                 Line::from(match item.version {
                     crate::airflow::config::AirflowVersion::V2 => "v2",
