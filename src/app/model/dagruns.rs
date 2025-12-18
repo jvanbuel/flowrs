@@ -402,7 +402,7 @@ impl Model for DagRunModel {
                         }
                         KeyCode::Char('t') => {
                             self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                                self.dag_id.clone().unwrap(),
+                                self.dag_id.clone().expect("DAG ID should be set when viewing DAG runs"),
                             )));
                         }
                         KeyCode::Char('m') => {
@@ -556,8 +556,9 @@ impl Widget for &mut DagRunModel {
                     Style::default().add_modifier(Modifier::BOLD),
                 )),
                 Line::from(if let Some(date) = item.logical_date {
-                    date.format(&format_description::parse(TIME_FORMAT).unwrap())
-                        .unwrap()
+                    date.format(&format_description::parse(TIME_FORMAT)
+                        .expect("TIME_FORMAT constant should be a valid time format"))
+                        .expect("Date formatting with TIME_FORMAT should succeed")
                         .clone()
                 } else {
                     "None".to_string()
@@ -682,14 +683,16 @@ impl Widget for &mut DagRunModel {
 fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
     let ps = SyntaxSet::load_defaults_newlines();
     let ts = ThemeSet::load_defaults();
-    let syntax = ps.find_syntax_by_extension("py").unwrap();
+    let syntax = ps
+        .find_syntax_by_extension("py")
+        .expect("Python syntax definition should be available in default syntax set");
     let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
     let mut lines: Vec<Line<'static>> = vec![];
     for line in LinesWithEndings::from(dag_code) {
         // LinesWithEndings enables use of newlines mode
         let line_spans: Vec<Span<'static>> = h
             .highlight_line(line, &ps)
-            .unwrap()
+            .expect("Syntax highlighting should succeed for valid Python code")
             .into_iter()
             .filter_map(|segment| into_span(segment).ok())
             .map(|span: Span| {

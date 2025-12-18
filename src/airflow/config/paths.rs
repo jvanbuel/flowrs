@@ -50,19 +50,25 @@ impl ConfigPaths {
         let base_dir = std::env::var("XDG_CONFIG_HOME")
             .ok()
             .filter(|s| !s.is_empty())
-            .map_or_else(|| home_dir().unwrap().join(".config"), PathBuf::from);
+            .map_or_else(
+                || home_dir().expect("Could not determine user home directory").join(".config"),
+                PathBuf::from
+            );
 
         base_dir.join("flowrs").join("config.toml")
     }
 
     /// Returns the legacy config path: `~/.flowrs`
     fn legacy_config_path() -> PathBuf {
-        home_dir().unwrap().join(".flowrs")
+        home_dir().expect("Could not determine user home directory").join(".flowrs")
     }
 
     /// Returns the XDG config directory (for creating if needed).
     pub fn xdg_config_dir(&self) -> PathBuf {
-        self.write_path.parent().unwrap().to_path_buf()
+        self.write_path
+            .parent()
+            .expect("Config write path should have a parent directory")
+            .to_path_buf()
     }
 }
 
