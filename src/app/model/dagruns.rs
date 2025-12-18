@@ -178,8 +178,13 @@ impl DagRunModel {
                 .collect::<Vec<DagRun>>(),
             None => self.all.clone(),
         };
-        // Sort by start_date in descending order (most recent first)
-        filtered_dag_runs.sort_by(|a, b| b.start_date.cmp(&a.start_date));
+        // Sort by logical_date (execution date) descending, with fallback to start_date
+        // This ensures queued runs (which have no start_date yet) appear in chronological order
+        filtered_dag_runs.sort_by(|a, b| {
+            b.logical_date
+                .or(b.start_date)
+                .cmp(&a.logical_date.or(a.start_date))
+        });
         self.filtered.items = filtered_dag_runs;
     }
 
@@ -738,5 +743,133 @@ mod tests {
         let gauge =
             DagRunModel::create_duration_gauge(150.0, 100.0, ratatui::style::Color::Green, 10);
         assert_eq!(gauge.spans[0].content.chars().count(), 10);
+    }
+
+    #[test]
+    fn test_filter_dag_runs_sorts_by_logical_date() {
+        use time::macros::datetime;
+
+        // Create test DAG runs with different states and dates
+        let mut model = DagRunModel::new();
+
+        // Oldest run: completed (has both logical_date and start_date)
+        let oldest_run = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "run_1".to_string(),
+            logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            start_date: Some(datetime!(2024-01-01 10:05:00 UTC)),
+            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+            state: "success".to_string(),
+            run_type: "scheduled".to_string(),
+            ..Default::default()
+        };
+
+        // Middle run: queued (has logical_date but no start_date)
+        let queued_run = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "run_2".to_string(),
+            logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
+            start_date: None, // Queued runs don't have start_date
+            end_date: None,
+            state: "queued".to_string(),
+            run_type: "scheduled".to_string(),
+            ..Default::default()
+        };
+
+        // Newest run: running (has both logical_date and start_date)
+        let newest_run = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "run_3".to_string(),
+            logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
+            start_date: Some(datetime!(2024-01-03 10:05:00 UTC)),
+            end_date: None,
+            state: "running".to_string(),
+            run_type: "scheduled".to_string(),
+            ..Default::default()
+        };
+
+        // Add runs in random order to test sorting
+        model.all = vec![oldest_run.clone(), newest_run.clone(), queued_run.clone()];
+
+        // Apply filter (which also sorts)
+        model.filter_dag_runs();
+
+        // Verify runs are sorted by logical_date descending (newest first)
+        assert_eq!(model.filtered.items.len(), 3);
+        assert_eq!(model.filtered.items[0].dag_run_id, "run_3"); // Newest
+        assert_eq!(model.filtered.items[1].dag_run_id, "run_2"); // Queued (middle)
+        assert_eq!(model.filtered.items[2].dag_run_id, "run_1"); // Oldest
+    }
+
+    #[test]
+    fn test_filter_dag_runs_fallback_to_start_date() {
+        use time::macros::datetime;
+
+        let mut model = DagRunModel::new();
+
+        // Run with only start_date (logical_date is None)
+        let run_with_start = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "run_1".to_string(),
+            logical_date: None,
+            start_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
+            state: "running".to_string(),
+            run_type: "manual".to_string(),
+            ..Default::default()
+        };
+
+        // Run with both dates
+        let run_with_both = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "run_2".to_string(),
+            logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            state: "success".to_string(),
+            run_type: "scheduled".to_string(),
+            ..Default::default()
+        };
+
+        model.all = vec![run_with_both.clone(), run_with_start.clone()];
+        model.filter_dag_runs();
+
+        // run_with_start should be first (newer start_date used as fallback)
+        assert_eq!(model.filtered.items.len(), 2);
+        assert_eq!(model.filtered.items[0].dag_run_id, "run_1");
+        assert_eq!(model.filtered.items[1].dag_run_id, "run_2");
+    }
+
+    #[test]
+    fn test_filter_dag_runs_with_prefix() {
+        use time::macros::datetime;
+
+        let mut model = DagRunModel::new();
+
+        let run_manual = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "manual_run_1".to_string(),
+            logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
+            state: "success".to_string(),
+            run_type: "manual".to_string(),
+            ..Default::default()
+        };
+
+        let run_scheduled = DagRun {
+            dag_id: "test_dag".to_string(),
+            dag_run_id: "scheduled_run_1".to_string(),
+            logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
+            state: "queued".to_string(),
+            run_type: "scheduled".to_string(),
+            ..Default::default()
+        };
+
+        model.all = vec![run_manual.clone(), run_scheduled.clone()];
+
+        // Filter by prefix "manual"
+        model.filter.prefix = Some("manual".to_string());
+        model.filter_dag_runs();
+
+        // Should only show the manual run
+        assert_eq!(model.filtered.items.len(), 1);
+        assert_eq!(model.filtered.items[0].dag_run_id, "manual_run_1");
     }
 }
