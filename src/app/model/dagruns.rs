@@ -471,7 +471,9 @@ impl Model for DagRunModel {
                     }
                 }
             }
-            FlowrsEvent::Mouse => {}
+            FlowrsEvent::Mouse
+            | FlowrsEvent::FocusGained
+            | FlowrsEvent::FocusLost => {}
         }
         (Some(event.clone()), vec![])
     }

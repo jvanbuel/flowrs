@@ -138,7 +138,9 @@ impl Model for LogModel {
                     _ => return (Some(FlowrsEvent::Key(*key)), vec![]), // if no match, return the event
                 }
             }
-            FlowrsEvent::Mouse => (),
+            FlowrsEvent::Mouse
+            | FlowrsEvent::FocusGained
+            | FlowrsEvent::FocusLost => (),
         }
 
         (None, vec![])

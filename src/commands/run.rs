@@ -3,6 +3,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
+use crossterm::event::{DisableFocusChange, EnableFocusChange};
+use crossterm::ExecutableCommand;
 use log::{info, LevelFilter};
 use simplelog::{Config, WriteLogger};
 
@@ -48,12 +50,15 @@ impl RunCommand {
 
         // setup terminal (includes panic hooks) and run app
         let mut terminal = ratatui::init();
+        std::io::stdout().execute(EnableFocusChange)?;
+
         let app = App::new_with_errors_and_warnings(config, errors, warnings);
-        run_app(&mut terminal, Arc::new(Mutex::new(app))).await?;
+        let result = run_app(&mut terminal, Arc::new(Mutex::new(app))).await;
 
         info!("Shutting down the terminal...");
+        std::io::stdout().execute(DisableFocusChange)?;
         ratatui::restore();
-        Ok(())
+        result
     }
 }
 

@@ -324,7 +324,9 @@ impl Model for TaskInstanceModel {
                 }
                 (None, vec![])
             }
-            FlowrsEvent::Mouse => (Some(event.clone()), vec![]),
+            FlowrsEvent::Mouse
+            | FlowrsEvent::FocusGained
+            | FlowrsEvent::FocusLost => (Some(event.clone()), vec![]),
         }
     }
 }

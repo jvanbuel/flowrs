@@ -5,6 +5,8 @@ pub enum FlowrsEvent {
     Tick,
     Key(KeyEvent),
     Mouse,
+    FocusGained,
+    FocusLost,
 }
 
 impl From<crossterm::event::Event> for FlowrsEvent {
@@ -12,6 +14,8 @@ impl From<crossterm::event::Event> for FlowrsEvent {
         match ev {
             crossterm::event::Event::Key(key) => FlowrsEvent::Key(key),
             crossterm::event::Event::Mouse(_) => FlowrsEvent::Mouse,
+            crossterm::event::Event::FocusGained => FlowrsEvent::FocusGained,
+            crossterm::event::Event::FocusLost => FlowrsEvent::FocusLost,
             _ => FlowrsEvent::Tick,
         }
     }
