@@ -703,6 +703,7 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use time::macros::datetime;
 
     #[test]
     fn test_format_duration() {
@@ -747,8 +748,6 @@ mod tests {
 
     #[test]
     fn test_filter_dag_runs_sorts_by_logical_date() {
-        use time::macros::datetime;
-
         // Create test DAG runs with different states and dates
         let mut model = DagRunModel::new();
 
@@ -789,7 +788,7 @@ mod tests {
         };
 
         // Add runs in random order to test sorting
-        model.all = vec![oldest_run.clone(), newest_run.clone(), queued_run.clone()];
+        model.all = vec![oldest_run, newest_run, queued_run];
 
         // Apply filter (which also sorts)
         model.filter_dag_runs();
@@ -803,8 +802,6 @@ mod tests {
 
     #[test]
     fn test_filter_dag_runs_fallback_to_start_date() {
-        use time::macros::datetime;
-
         let mut model = DagRunModel::new();
 
         // Run with only start_date (logical_date is None)
@@ -829,7 +826,7 @@ mod tests {
             ..Default::default()
         };
 
-        model.all = vec![run_with_both.clone(), run_with_start.clone()];
+        model.all = vec![run_with_both, run_with_start];
         model.filter_dag_runs();
 
         // run_with_start should be first (newer start_date used as fallback)
@@ -840,8 +837,6 @@ mod tests {
 
     #[test]
     fn test_filter_dag_runs_with_prefix() {
-        use time::macros::datetime;
-
         let mut model = DagRunModel::new();
 
         let run_manual = DagRun {
@@ -862,7 +857,7 @@ mod tests {
             ..Default::default()
         };
 
-        model.all = vec![run_manual.clone(), run_scheduled.clone()];
+        model.all = vec![run_manual, run_scheduled];
 
         // Filter by prefix "manual"
         model.filter.prefix = Some("manual".to_string());
