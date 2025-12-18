@@ -245,7 +245,7 @@ fn parse_content(content: &str) -> Vec<(String, String)> {
     // ('element1', 'element2') OR ('element1', "element2")
     let re =
         Regex::new(r#"\(\s*'((?:\\.|[^'])*)'\s*,\s*(?:"((?:\\.|[^"])*)"|'((?:\\.|[^'])*)')\s*\)"#)
-            .unwrap();
+            .expect("Log parsing regex pattern should be valid");
 
     // Use regex to extract tuples
     re.captures_iter(content)
