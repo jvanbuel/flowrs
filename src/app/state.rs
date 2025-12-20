@@ -54,11 +54,11 @@ impl App {
         errors: Vec<String>,
         warnings: Vec<String>,
     ) -> Self {
-        let servers = &config.clone().servers.unwrap_or_default();
-        let active_server = config
+        let servers = config.servers.clone().unwrap_or_default();
+        let has_active_server = config
             .active_server
             .as_ref()
-            .and_then(|name| servers.iter().find(|server| &server.name == name));
+            .is_some_and(|name| servers.iter().any(|server| &server.name == name));
 
         let warning_popup = if warnings.is_empty() {
             None
@@ -70,13 +70,14 @@ impl App {
             config,
             environment_state: EnvironmentStateContainer::new(),
             dags: DagModel::new(),
-            configs: ConfigModel::new_with_errors(servers.clone(), errors),
+            configs: ConfigModel::new_with_errors(servers, errors),
             dagruns: DagRunModel::new(),
             task_instances: TaskInstanceModel::new(),
             logs: LogModel::new(),
-            active_panel: match active_server {
-                Some(_) => Panel::Dag,
-                None => Panel::Config,
+            active_panel: if has_active_server {
+                Panel::Dag
+            } else {
+                Panel::Config
             },
             ticks: 0,
             loading: true,

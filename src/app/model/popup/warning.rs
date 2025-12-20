@@ -45,8 +45,7 @@ impl Widget for &WarningPopup {
         let mut text = Text::default();
         for (idx, warning) in self.warnings.iter().enumerate() {
             // Split the warning by newlines to properly render multi-line warnings
-            let lines: Vec<&str> = warning.split('\n').collect();
-            for (line_idx, line) in lines.iter().enumerate() {
+            for (line_idx, line) in warning.lines().enumerate() {
                 if line_idx == 0 {
                     // First line includes the "Warning N: " prefix
                     text.push_line(Line::from(vec![
@@ -56,12 +55,12 @@ impl Widget for &WarningPopup {
                                 .fg(Color::Yellow)
                                 .add_modifier(Modifier::BOLD),
                         ),
-                        Span::styled(*line, Style::default().fg(Color::White)),
+                        Span::styled(line, Style::default().fg(Color::White)),
                     ]));
                 } else {
                     // Subsequent lines are just white text
                     text.push_line(Line::from(Span::styled(
-                        *line,
+                        line,
                         Style::default().fg(Color::White),
                     )));
                 }

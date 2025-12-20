@@ -55,18 +55,15 @@ impl ConfigModel {
     }
 
     pub fn filter_configs(&mut self) {
-        let prefix = &self.filter.prefix;
-        let dags = &self.all;
-        let filtered_configs = match prefix {
+        self.filtered.items = match &self.filter.prefix {
             Some(prefix) => self
                 .all
                 .iter()
                 .filter(|config| config.name.contains(prefix))
                 .cloned()
-                .collect::<Vec<AirflowConfig>>(),
-            None => dags.clone(),
+                .collect(),
+            None => self.all.clone(),
         };
-        self.filtered.items = filtered_configs;
     }
 }
 

@@ -156,14 +156,13 @@ impl DagRunModel {
     }
 
     pub fn filter_dag_runs(&mut self) {
-        let prefix = &self.filter.prefix;
-        let mut filtered_dag_runs = match prefix {
+        let mut filtered_dag_runs = match &self.filter.prefix {
             Some(prefix) => self
                 .all
                 .iter()
                 .filter(|dagrun| dagrun.dag_run_id.contains(prefix))
                 .cloned()
-                .collect::<Vec<DagRun>>(),
+                .collect(),
             None => self.all.clone(),
         };
         // Sort by logical_date (execution date) descending, with fallback to start_date
@@ -224,11 +223,14 @@ impl DagRunModel {
     }
 
     pub fn mark_dag_run(&mut self, dag_run_id: &str, status: &str) {
-        self.filtered.items.iter_mut().for_each(|dag_run| {
-            if dag_run.dag_run_id == dag_run_id {
-                dag_run.state = status.to_string();
-            }
-        });
+        if let Some(dag_run) = self
+            .filtered
+            .items
+            .iter_mut()
+            .find(|dr| dr.dag_run_id == dag_run_id)
+        {
+            dag_run.state = status.to_string();
+        }
     }
 }
 

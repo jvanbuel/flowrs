@@ -42,17 +42,15 @@ impl DagModel {
     }
 
     pub fn filter_dags(&mut self) {
-        let prefix = &self.filter.prefix;
-        let filtered_dags = match prefix {
-            Some(prefix) => &self
+        self.filtered.items = match &self.filter.prefix {
+            Some(prefix) => self
                 .all
                 .iter()
                 .filter(|dag| dag.dag_id.contains(prefix))
                 .cloned()
-                .collect::<Vec<Dag>>(),
-            None => &self.all,
+                .collect(),
+            None => self.all.clone(),
         };
-        self.filtered.items = filtered_dags.clone();
     }
 
     pub fn current(&mut self) -> Option<&mut Dag> {

@@ -17,12 +17,9 @@ pub async fn handle_update_task_logs(
     task_try: u16,
 ) {
     debug!("Getting logs for task: {task_id}, try number {task_try}");
-    let logs = join_all(
-        (1..=task_try)
-            .map(|i| client.get_task_logs(dag_id, dag_run_id, task_id, i))
-            .collect::<Vec<_>>(),
-    )
-    .await;
+    let logs =
+        join_all((1..=task_try).map(|i| client.get_task_logs(dag_id, dag_run_id, task_id, i)))
+            .await;
 
     let mut app = app.lock().unwrap();
     let mut collected_logs = Vec::new();
