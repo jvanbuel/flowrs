@@ -51,17 +51,15 @@ impl TaskInstanceModel {
     }
 
     pub fn filter_task_instances(&mut self) {
-        let prefix = &self.filter.prefix;
-        let filtered_task_instances = match prefix {
-            Some(prefix) => &self
+        self.filtered.items = match &self.filter.prefix {
+            Some(prefix) => self
                 .all
                 .iter()
                 .filter(|task_instance| task_instance.task_id.contains(prefix))
                 .cloned()
-                .collect::<Vec<TaskInstance>>(),
-            None => &self.all,
+                .collect(),
+            None => self.all.clone(),
         };
-        self.filtered.items = filtered_task_instances.clone();
     }
 
     #[allow(dead_code)]
@@ -72,11 +70,14 @@ impl TaskInstanceModel {
             .map(|i| &mut self.filtered.items[i])
     }
     pub fn mark_task_instance(&mut self, task_id: &str, status: &str) {
-        self.filtered.items.iter_mut().for_each(|task_instance| {
-            if task_instance.task_id == task_id {
-                task_instance.state = Some(status.to_string());
-            }
-        });
+        if let Some(task_instance) = self
+            .filtered
+            .items
+            .iter_mut()
+            .find(|ti| ti.task_id == task_id)
+        {
+            task_instance.state = Some(status.to_string());
+        }
     }
 
     /// Returns the inclusive range of selected indices, if in visual mode
