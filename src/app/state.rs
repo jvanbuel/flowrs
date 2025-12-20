@@ -213,6 +213,7 @@ impl App {
                     self.task_instances.all = self
                         .environment_state
                         .get_active_task_instances(dag_id, dag_run_id);
+                    self.task_instances.sort_task_instances();
                     self.task_instances.filter_task_instances();
                 } else {
                     self.task_instances.all.clear();
