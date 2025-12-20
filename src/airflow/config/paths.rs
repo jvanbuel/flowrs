@@ -51,8 +51,12 @@ impl ConfigPaths {
             .ok()
             .filter(|s| !s.is_empty())
             .map_or_else(
-                || home_dir().expect("Could not determine user home directory").join(".config"),
-                PathBuf::from
+                || {
+                    home_dir()
+                        .expect("Could not determine user home directory")
+                        .join(".config")
+                },
+                PathBuf::from,
             );
 
         base_dir.join("flowrs").join("config.toml")
@@ -60,7 +64,9 @@ impl ConfigPaths {
 
     /// Returns the legacy config path: `~/.flowrs`
     fn legacy_config_path() -> PathBuf {
-        home_dir().expect("Could not determine user home directory").join(".flowrs")
+        home_dir()
+            .expect("Could not determine user home directory")
+            .join(".flowrs")
     }
 
     /// Returns the XDG config directory (for creating if needed).

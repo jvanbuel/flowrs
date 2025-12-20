@@ -231,9 +231,10 @@ impl Widget for &mut DagModel {
                     Line::from(item.owners.join(", ")),
                     Line::from(item.timetable_description.as_deref().unwrap_or("None"))
                         .style(Style::default().fg(Color::LightYellow)),
-                    Line::from(
-                        item.next_dagrun_create_after.map_or_else(|| "None".to_string(), convert_datetimeoffset_to_human_readable_remaining_time),
-                    ),
+                    Line::from(item.next_dagrun_create_after.map_or_else(
+                        || "None".to_string(),
+                        convert_datetimeoffset_to_human_readable_remaining_time,
+                    )),
                     Line::from(self.dag_stats.get(&item.dag_id).map_or_else(
                         || vec![Span::styled("None".to_string(), Style::default())],
                         |stats| {
