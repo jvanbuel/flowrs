@@ -384,7 +384,9 @@ impl Model for DagRunModel {
                         }
                         KeyCode::Char('t') => {
                             self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                                self.dag_id.clone().expect("DAG ID should be set when viewing DAG runs"),
+                                self.dag_id
+                                    .clone()
+                                    .expect("DAG ID should be set when viewing DAG runs"),
                             )));
                         }
                         KeyCode::Char('m') => {
@@ -536,10 +538,12 @@ impl Widget for &mut DagRunModel {
                     Style::default().add_modifier(Modifier::BOLD),
                 )),
                 Line::from(if let Some(date) = item.logical_date {
-                    date.format(&format_description::parse(TIME_FORMAT)
-                        .expect("TIME_FORMAT constant should be a valid time format"))
-                        .expect("Date formatting with TIME_FORMAT should succeed")
-                        .clone()
+                    date.format(
+                        &format_description::parse(TIME_FORMAT)
+                            .expect("TIME_FORMAT constant should be a valid time format"),
+                    )
+                    .expect("Date formatting with TIME_FORMAT should succeed")
+                    .clone()
                 } else {
                     "None".to_string()
                 }),

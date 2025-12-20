@@ -331,18 +331,19 @@ impl Widget for &mut TaskInstanceModel {
             Row::new(vec![
                 Line::from(item.task_id.as_str()),
                 Line::from(if let Some(date) = item.logical_date {
-                    date.format(&format_description::parse(TIME_FORMAT)
-                        .expect("TIME_FORMAT constant should be a valid time format"))
-                        .expect("Date formatting with TIME_FORMAT should succeed")
-                        .clone()
+                    date.format(
+                        &format_description::parse(TIME_FORMAT)
+                            .expect("TIME_FORMAT constant should be a valid time format"),
+                    )
+                    .expect("Date formatting with TIME_FORMAT should succeed")
+                    .clone()
                 } else {
                     "None".to_string()
                 }),
-                Line::from(if let Some(i) = item.duration {
-                    format!("{i}")
-                } else {
-                    "None".to_string()
-                }),
+                Line::from(
+                    item.duration
+                        .map_or_else(|| "None".to_string(), |i| format!("{i}")),
+                ),
                 Line::from(if let Some(state) = &item.state {
                     match state.as_str() {
                         "success" => state_to_colored_square(AirflowStateColor::Success),
