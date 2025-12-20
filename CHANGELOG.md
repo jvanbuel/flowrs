@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4](https://github.com/jvanbuel/flowrs/compare/v0.7.3...v0.7.4) - 2025-12-20
+
+### Added
+
+- disable API calls when TUI is unfocused
+
+### Other
+
+- Refactor verbose Option patterns to idiomatic combinators ([#484](https://github.com/jvanbuel/flowrs/pull/484))
+- Simplify Default implementations for model structs
+- Fix unnecessary saturating_sub in previous() method
+- Improve test comments for clarity
+- Fix StatefulTable panic on empty items with comprehensive tests
+- Replace unwrap() with expect() in production code
+- add testing in ci
+
 ## [0.7.3](https://github.com/jvanbuel/flowrs/compare/v0.7.2...v0.7.3) - 2025-12-18
 
 ### Other
