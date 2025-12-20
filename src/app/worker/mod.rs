@@ -22,7 +22,7 @@ pub struct Dispatcher {
 #[derive(Debug)]
 pub enum WorkerMessage {
     ConfigSelected(usize),
-    UpdateDags,
+    UpdateDagsAndStats,
     ToggleDag {
         dag_id: String,
         is_paused: bool,
@@ -38,9 +38,6 @@ pub enum WorkerMessage {
     },
     GetDagCode {
         dag_id: String,
-    },
-    UpdateDagStats {
-        clear: bool,
     },
     ClearDagRun {
         dag_run_id: String,
@@ -164,17 +161,14 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             unreachable!("ConfigSelected should be handled before client check");
         }
         // DAG operations
-        WorkerMessage::UpdateDags => {
-            dags::handle_update_dags(&app, &client).await;
+        WorkerMessage::UpdateDagsAndStats => {
+            dags::handle_update_dags_and_stats(&app, &client).await;
         }
         WorkerMessage::ToggleDag { dag_id, is_paused } => {
             dags::handle_toggle_dag(&app, &client, &dag_id, is_paused).await;
         }
         WorkerMessage::GetDagCode { dag_id } => {
             dags::handle_get_dag_code(&app, &client, &dag_id).await;
-        }
-        WorkerMessage::UpdateDagStats { clear } => {
-            dags::handle_update_dag_stats(&app, &client, clear).await;
         }
         // DAG run operations
         WorkerMessage::UpdateDagRuns { dag_id, .. } => {

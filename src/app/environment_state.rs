@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::airflow::{
-    model::common::{Dag, DagRun, Log, TaskInstance},
+    model::common::{Dag, DagRun, DagStatistic, Log, TaskInstance},
     traits::AirflowClient as AirflowClientTrait,
 };
 
@@ -52,6 +52,7 @@ impl DagRunData {
 pub struct DagData {
     pub dag: Dag,
     pub dag_runs: HashMap<DagRunId, DagRunData>,
+    pub stats: Vec<DagStatistic>,
 }
 
 impl DagData {
@@ -59,6 +60,7 @@ impl DagData {
         Self {
             dag,
             dag_runs: HashMap::new(),
+            stats: Vec::new(),
         }
     }
 
@@ -139,6 +141,13 @@ impl EnvironmentData {
                     task_data.logs = logs;
                 }
             }
+        }
+    }
+
+    /// Update statistics for a specific DAG
+    pub fn update_dag_stats(&mut self, dag_id: &str, stats: Vec<DagStatistic>) {
+        if let Some(dag_data) = self.dags.get_mut(dag_id) {
+            dag_data.stats = stats;
         }
     }
 }
@@ -243,6 +252,19 @@ impl EnvironmentStateContainer {
         self.get_active_environment()
             .and_then(|env| env.get_dag(dag_id))
             .map(|dag_data| dag_data.dag.clone())
+    }
+
+    /// Get all DAG statistics for the active environment as a `HashMap`
+    pub fn get_active_dag_stats(&self) -> HashMap<String, Vec<DagStatistic>> {
+        self.get_active_environment()
+            .map(|env| {
+                env.dags
+                    .iter()
+                    .filter(|(_, dag_data)| !dag_data.stats.is_empty())
+                    .map(|(dag_id, dag_data)| (dag_id.clone(), dag_data.stats.clone()))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 }
 

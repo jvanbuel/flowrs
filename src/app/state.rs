@@ -194,6 +194,7 @@ impl App {
         match self.active_panel {
             Panel::Dag => {
                 self.dags.all = self.environment_state.get_active_dags();
+                self.dags.dag_stats = self.environment_state.get_active_dag_stats();
                 self.dags.filter_dags();
             }
             Panel::DAGRun => {

@@ -76,10 +76,7 @@ impl Model for DagModel {
                 }
                 (
                     Some(FlowrsEvent::Tick),
-                    vec![
-                        WorkerMessage::UpdateDags,
-                        WorkerMessage::UpdateDagStats { clear: true },
-                    ],
+                    vec![WorkerMessage::UpdateDagsAndStats],
                 )
             }
             FlowrsEvent::Key(key_event) => {
