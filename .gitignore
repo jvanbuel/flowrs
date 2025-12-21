@@ -10,3 +10,6 @@ dags/**
 .claude
 
 flowrs-debug*
+
+.terraform
+*.tfstate

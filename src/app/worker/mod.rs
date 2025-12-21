@@ -101,8 +101,8 @@ pub enum OpenItem {
 }
 
 impl Dispatcher {
-    pub fn new(app: Arc<Mutex<App>>) -> Self {
-        Dispatcher { app }
+    pub const fn new(app: Arc<Mutex<App>>) -> Self {
+        Self { app }
     }
 
     pub async fn run(self, mut rx: Receiver<WorkerMessage>) -> Result<()> {

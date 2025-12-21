@@ -1,3 +1,11 @@
+// Clippy pedantic/nursery allows for this TUI application
+#![allow(clippy::missing_errors_doc)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::must_use_candidate)]
+#![allow(clippy::option_if_let_else)]
+#![allow(clippy::significant_drop_tightening)]
+#![allow(clippy::useless_let_if_seq)]
+
 use std::sync::LazyLock;
 
 use clap::Parser;

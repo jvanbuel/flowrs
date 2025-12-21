@@ -82,10 +82,8 @@ where
             }
 
             // Skip tick processing when unfocused (no automatic refreshes)
-            if let FlowrsEvent::Tick = &event {
-                if !app.lock().unwrap().focused {
-                    continue;
-                }
+            if matches!(&event, FlowrsEvent::Tick) && !app.lock().unwrap().focused {
+                continue;
             }
 
             // First check if global warning popup is showing and handle its dismissal
@@ -191,14 +189,14 @@ where
             })) = fall_through_event
             {
                 let mut app = app.lock().unwrap();
-                if let Panel::Config = app.active_panel {
+                if app.active_panel == Panel::Config {
                     app.ticks = 0;
                 }
             }
 
             // then handle generic events
             let mut app = app.lock().unwrap();
-            if let Some(FlowrsEvent::Tick) = fall_through_event {
+            if fall_through_event == Some(FlowrsEvent::Tick) {
                 app.ticks += 1;
                 app.throbber_state.calc_next();
             }

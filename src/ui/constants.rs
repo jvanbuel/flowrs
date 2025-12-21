@@ -48,7 +48,7 @@ impl From<AirflowStateColor> for Color {
             AirflowStateColor::UpForReschedule => theme::STATE_UP_FOR_RESCHEDULE,
             AirflowStateColor::Skipped => theme::STATE_SKIPPED,
             AirflowStateColor::UpstreamFailed => theme::STATE_UPSTREAM_FAILED,
-            AirflowStateColor::None => Color::Reset,
+            AirflowStateColor::None => Self::Reset,
         }
     }
 }

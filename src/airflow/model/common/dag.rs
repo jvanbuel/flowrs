@@ -5,7 +5,7 @@ use time::OffsetDateTime;
 
 /// Common DAG model used by the application
 #[allow(clippy::struct_field_names)]
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dag {
     pub dag_id: String,
     pub dag_display_name: Option<String>,
@@ -29,13 +29,13 @@ pub struct Dag {
     pub timetable_description: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagList {
     pub dags: Vec<Dag>,
     pub total_entries: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Tag {
     pub name: String,
 }
@@ -43,7 +43,7 @@ pub struct Tag {
 // From trait implementations for v1 models
 impl From<v1::model::dag::DagResponse> for Dag {
     fn from(value: v1::model::dag::DagResponse) -> Self {
-        Dag {
+        Self {
             dag_id: value.dag_id,
             dag_display_name: Some(value.dag_display_name),
             description: value.description,
@@ -68,14 +68,14 @@ impl From<v1::model::dag::DagResponse> for Dag {
                 .map(std::convert::Into::into)
                 .collect(),
             file_token: value.file_token.clone(),
-            timetable_description: value.timetable_description.clone(),
+            timetable_description: value.timetable_description,
         }
     }
 }
 
 impl From<v1::model::dag::DagCollectionResponse> for DagList {
     fn from(value: v1::model::dag::DagCollectionResponse) -> Self {
-        DagList {
+        Self {
             dags: value
                 .dags
                 .into_iter()
@@ -88,14 +88,14 @@ impl From<v1::model::dag::DagCollectionResponse> for DagList {
 
 impl From<v1::model::dag::DagTagResponse> for Tag {
     fn from(value: v1::model::dag::DagTagResponse) -> Self {
-        Tag { name: value.name }
+        Self { name: value.name }
     }
 }
 
 // From trait implementations for v2 models
 impl From<v2::model::dag::Dag> for Dag {
     fn from(value: v2::model::dag::Dag) -> Self {
-        Dag {
+        Self {
             dag_id: value.dag_id,
             dag_display_name: Some(value.dag_display_name),
             description: value.description,
@@ -126,7 +126,7 @@ impl From<v2::model::dag::Dag> for Dag {
 
 impl From<v2::model::dag::DagList> for DagList {
     fn from(value: v2::model::dag::DagList) -> Self {
-        DagList {
+        Self {
             dags: value
                 .dags
                 .into_iter()
@@ -139,6 +139,6 @@ impl From<v2::model::dag::DagList> for DagList {
 
 impl From<v2::model::dag::Tag> for Tag {
     fn from(value: v2::model::dag::Tag) -> Self {
-        Tag { name: value.name }
+        Self { name: value.name }
     }
 }

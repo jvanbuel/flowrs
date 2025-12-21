@@ -26,7 +26,7 @@ pub struct ClearTaskInstancePopup {
 
 impl ClearTaskInstancePopup {
     pub fn new(dag_run_id: &str, dag_id: &str, task_ids: Vec<String>) -> Self {
-        ClearTaskInstancePopup {
+        Self {
             dag_run_id: dag_run_id.to_string(),
             dag_id: dag_id.to_string(),
             task_ids,

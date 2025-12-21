@@ -32,7 +32,10 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::error::ErrorPopup;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
-use super::{filter::Filter, Model, StatefulTable};
+use super::{
+    filter::{filter_items, FilterStateMachine, Filterable},
+    Model, StatefulTable,
+};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 #[derive(Default)]
@@ -41,7 +44,7 @@ pub struct DagRunModel {
     pub dag_code: DagCodeWidget,
     pub all: Vec<DagRun>,
     pub filtered: StatefulTable<DagRun>,
-    pub filter: Filter,
+    pub filter: FilterStateMachine,
     pub visual_mode: bool,
     pub visual_anchor: Option<usize>,
     pub popup: Option<DagRunPopUp>,
@@ -156,23 +159,16 @@ impl DagRunModel {
     }
 
     pub fn filter_dag_runs(&mut self) {
-        let mut filtered_dag_runs = match &self.filter.prefix {
-            Some(prefix) => self
-                .all
-                .iter()
-                .filter(|dagrun| dagrun.dag_run_id.contains(prefix))
-                .cloned()
-                .collect(),
-            None => self.all.clone(),
-        };
+        let conditions = self.filter.active_conditions();
+        let mut filtered = filter_items(&self.all, &conditions);
         // Sort by logical_date (execution date) descending, with fallback to start_date
         // This ensures queued runs (which have no start_date yet) appear in chronological order
-        filtered_dag_runs.sort_by(|a, b| {
+        filtered.sort_by(|a, b| {
             b.logical_date
                 .or(b.start_date)
                 .cmp(&a.logical_date.or(a.start_date))
         });
-        self.filtered.items = filtered_dag_runs;
+        self.filtered.items = filtered;
     }
 
     pub fn current(&self) -> Option<&DagRun> {
@@ -253,11 +249,15 @@ impl Model for DagRunModel {
                 return (Some(FlowrsEvent::Tick), worker_messages);
             }
             FlowrsEvent::Key(key_event) => {
-                if self.filter.is_enabled() {
-                    self.filter.update(key_event);
+                // Handle filter state machine
+                if self.filter.is_active()
+                    && self.filter.update(key_event, &DagRun::filterable_fields())
+                {
                     self.filter_dag_runs();
                     return (None, vec![]);
-                } else if let Some(_error_popup) = &mut self.error_popup {
+                }
+
+                if let Some(_error_popup) = &mut self.error_popup {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
                             self.error_popup = None;
@@ -406,7 +406,7 @@ impl Model for DagRunModel {
                             self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
-                            self.filter.toggle();
+                            self.filter.activate();
                             self.filter_dag_runs();
                         }
                         KeyCode::Char('v') => {
@@ -470,13 +470,13 @@ impl Model for DagRunModel {
 
 impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        let rects = if self.filter.is_enabled() {
+        let rects = if self.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
                 .split(area);
 
-            self.filter.render(rects[1], buf);
+            self.filter.render_widget(rects[1], buf);
             rects
         } else {
             Layout::default()
@@ -550,7 +550,6 @@ impl Widget for &mut DagRunModel {
                             .expect("TIME_FORMAT constant should be a valid time format"),
                     )
                     .expect("Date formatting with TIME_FORMAT should succeed")
-                    .clone()
                 } else {
                     "None".to_string()
                 }),
@@ -586,8 +585,8 @@ impl Widget for &mut DagRunModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            match (self.visual_mode, self.filter.prefix()) {
-                (true, Some(prefix)) => block.title_bottom(Line::from(vec![
+            match (self.visual_mode, self.filter.filter_display()) {
+                (true, Some(filter_text)) => block.title_bottom(Line::from(vec![
                     Span::raw(" -- VISUAL ("),
                     Span::styled(
                         format!("{}", self.visual_selection_count()),
@@ -595,7 +594,7 @@ impl Widget for &mut DagRunModel {
                     ),
                     Span::raw(" selected) -- | "),
                     Span::styled(
-                        format!("Filter: {prefix} "),
+                        format!("Filter: {filter_text} "),
                         Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
                     ),
                 ])),
@@ -607,8 +606,8 @@ impl Widget for &mut DagRunModel {
                     ),
                     Span::raw(" selected) -- "),
                 ])),
-                (false, Some(prefix)) => block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {prefix} "),
+                (false, Some(filter_text)) => block.title_bottom(Line::from(Span::styled(
+                    format!(" Filter: {filter_text} "),
                     Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
                 ))),
                 (false, None) => block,
@@ -695,6 +694,7 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossterm::event::{KeyEvent, KeyModifiers};
     use time::macros::datetime;
 
     #[test]
@@ -851,8 +851,14 @@ mod tests {
 
         model.all = vec![run_manual, run_scheduled];
 
-        // Filter by prefix "manual"
-        model.filter.prefix = Some("manual".to_string());
+        // Filter by typing "manual" (activate filter and type)
+        model.filter.activate();
+        for c in "manual".chars() {
+            model.filter.update(
+                &KeyEvent::new(crossterm::event::KeyCode::Char(c), KeyModifiers::empty()),
+                &DagRun::filterable_fields(),
+            );
+        }
         model.filter_dag_runs();
 
         // Should only show the manual run

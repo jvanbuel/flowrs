@@ -23,8 +23,8 @@ pub struct TriggerDagRunPopUp {
 }
 
 impl TriggerDagRunPopUp {
-    pub fn new(dag_id: String) -> Self {
-        TriggerDagRunPopUp {
+    pub const fn new(dag_id: String) -> Self {
+        Self {
             dag_id,
             confirm: false,
         }

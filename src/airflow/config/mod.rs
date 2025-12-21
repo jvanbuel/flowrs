@@ -16,7 +16,7 @@ use super::managed_services::mwaa::get_mwaa_environment_servers;
 use crate::CONFIG_PATHS;
 use anyhow::Result;
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 pub enum AirflowVersion {
     #[default]
     V2,
@@ -24,15 +24,15 @@ pub enum AirflowVersion {
 }
 
 impl AirflowVersion {
-    pub fn api_path(&self) -> &str {
+    pub const fn api_path(&self) -> &str {
         match self {
-            AirflowVersion::V2 => "api/v1",
-            AirflowVersion::V3 => "api/v2",
+            Self::V2 => "api/v1",
+            Self::V3 => "api/v2",
         }
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, ValueEnum, EnumIter)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, ValueEnum, EnumIter)]
 pub enum ManagedService {
     Conveyor,
     Mwaa,
@@ -43,10 +43,10 @@ pub enum ManagedService {
 impl Display for ManagedService {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ManagedService::Conveyor => write!(f, "Conveyor"),
-            ManagedService::Mwaa => write!(f, "MWAA"),
-            ManagedService::Astronomer => write!(f, "Astronomer"),
-            ManagedService::Gcc => write!(f, "Google Cloud Composer"),
+            Self::Conveyor => write!(f, "Conveyor"),
+            Self::Mwaa => write!(f, "MWAA"),
+            Self::Astronomer => write!(f, "Astronomer"),
+            Self::Gcc => write!(f, "Google Cloud Composer"),
         }
     }
 }
@@ -73,7 +73,7 @@ pub struct AirflowConfig {
     pub timeout_secs: u64,
 }
 
-fn default_timeout() -> u64 {
+const fn default_timeout() -> u64 {
     30
 }
 
@@ -135,12 +135,12 @@ impl FlowrsConfig {
         // If no config at the default path, return an empty (default) config
         let toml_config = std::fs::read_to_string(&path).unwrap_or_default();
         let mut config = Self::parse_toml(&toml_config)?;
-        config.path = Some(path.clone());
+        config.path = Some(path);
         Ok(config)
     }
 
     pub fn parse_toml(config: &str) -> Result<Self> {
-        let config: FlowrsConfig = toml::from_str(config)?;
+        let config: Self = toml::from_str(config)?;
         let num_serves = config.servers.as_ref().map_or(0, std::vec::Vec::len);
         let num_managed = config
             .managed_services
