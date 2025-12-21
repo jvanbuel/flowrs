@@ -11,7 +11,9 @@ use time::OffsetDateTime;
 
 use crate::airflow::model::common::{Dag, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::model::popup::dagruns::trigger::TriggerDagRunPopUp;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
+use crate::app::model::popup::dags::DagPopUp;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
@@ -32,6 +34,7 @@ pub struct DagModel {
     pub filter: Filter,
     commands: Option<&'static CommandPopUp<'static>>,
     pub error_popup: Option<ErrorPopup>,
+    popup: Option<DagPopUp>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
 }
@@ -82,6 +85,22 @@ impl Model for DagModel {
                     self.filter.update(key_event);
                     self.filter_dags();
                     return (None, vec![]);
+                } else if let Some(popup) = &mut self.popup {
+                    match popup {
+                        DagPopUp::Trigger(trigger_popup) => {
+                            let (key_event, messages) = trigger_popup.update(event);
+                            debug!("Popup messages: {messages:?}");
+                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+                                match key_event.code {
+                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.popup = None;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            return (None, messages);
+                        }
+                    }
                 } else if let Some(_error_popup) = &mut self.error_popup {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
@@ -177,6 +196,17 @@ impl Model for DagModel {
                             self.error_popup = Some(ErrorPopup::from_strings(vec![
                                 "No DAG selected to open in the browser".to_string(),
                             ]));
+                        }
+                        KeyCode::Char('t') => {
+                            if let Some(dag) = self.current() {
+                                self.popup = Some(DagPopUp::Trigger(TriggerDagRunPopUp::new(
+                                    dag.dag_id.clone(),
+                                )));
+                            } else {
+                                self.error_popup = Some(ErrorPopup::from_strings(vec![
+                                    "No DAG selected to trigger".to_string(),
+                                ]));
+                            }
                         }
                         _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                     }
@@ -304,6 +334,14 @@ impl Widget for &mut DagModel {
 
         if let Some(error_popup) = &self.error_popup {
             error_popup.render(area, buf);
+        }
+
+        if let Some(popup) = &mut self.popup {
+            match popup {
+                DagPopUp::Trigger(trigger_popup) => {
+                    trigger_popup.render(area, buf);
+                }
+            }
         }
     }
 }
