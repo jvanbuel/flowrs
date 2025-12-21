@@ -158,6 +158,12 @@ pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>
                                     .get_active_task_logs(dag_id, dag_run_id, task_id);
                             }
                         }
+                        WorkerMessage::UpdateTasks { dag_id } => {
+                            // Clear task graph when switching DAGs
+                            if app.task_instances.dag_id.as_ref() != Some(dag_id) {
+                                app.task_instances.task_graph = None;
+                            }
+                        }
                         _ => {}
                     }
                 }

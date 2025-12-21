@@ -77,3 +77,22 @@ async fn test_v1_list_dagruns() {
         // Note: dag_runs may be empty if no runs have been triggered
     }
 }
+
+#[tokio::test]
+async fn test_v1_list_tasks() {
+    if !should_run_for_api_version("v1") {
+        return;
+    }
+
+    let client = create_test_client().expect("Failed to create test client");
+    let dag_list = client.list_dags().await.expect("Failed to list DAGs");
+
+    if let Some(dag) = dag_list.dags.first() {
+        let result = client.list_tasks(&dag.dag_id).await;
+        assert!(result.is_ok(), "Failed to list tasks: {:?}", result.err());
+
+        let _task_list = result.unwrap();
+        // Most DAGs should have at least one task
+        // (empty DAGs are unusual but valid)
+    }
+}

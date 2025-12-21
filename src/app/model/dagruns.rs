@@ -434,11 +434,16 @@ impl Model for DagRunModel {
                             if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
                                 return (
                                     Some(FlowrsEvent::Key(*key_event)),
-                                    vec![WorkerMessage::UpdateTaskInstances {
-                                        dag_id: dag_id.clone(),
-                                        dag_run_id: dag_run.dag_run_id.clone(),
-                                        clear: true,
-                                    }],
+                                    vec![
+                                        WorkerMessage::UpdateTasks {
+                                            dag_id: dag_id.clone(),
+                                        },
+                                        WorkerMessage::UpdateTaskInstances {
+                                            dag_id: dag_id.clone(),
+                                            dag_run_id: dag_run.dag_run_id.clone(),
+                                            clear: true,
+                                        },
+                                    ],
                                 );
                             }
                         }

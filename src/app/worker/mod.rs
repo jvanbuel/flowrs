@@ -14,6 +14,7 @@ mod dagruns;
 mod dags;
 mod logs;
 mod taskinstances;
+mod tasks;
 
 pub struct Dispatcher {
     app: Arc<Mutex<App>>,
@@ -67,6 +68,9 @@ pub enum WorkerMessage {
         status: TaskMarkState,
     },
     TriggerDagRun {
+        dag_id: String,
+    },
+    UpdateTasks {
         dag_id: String,
     },
     OpenItem(OpenItem),
@@ -233,6 +237,10 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         } => {
             logs::handle_update_task_logs(&app, &client, &dag_id, &dag_run_id, &task_id, task_try)
                 .await;
+        }
+        // Task operations
+        WorkerMessage::UpdateTasks { dag_id } => {
+            tasks::handle_update_tasks(&app, &client, &dag_id).await;
         }
         // Browser operations
         WorkerMessage::OpenItem(item) => {

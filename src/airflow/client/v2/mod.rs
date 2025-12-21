@@ -4,6 +4,7 @@ mod dag;
 mod dagrun;
 mod dagstats;
 mod log;
+mod task;
 mod taskinstance;
 
 use anyhow::Result;

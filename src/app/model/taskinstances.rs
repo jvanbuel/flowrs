@@ -13,6 +13,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
+use crate::airflow::graph::{sort_task_instances, TaskGraph};
 use crate::airflow::model::common::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
@@ -43,6 +44,7 @@ pub struct TaskInstanceModel {
     pub error_popup: Option<ErrorPopup>,
     ticks: u32,
     event_buffer: Vec<FlowrsEvent>,
+    pub task_graph: Option<TaskGraph>,
 }
 
 impl TaskInstanceModel {
@@ -60,6 +62,13 @@ impl TaskInstanceModel {
                 .collect(),
             None => self.all.clone(),
         };
+    }
+
+    /// Sort task instances by topological order (or timestamp fallback)
+    pub fn sort_task_instances(&mut self) {
+        if let Some(graph) = &self.task_graph {
+            sort_task_instances(&mut self.all, graph);
+        }
     }
 
     #[allow(dead_code)]
