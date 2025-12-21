@@ -24,7 +24,7 @@ pub struct DagStatistic {
 // From trait implementations for v1 models
 impl From<v1::model::dagstats::DagStatsResponse> for DagStatsResponse {
     fn from(value: v1::model::dagstats::DagStatsResponse) -> Self {
-        DagStatsResponse {
+        Self {
             dags: value
                 .dags
                 .into_iter()
@@ -37,7 +37,7 @@ impl From<v1::model::dagstats::DagStatsResponse> for DagStatsResponse {
 
 impl From<v1::model::dagstats::DagStatistics> for DagStatistics {
     fn from(value: v1::model::dagstats::DagStatistics) -> Self {
-        DagStatistics {
+        Self {
             dag_id: value.dag_id,
             stats: value
                 .stats
@@ -50,7 +50,7 @@ impl From<v1::model::dagstats::DagStatistics> for DagStatistics {
 
 impl From<v1::model::dagstats::DagStatistic> for DagStatistic {
     fn from(value: v1::model::dagstats::DagStatistic) -> Self {
-        DagStatistic {
+        Self {
             state: value.state,
             count: value.count,
         }
@@ -60,7 +60,7 @@ impl From<v1::model::dagstats::DagStatistic> for DagStatistic {
 // From trait implementations for v2 models
 impl From<v2::model::dagstats::DagStatsResponse> for DagStatsResponse {
     fn from(value: v2::model::dagstats::DagStatsResponse) -> Self {
-        DagStatsResponse {
+        Self {
             dags: value
                 .dags
                 .into_iter()
@@ -73,7 +73,7 @@ impl From<v2::model::dagstats::DagStatsResponse> for DagStatsResponse {
 
 impl From<v2::model::dagstats::DagStatistics> for DagStatistics {
     fn from(value: v2::model::dagstats::DagStatistics) -> Self {
-        DagStatistics {
+        Self {
             dag_id: value.dag_id,
             stats: value
                 .stats
@@ -86,7 +86,7 @@ impl From<v2::model::dagstats::DagStatistics> for DagStatistics {
 
 impl From<v2::model::dagstats::DagStatistic> for DagStatistic {
     fn from(value: v2::model::dagstats::DagStatistic) -> Self {
-        DagStatistic {
+        Self {
             state: value.state,
             count: value.count,
         }

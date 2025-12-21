@@ -27,7 +27,10 @@ use crate::ui::TIME_FORMAT;
 use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
-use super::{filter::Filter, Model, StatefulTable};
+use super::{
+    filter::{filter_items, FilterStateMachine, Filterable},
+    Model, StatefulTable,
+};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 #[derive(Default)]
@@ -36,7 +39,7 @@ pub struct TaskInstanceModel {
     pub dag_run_id: Option<String>,
     pub all: Vec<TaskInstance>,
     pub filtered: StatefulTable<TaskInstance>,
-    pub filter: Filter,
+    pub filter: FilterStateMachine,
     pub popup: Option<TaskInstancePopUp>,
     pub visual_mode: bool,
     pub visual_anchor: Option<usize>,
@@ -53,15 +56,9 @@ impl TaskInstanceModel {
     }
 
     pub fn filter_task_instances(&mut self) {
-        self.filtered.items = match &self.filter.prefix {
-            Some(prefix) => self
-                .all
-                .iter()
-                .filter(|task_instance| task_instance.task_id.contains(prefix))
-                .cloned()
-                .collect(),
-            None => self.all.clone(),
-        };
+        let conditions = self.filter.active_conditions();
+        let filtered = filter_items(&self.all, &conditions);
+        self.filtered.items = filtered;
     }
 
     /// Sort task instances by topological order (or timestamp fallback)
@@ -152,11 +149,17 @@ impl Model for TaskInstanceModel {
                 (Some(FlowrsEvent::Tick), vec![])
             }
             FlowrsEvent::Key(key_event) => {
-                if self.filter.is_enabled() {
-                    self.filter.update(key_event);
+                // Handle filter state machine
+                if self.filter.is_active()
+                    && self
+                        .filter
+                        .update(key_event, &TaskInstance::filterable_fields())
+                {
                     self.filter_task_instances();
                     return (None, vec![]);
-                } else if let Some(_error_popup) = &mut self.error_popup {
+                }
+
+                if let Some(_error_popup) = &mut self.error_popup {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
                             self.error_popup = None;
@@ -272,7 +275,7 @@ impl Model for TaskInstanceModel {
                             self.commands = Some(&*TASK_COMMAND_POP_UP);
                         }
                         KeyCode::Char('/') => {
-                            self.filter.toggle();
+                            self.filter.activate();
                             self.filter_task_instances();
                         }
                         KeyCode::Enter => {
@@ -318,13 +321,13 @@ impl Model for TaskInstanceModel {
 }
 impl Widget for &mut TaskInstanceModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let rects = if self.filter.is_enabled() {
+        let rects = if self.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
                 .split(area);
 
-            self.filter.render(rects[1], buffer);
+            self.filter.render_widget(rects[1], buffer);
             rects
         } else {
             Layout::default()
@@ -346,7 +349,6 @@ impl Widget for &mut TaskInstanceModel {
                             .expect("TIME_FORMAT constant should be a valid time format"),
                     )
                     .expect("Date formatting with TIME_FORMAT should succeed")
-                    .clone()
                 } else {
                     "None".to_string()
                 }),
@@ -398,8 +400,8 @@ impl Widget for &mut TaskInstanceModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            match (self.visual_mode, self.filter.prefix()) {
-                (true, Some(prefix)) => block.title_bottom(Line::from(vec![
+            match (self.visual_mode, self.filter.filter_display()) {
+                (true, Some(filter_text)) => block.title_bottom(Line::from(vec![
                     Span::raw(" -- VISUAL ("),
                     Span::styled(
                         format!("{}", self.visual_selection_count()),
@@ -407,7 +409,7 @@ impl Widget for &mut TaskInstanceModel {
                     ),
                     Span::raw(" selected) -- | "),
                     Span::styled(
-                        format!("Filter: {prefix} "),
+                        format!("Filter: {filter_text} "),
                         Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
                     ),
                 ])),
@@ -419,8 +421,8 @@ impl Widget for &mut TaskInstanceModel {
                     ),
                     Span::raw(" selected) -- "),
                 ])),
-                (false, Some(prefix)) => block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {prefix} "),
+                (false, Some(filter_text)) => block.title_bottom(Line::from(Span::styled(
+                    format!(" Filter: {filter_text} "),
                     Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
                 ))),
                 (false, None) => block,

@@ -54,7 +54,7 @@ pub struct TaskInstance {
     pub dag_version: Option<DagVersion>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Trigger {
     pub id: i64,
     pub classpath: String,
@@ -65,7 +65,7 @@ pub struct Trigger {
 }
 
 #[allow(clippy::struct_field_names)]
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Job {
     pub id: i64,
     pub dag_id: Option<String>,

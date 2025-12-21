@@ -16,54 +16,58 @@ use crate::ui::theme::{
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
 use super::popup::error::ErrorPopup;
-use super::{filter::Filter, Model, StatefulTable};
+use super::{
+    filter::{filter_items, FilterStateMachine, Filterable},
+    Model, StatefulTable,
+};
 use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
     pub all: Vec<AirflowConfig>,
     pub filtered: StatefulTable<AirflowConfig>,
-    pub filter: Filter,
+    pub filter: FilterStateMachine,
     pub commands: Option<&'static CommandPopUp<'static>>,
     pub error_popup: Option<ErrorPopup>,
 }
 
 impl ConfigModel {
-    pub fn new(configs: Vec<AirflowConfig>) -> Self {
-        ConfigModel {
-            all: configs.clone(),
-            filtered: StatefulTable::new(configs),
-            filter: Filter::new(),
+    fn create_filter(configs: &[AirflowConfig]) -> FilterStateMachine {
+        let mut filter = FilterStateMachine::default();
+        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
+        filter.set_primary_values("name", config_names);
+        filter
+    }
+
+    pub fn new(configs: &[AirflowConfig]) -> Self {
+        Self {
+            all: configs.to_vec(),
+            filtered: StatefulTable::new(configs.to_vec()),
+            filter: Self::create_filter(configs),
             commands: None,
             error_popup: None,
         }
     }
 
-    pub fn new_with_errors(configs: Vec<AirflowConfig>, errors: Vec<String>) -> Self {
+    pub fn new_with_errors(configs: &[AirflowConfig], errors: Vec<String>) -> Self {
         let error_popup = if errors.is_empty() {
             None
         } else {
             Some(ErrorPopup::from_strings(errors))
         };
 
-        ConfigModel {
-            all: configs.clone(),
-            filtered: StatefulTable::new(configs),
-            filter: Filter::new(),
+        Self {
+            all: configs.to_vec(),
+            filtered: StatefulTable::new(configs.to_vec()),
+            filter: Self::create_filter(configs),
             commands: None,
             error_popup,
         }
     }
 
     pub fn filter_configs(&mut self) {
-        self.filtered.items = match &self.filter.prefix {
-            Some(prefix) => self
-                .all
-                .iter()
-                .filter(|config| config.name.contains(prefix))
-                .cloned()
-                .collect(),
-            None => self.all.clone(),
-        };
+        let conditions = self.filter.active_conditions();
+        let filtered = filter_items(&self.all, &conditions);
+        self.filtered.items = filtered;
     }
 }
 
@@ -72,11 +76,17 @@ impl Model for ConfigModel {
         match event {
             FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),
             FlowrsEvent::Key(key_event) => {
-                if self.filter.enabled {
-                    self.filter.update(key_event);
+                // Handle filter state machine
+                if self.filter.is_active()
+                    && self
+                        .filter
+                        .update(key_event, &AirflowConfig::filterable_fields())
+                {
                     self.filter_configs();
                     return (None, vec![]);
-                } else if self.error_popup.is_some() {
+                }
+
+                if self.error_popup.is_some() {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
                             self.error_popup = None;
@@ -99,7 +109,8 @@ impl Model for ConfigModel {
                             self.filtered.previous();
                         }
                         KeyCode::Char('/') => {
-                            self.filter.toggle();
+                            self.filter.activate();
+                            self.filter_configs();
                         }
                         KeyCode::Char('o') => {
                             let selected_config =
@@ -141,14 +152,13 @@ impl Model for ConfigModel {
 
 impl Widget for &mut ConfigModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.filter.is_enabled() {
+        let rects = if self.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
                 .split(area);
 
-            self.filter.render(rects[1], buf);
-
+            self.filter.render_widget(rects[1], buf);
             rects
         } else {
             Layout::default()
@@ -197,9 +207,9 @@ impl Widget for &mut ConfigModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if let Some(prefix) = self.filter.prefix() {
+            if let Some(filter_text) = self.filter.filter_display() {
                 block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {prefix} "),
+                    format!(" Filter: {filter_text} "),
                     Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
                 )))
             } else {

@@ -24,7 +24,7 @@ pub struct V1Client {
 impl V1Client {
     const API_VERSION: &'static str = "api/v1";
 
-    pub fn new(base: BaseClient) -> Self {
+    pub const fn new(base: BaseClient) -> Self {
         Self { base }
     }
 

@@ -24,8 +24,8 @@ pub struct ClearDagRunPopup {
 }
 
 impl ClearDagRunPopup {
-    pub fn new(dag_run_ids: Vec<String>, dag_id: String) -> Self {
-        ClearDagRunPopup {
+    pub const fn new(dag_run_ids: Vec<String>, dag_id: String) -> Self {
+        Self {
             dag_run_ids,
             dag_id,
             confirm: false,

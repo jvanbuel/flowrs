@@ -17,6 +17,7 @@ use crate::app::worker::OpenItem;
 use anyhow::Result;
 
 /// Super-trait combining all Airflow API operations.
+///
 /// This trait can be implemented by different API versions (v1 for Airflow v2, v2 for Airflow v3)
 /// to provide a consistent interface for interacting with Airflow.
 pub trait AirflowClient:
