@@ -632,7 +632,7 @@ impl Widget for &mut DagRunModel {
             let code_text = Paragraph::new(cached_lines.clone())
                 .block(popup)
                 .style(DEFAULT_STYLE)
-                .wrap(Wrap { trim: true })
+                .wrap(Wrap { trim: false })
                 .scroll((self.dag_code.vertical_scroll as u16, 0));
 
             Clear.render(area, buf); //this clears out the background
