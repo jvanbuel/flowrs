@@ -21,12 +21,12 @@ pub enum ConfigCommand {
 impl ConfigCommand {
     pub fn run(&self) -> Result<()> {
         match self {
-            ConfigCommand::Add(cmd) => cmd.run(),
-            ConfigCommand::Remove(cmd) => cmd.run(),
-            ConfigCommand::Update(cmd) => cmd.run(),
-            ConfigCommand::List(cmd) => cmd.run(),
-            ConfigCommand::Enable(cmd) => cmd.run(),
-            ConfigCommand::Disable(cmd) => cmd.disable(),
+            Self::Add(cmd) => cmd.run(),
+            Self::Remove(cmd) => cmd.run(),
+            Self::Update(cmd) => cmd.run(),
+            Self::List(cmd) => cmd.run(),
+            Self::Enable(cmd) => cmd.run(),
+            Self::Disable(cmd) => cmd.disable(),
         }
     }
 }

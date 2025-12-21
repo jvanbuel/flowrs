@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DAGRunCollectionResponse {
     #[serde(rename = "dag_runs")]
     pub dag_runs: Vec<DAGRunResponse>,
@@ -9,7 +9,7 @@ pub struct DAGRunCollectionResponse {
     pub total_entries: i64,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DAGRunResponse {
     pub dag_run_id: Option<String>,
     pub dag_id: String,

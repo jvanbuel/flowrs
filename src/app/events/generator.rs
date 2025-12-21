@@ -24,7 +24,7 @@ impl EventGenerator {
                 let timeout = tick_rate
                     .checked_sub(last_tick.elapsed())
                     .unwrap_or_else(|| Duration::from_secs(0));
-                if let Ok(true) = event::poll(timeout) {
+                if matches!(event::poll(timeout), Ok(true)) {
                     if let Ok(ev) = event::read() {
                         let _ = tx_event_thread.send(FlowrsEvent::from(ev)).await;
                     }

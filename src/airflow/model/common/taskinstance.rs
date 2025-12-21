@@ -38,7 +38,7 @@ pub struct TaskInstanceList {
 // From trait implementations for v1 models
 impl From<v1::model::taskinstance::TaskInstanceResponse> for TaskInstance {
     fn from(value: v1::model::taskinstance::TaskInstanceResponse) -> Self {
-        TaskInstance {
+        Self {
             task_id: value.task_id,
             dag_id: value.dag_id,
             dag_run_id: value.dag_run_id,
@@ -66,7 +66,7 @@ impl From<v1::model::taskinstance::TaskInstanceResponse> for TaskInstance {
 
 impl From<v1::model::taskinstance::TaskInstanceCollectionResponse> for TaskInstanceList {
     fn from(value: v1::model::taskinstance::TaskInstanceCollectionResponse) -> Self {
-        TaskInstanceList {
+        Self {
             task_instances: value
                 .task_instances
                 .into_iter()
@@ -80,7 +80,7 @@ impl From<v1::model::taskinstance::TaskInstanceCollectionResponse> for TaskInsta
 // From trait implementations for v2 models
 impl From<v2::model::taskinstance::TaskInstance> for TaskInstance {
     fn from(value: v2::model::taskinstance::TaskInstance) -> Self {
-        TaskInstance {
+        Self {
             task_id: value.task_id,
             dag_id: value.dag_id,
             dag_run_id: value.dag_run_id,
@@ -108,13 +108,53 @@ impl From<v2::model::taskinstance::TaskInstance> for TaskInstance {
 
 impl From<v2::model::taskinstance::TaskInstanceList> for TaskInstanceList {
     fn from(value: v2::model::taskinstance::TaskInstanceList) -> Self {
-        TaskInstanceList {
+        Self {
             task_instances: value
                 .task_instances
                 .into_iter()
                 .map(std::convert::Into::into)
                 .collect(),
             total_entries: value.total_entries,
+        }
+    }
+}
+
+use crate::app::model::filter::{Filterable, FilterableField};
+
+impl Filterable for TaskInstance {
+    fn primary_field() -> &'static str {
+        "task_id"
+    }
+
+    fn filterable_fields() -> Vec<FilterableField> {
+        vec![
+            FilterableField::primary("task_id"),
+            FilterableField::enumerated(
+                "state",
+                vec![
+                    "running",
+                    "success",
+                    "failed",
+                    "queued",
+                    "up_for_retry",
+                    "up_for_reschedule",
+                    "skipped",
+                    "deferred",
+                    "removed",
+                    "restarting",
+                ],
+            ),
+            FilterableField::free_text("operator"),
+        ]
+    }
+
+    fn get_field_value(&self, field_name: &str) -> Option<String> {
+        match field_name {
+            "task_id" => Some(self.task_id.clone()),
+            "dag_id" => Some(self.dag_id.clone()),
+            "state" => self.state.clone(),
+            "operator" => self.operator.clone(),
+            _ => None,
         }
     }
 }

@@ -43,7 +43,7 @@ pub struct DagRun {
     pub bundle_version: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagVersion {
     pub id: String,
     pub version_number: i64,

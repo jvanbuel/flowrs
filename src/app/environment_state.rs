@@ -20,7 +20,7 @@ pub struct TaskInstanceData {
 }
 
 impl TaskInstanceData {
-    pub fn new(task_instance: TaskInstance) -> Self {
+    pub const fn new(task_instance: TaskInstance) -> Self {
         Self {
             task_instance,
             logs: Vec::new(),

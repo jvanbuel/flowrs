@@ -24,7 +24,7 @@ pub struct MarkDagRunPopup {
     pub marked: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Display)]
+#[derive(Clone, Debug, PartialEq, Eq, Display)]
 pub enum MarkState {
     #[strum(to_string = "success")]
     Success,
@@ -35,8 +35,8 @@ pub enum MarkState {
 }
 
 impl MarkDagRunPopup {
-    pub fn new(marked: Vec<String>, dag_id: String) -> Self {
-        MarkDagRunPopup {
+    pub const fn new(marked: Vec<String>, dag_id: String) -> Self {
+        Self {
             dag_id,
             status: MarkState::Success,
             confirm: false,
@@ -44,7 +44,7 @@ impl MarkDagRunPopup {
         }
     }
 
-    pub fn next_state(&mut self) {
+    pub const fn next_state(&mut self) {
         self.status = match self.status {
             MarkState::Success => MarkState::Failed,
             MarkState::Failed => MarkState::Queued,
@@ -52,7 +52,7 @@ impl MarkDagRunPopup {
         };
     }
 
-    pub fn previous_state(&mut self) {
+    pub const fn previous_state(&mut self) {
         self.status = match self.status {
             MarkState::Success => MarkState::Queued,
             MarkState::Failed => MarkState::Success,

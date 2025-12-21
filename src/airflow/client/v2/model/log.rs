@@ -26,7 +26,7 @@ impl Display for LogContent {
     /// Convert log content to a single string representation
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            LogContent::Structured(messages) => {
+            Self::Structured(messages) => {
                 for msg in messages {
                     if let Some(timestamp) = &msg.timestamp {
                         write!(f, "{timestamp} | ")?;
@@ -38,7 +38,7 @@ impl Display for LogContent {
                     writeln!(f)?;
                 }
             }
-            LogContent::Plain(lines) => {
+            Self::Plain(lines) => {
                 for line in lines {
                     writeln!(f, "{line}")?;
                 }
