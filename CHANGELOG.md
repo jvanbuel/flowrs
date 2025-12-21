@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6](https://github.com/jvanbuel/flowrs/compare/v0.7.5...v0.7.6) - 2025-12-21
+
+### Other
+
+- [WIP] Update help commands popup text color for better visibility ([#494](https://github.com/jvanbuel/flowrs/pull/494))
+
 ## [0.7.5](https://github.com/jvanbuel/flowrs/compare/v0.7.4...v0.7.5) - 2025-12-21
 
 ### Added
