@@ -1,10 +1,12 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Modifier, Style, Stylize},
+    style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
+
+use crate::ui::theme::TEXT_PRIMARY;
 
 use super::popup_area;
 
@@ -39,7 +41,7 @@ impl Widget for &CommandPopUp<'_> {
                     ),
                     Span::styled(
                         format!("{} - {}", c.name, c.description),
-                        Style::default().dark_gray(),
+                        Style::default().fg(TEXT_PRIMARY),
                     ),
                 ])
             })
