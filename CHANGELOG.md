@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5](https://github.com/jvanbuel/flowrs/compare/v0.7.4...v0.7.5) - 2025-12-21
+
+### Added
+
+- add DAG trigger to DAG  panel ([#493](https://github.com/jvanbuel/flowrs/pull/493))
+- topological sort for tasks ([#489](https://github.com/jvanbuel/flowrs/pull/489))
+- improve dagstats handling ([#486](https://github.com/jvanbuel/flowrs/pull/486))
+
+### Fixed
+
+- missing indentation in DAG code popup ([#492](https://github.com/jvanbuel/flowrs/pull/492))
+
+### Other
+
+- small refactorings ([#488](https://github.com/jvanbuel/flowrs/pull/488))
+
 ## [0.7.4](https://github.com/jvanbuel/flowrs/compare/v0.7.3...v0.7.4) - 2025-12-20
 
 ### Added
