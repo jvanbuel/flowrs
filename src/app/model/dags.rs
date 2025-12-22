@@ -23,7 +23,10 @@ use crate::ui::theme::{
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
-use super::{filter::Filter, Model, StatefulTable};
+use super::{
+    filter::{filter_items, FilterStateMachine, Filterable},
+    Model, StatefulTable,
+};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 #[derive(Default)]
@@ -31,7 +34,7 @@ pub struct DagModel {
     pub all: Vec<Dag>,
     pub dag_stats: HashMap<String, Vec<DagStatistic>>,
     pub filtered: StatefulTable<Dag>,
-    pub filter: Filter,
+    pub filter: FilterStateMachine,
     commands: Option<&'static CommandPopUp<'static>>,
     pub error_popup: Option<ErrorPopup>,
     popup: Option<DagPopUp>,
@@ -45,15 +48,9 @@ impl DagModel {
     }
 
     pub fn filter_dags(&mut self) {
-        self.filtered.items = match &self.filter.prefix {
-            Some(prefix) => self
-                .all
-                .iter()
-                .filter(|dag| dag.dag_id.contains(prefix))
-                .cloned()
-                .collect(),
-            None => self.all.clone(),
-        };
+        let conditions = self.filter.active_conditions();
+        let filtered = filter_items(&self.all, &conditions);
+        self.filtered.items = filtered;
     }
 
     pub fn current(&mut self) -> Option<&mut Dag> {
@@ -81,11 +78,7 @@ impl Model for DagModel {
                 )
             }
             FlowrsEvent::Key(key_event) => {
-                if self.filter.is_enabled() {
-                    self.filter.update(key_event);
-                    self.filter_dags();
-                    return (None, vec![]);
-                } else if let Some(popup) = &mut self.popup {
+                if let Some(popup) = &mut self.popup {
                     match popup {
                         DagPopUp::Trigger(trigger_popup) => {
                             let (key_event, messages) = trigger_popup.update(event);
@@ -101,7 +94,16 @@ impl Model for DagModel {
                             return (None, messages);
                         }
                     }
-                } else if let Some(_error_popup) = &mut self.error_popup {
+                }
+                // Handle filter state machine
+                if self.filter.is_active()
+                    && self.filter.update(key_event, &Dag::filterable_fields())
+                {
+                    self.filter_dags();
+                    return (None, vec![]);
+                }
+
+                if let Some(_error_popup) = &mut self.error_popup {
                     match key_event.code {
                         KeyCode::Char('q') | KeyCode::Esc => {
                             self.error_popup = None;
@@ -150,7 +152,7 @@ impl Model for DagModel {
                             }
                         },
                         KeyCode::Char('/') => {
-                            self.filter.toggle();
+                            self.filter.activate();
                             self.filter_dags();
                         }
                         KeyCode::Char('?') => {
@@ -223,14 +225,13 @@ impl Model for DagModel {
 
 impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.filter.is_enabled() {
+        let rects = if self.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
                 .split(area);
 
-            self.filter.render(rects[1], buf);
-
+            self.filter.render_widget(rects[1], buf);
             rects
         } else {
             Layout::default()
@@ -315,9 +316,9 @@ impl Widget for &mut DagModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if let Some(prefix) = self.filter.prefix() {
+            if let Some(filter_text) = self.filter.filter_display() {
                 block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {prefix} "),
+                    format!(" Filter: {filter_text} "),
                     Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
                 )))
             } else {

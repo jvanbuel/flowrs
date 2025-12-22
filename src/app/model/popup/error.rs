@@ -23,11 +23,11 @@ impl ErrorPopup {
         }
     }
 
-    pub fn from_strings(errors: Vec<String>) -> Self {
+    pub const fn from_strings(errors: Vec<String>) -> Self {
         Self { errors }
     }
 
-    pub fn has_errors(&self) -> bool {
+    pub const fn has_errors(&self) -> bool {
         !self.errors.is_empty()
     }
 }

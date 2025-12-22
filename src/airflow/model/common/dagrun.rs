@@ -5,7 +5,7 @@ use time::OffsetDateTime;
 
 /// Common `DagRun` model used by the application
 #[allow(clippy::struct_field_names)]
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagRun {
     pub dag_id: String,
     pub dag_run_id: String,
@@ -21,7 +21,7 @@ pub struct DagRun {
     pub external_trigger: Option<bool>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagRunList {
     pub dag_runs: Vec<DagRun>,
     pub total_entries: i64,
@@ -30,7 +30,7 @@ pub struct DagRunList {
 // From trait implementations for v1 models
 impl From<v1::model::dagrun::DAGRunResponse> for DagRun {
     fn from(value: v1::model::dagrun::DAGRunResponse) -> Self {
-        DagRun {
+        Self {
             dag_id: value.dag_id,
             dag_run_id: value.dag_run_id.unwrap_or_default(),
             logical_date: value.logical_date,
@@ -49,7 +49,7 @@ impl From<v1::model::dagrun::DAGRunResponse> for DagRun {
 
 impl From<v1::model::dagrun::DAGRunCollectionResponse> for DagRunList {
     fn from(value: v1::model::dagrun::DAGRunCollectionResponse) -> Self {
-        DagRunList {
+        Self {
             dag_runs: value
                 .dag_runs
                 .into_iter()
@@ -63,7 +63,7 @@ impl From<v1::model::dagrun::DAGRunCollectionResponse> for DagRunList {
 // From trait implementations for v2 models
 impl From<v2::model::dagrun::DagRun> for DagRun {
     fn from(value: v2::model::dagrun::DagRun) -> Self {
-        DagRun {
+        Self {
             dag_id: value.dag_id,
             dag_run_id: value.dag_run_id,
             logical_date: value.logical_date,
@@ -82,13 +82,45 @@ impl From<v2::model::dagrun::DagRun> for DagRun {
 
 impl From<v2::model::dagrun::DagRunList> for DagRunList {
     fn from(value: v2::model::dagrun::DagRunList) -> Self {
-        DagRunList {
+        Self {
             dag_runs: value
                 .dag_runs
                 .into_iter()
                 .map(std::convert::Into::into)
                 .collect(),
             total_entries: value.total_entries,
+        }
+    }
+}
+
+use crate::app::model::filter::{Filterable, FilterableField};
+
+impl Filterable for DagRun {
+    fn primary_field() -> &'static str {
+        "dag_run_id"
+    }
+
+    fn filterable_fields() -> Vec<FilterableField> {
+        vec![
+            FilterableField::primary("dag_run_id"),
+            FilterableField::enumerated(
+                "state",
+                vec!["running", "success", "failed", "queued", "up_for_retry"],
+            ),
+            FilterableField::enumerated(
+                "run_type",
+                vec!["scheduled", "manual", "backfill", "dataset_triggered"],
+            ),
+        ]
+    }
+
+    fn get_field_value(&self, field_name: &str) -> Option<String> {
+        match field_name {
+            "dag_run_id" => Some(self.dag_run_id.clone()),
+            "dag_id" => Some(self.dag_id.clone()),
+            "state" => Some(self.state.clone()),
+            "run_type" => Some(self.run_type.clone()),
+            _ => None,
         }
     }
 }

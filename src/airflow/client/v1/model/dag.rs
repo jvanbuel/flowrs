@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagCollectionResponse {
     pub dags: Vec<DagResponse>,
     pub total_entries: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagResponse {
     pub dag_id: String,
     pub dag_display_name: String,
@@ -46,7 +46,7 @@ pub struct DagResponse {
     pub max_consecutive_failed_dag_runs: Option<i64>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagTagResponse {
     pub name: String,
 }

@@ -12,7 +12,7 @@ pub struct Log {
 // From trait implementations for v1 models
 impl From<v1::model::log::Log> for Log {
     fn from(value: v1::model::log::Log) -> Self {
-        Log {
+        Self {
             continuation_token: value.continuation_token,
             content: value.content,
         }
@@ -22,7 +22,7 @@ impl From<v1::model::log::Log> for Log {
 // From trait implementations for v2 models
 impl From<v2::model::log::Log> for Log {
     fn from(value: v2::model::log::Log) -> Self {
-        Log {
+        Self {
             continuation_token: value.continuation_token,
             content: value.content.to_string(),
         }

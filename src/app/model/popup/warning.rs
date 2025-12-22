@@ -13,11 +13,11 @@ pub struct WarningPopup {
 }
 
 impl WarningPopup {
-    pub fn new(warnings: Vec<String>) -> Self {
+    pub const fn new(warnings: Vec<String>) -> Self {
         Self { warnings }
     }
 
-    pub fn has_warnings(&self) -> bool {
+    pub const fn has_warnings(&self) -> bool {
         !self.warnings.is_empty()
     }
 }

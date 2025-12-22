@@ -21,8 +21,8 @@ pub struct StatefulTable<T> {
 }
 
 impl<T> StatefulTable<T> {
-    pub fn new(items: Vec<T>) -> StatefulTable<T> {
-        StatefulTable {
+    pub fn new(items: Vec<T>) -> Self {
+        Self {
             state: TableState::default(),
             items,
         }

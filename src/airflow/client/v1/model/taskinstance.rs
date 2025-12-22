@@ -44,7 +44,7 @@ pub struct TaskInstanceResponse {
     pub note: Option<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TriggerResponse {
     pub id: i64,
     pub classpath: String,
@@ -54,7 +54,7 @@ pub struct TriggerResponse {
     pub triggerer_id: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JobResponse {
     pub id: i64,
     pub dag_id: String,

@@ -93,30 +93,29 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     f.render_widget(tab_bar, tab_area);
 
     // Only frame has the ability to set the cursor position, so we need to control the cursor filter from here
-    // Not very elegant, and quite some duplication... Should be refactored
     match app.active_panel {
         Panel::Config => {
             app.configs.render(panel_area, f.buffer_mut());
-            if app.configs.filter.is_enabled() {
-                f.set_cursor_position(app.configs.filter.cursor.position);
+            if app.configs.filter.is_active() {
+                f.set_cursor_position(app.configs.filter.cursor_position);
             }
         }
         Panel::Dag => {
             app.dags.render(panel_area, f.buffer_mut());
-            if app.dags.filter.is_enabled() {
-                f.set_cursor_position(app.dags.filter.cursor.position);
+            if app.dags.filter.is_active() {
+                f.set_cursor_position(app.dags.filter.cursor_position);
             }
         }
         Panel::DAGRun => {
             app.dagruns.render(panel_area, f.buffer_mut());
-            if app.dagruns.filter.is_enabled() {
-                f.set_cursor_position(app.dagruns.filter.cursor.position);
+            if app.dagruns.filter.is_active() {
+                f.set_cursor_position(app.dagruns.filter.cursor_position);
             }
         }
         Panel::TaskInstance => {
             app.task_instances.render(panel_area, f.buffer_mut());
-            if app.task_instances.filter.is_enabled() {
-                f.set_cursor_position(app.task_instances.filter.cursor.position);
+            if app.task_instances.filter.is_active() {
+                f.set_cursor_position(app.task_instances.filter.cursor_position);
             }
         }
         Panel::Logs => app.logs.render(panel_area, f.buffer_mut()),
