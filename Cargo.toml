@@ -18,7 +18,7 @@ path = "src/main.rs"
 formula = "flowrs"
 
 [dependencies]
-ansi-to-tui = { version = "7.0.0" }
+ansi-to-tui = { version = "8.0.0" }
 anyhow = "1.0.100"
 aws-config = { version = "1.8.11" }
 aws-sdk-mwaa = "1.96.0"
