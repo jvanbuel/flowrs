@@ -39,6 +39,8 @@ log = "0.4.29"
 ratatui = { version = "0.30.0", features = ["unstable-widget-ref"] }
 regex = "1.12.2"
 reqwest = { version = "0.12.28", features = ["json", "rustls-tls"] }
+reqwest-middleware = { version = "0.4.2", features = ["json"] }
+reqwest-retry = "0.8.0"
 rstest = "0.26.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"

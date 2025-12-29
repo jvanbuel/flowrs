@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
 use log::{debug, info};
 use reqwest::{Method, Url};
+use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use std::convert::TryFrom;
 use std::time::Duration;
 
@@ -11,16 +13,27 @@ use crate::airflow::managed_services::conveyor::ConveyorClient;
 /// Handles authentication and provides base request building functionality.
 #[derive(Debug, Clone)]
 pub struct BaseClient {
-    pub client: reqwest::Client,
+    pub client: reqwest_middleware::ClientWithMiddleware,
     pub config: AirflowConfig,
 }
 
 impl BaseClient {
     pub fn new(config: AirflowConfig) -> Result<Self> {
-        let client = reqwest::Client::builder()
+        // Create the base reqwest client with timeout and TLS configuration
+        let reqwest_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
             .use_rustls_tls()
             .build()?;
+        
+        // Configure retry policy: exponential backoff with max 2 retries
+        // This means the request will be attempted up to 2 times (initial + 1 retry)
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(1);
+        
+        // Wrap the client with retry middleware
+        let client = ClientBuilder::new(reqwest_client)
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .build();
+        
         Ok(Self { client, config })
     }
 
@@ -30,7 +43,7 @@ impl BaseClient {
         method: Method,
         endpoint: &str,
         api_version: &str,
-    ) -> Result<reqwest::RequestBuilder> {
+    ) -> Result<reqwest_middleware::RequestBuilder> {
         let base_url = Url::parse(&self.config.endpoint)?;
         let url = base_url.join(format!("{api_version}/{endpoint}").as_str())?;
         debug!("🔗 Request URL: {url}");

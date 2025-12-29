@@ -28,7 +28,7 @@ impl V2Client {
         Self { base }
     }
 
-    fn base_api(&self, method: Method, endpoint: &str) -> Result<reqwest::RequestBuilder> {
+    fn base_api(&self, method: Method, endpoint: &str) -> Result<reqwest_middleware::RequestBuilder> {
         self.base.base_api(method, endpoint, Self::API_VERSION)
     }
 }
