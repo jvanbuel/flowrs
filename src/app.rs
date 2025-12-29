@@ -17,7 +17,10 @@ pub mod model;
 pub mod state;
 pub mod worker;
 
-pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> Result<()> {
+pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: Arc<Mutex<App>>) -> Result<()>
+where
+    <B as Backend>::Error: 'static + std::marker::Send + std::marker::Sync,
+{
     let mut events = EventGenerator::new(200);
     let ui_app = app.clone();
     let worker_app = app.clone();

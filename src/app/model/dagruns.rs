@@ -1,7 +1,8 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style, Stylize};
+use ratatui::style::Color;
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
@@ -12,7 +13,6 @@ use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
-use syntect_tui::into_span;
 use time::format_description;
 
 use crate::airflow::model::common::DagRun;
@@ -682,10 +682,9 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
             .highlight_line(line, &ps)
             .expect("Syntax highlighting should succeed for valid Python code")
             .into_iter()
-            .filter_map(|segment| into_span(segment).ok())
-            .map(|span: Span| {
-                // Convert borrowed span to owned span
-                Span::styled(span.content.to_string(), span.style)
+            .map(|(style, text)| {
+                let fg = Color::Rgb(style.foreground.r, style.foreground.g, style.foreground.b);
+                Span::styled(text.to_string(), Style::default().fg(fg))
             })
             .collect();
         lines.push(Line::from(line_spans));
