@@ -25,8 +25,8 @@ impl BaseClient {
             .use_rustls_tls()
             .build()?;
         
-        // Configure retry policy: exponential backoff with max 2 retries
-        // This means the request will be attempted up to 2 times (initial + 1 retry)
+        // Configure retry policy: exponential backoff with 1 retry
+        // This means each request will be attempted twice (initial + 1 retry)
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(1);
         
         // Wrap the client with retry middleware
