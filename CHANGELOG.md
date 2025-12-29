@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7](https://github.com/jvanbuel/flowrs/compare/v0.7.6...v0.7.7) - 2025-12-29
+
+### Other
+
+- update dependencies
+- *(deps)* bump serde_json from 1.0.145 to 1.0.148 ([#501](https://github.com/jvanbuel/flowrs/pull/501))
+- *(deps)* bump reqwest from 0.12.26 to 0.12.28 ([#502](https://github.com/jvanbuel/flowrs/pull/502))
+
 ## [0.7.6](https://github.com/jvanbuel/flowrs/compare/v0.7.5...v0.7.6) - 2025-12-21
 
 ### Other
