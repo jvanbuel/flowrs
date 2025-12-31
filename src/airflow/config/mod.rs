@@ -11,6 +11,9 @@ use serde::{Deserialize, Serialize};
 use strum::EnumIter;
 
 use super::managed_services::astronomer::get_astronomer_environment_servers;
+use super::managed_services::composer::{
+    get_composer_environment_servers, get_gcloud_default_region, ComposerAuth,
+};
 use super::managed_services::conveyor::get_conveyor_environment_servers;
 use super::managed_services::mwaa::get_mwaa_environment_servers;
 use crate::CONFIG_PATHS;
@@ -51,6 +54,14 @@ impl Display for ManagedService {
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct GccConfig {
+    pub regions: Vec<String>,
+    /// GCP project IDs to search for Composer environments.
+    /// `None` means search all accessible projects.
+    pub projects: Option<Vec<String>>,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct FlowrsConfig {
     #[serde(default)]
@@ -58,6 +69,8 @@ pub struct FlowrsConfig {
     #[serde(default)]
     pub managed_services: Vec<ManagedService>,
     pub active_server: Option<String>,
+    #[serde(default)]
+    pub gcc: Option<GccConfig>,
     #[serde(skip_serializing)]
     pub path: Option<PathBuf>,
 }
@@ -86,6 +99,7 @@ pub enum AirflowAuth {
     Conveyor,
     Mwaa(super::managed_services::mwaa::MwaaAuth),
     Astronomer(super::managed_services::astronomer::AstronomerAuth),
+    Composer(ComposerAuth),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -120,6 +134,7 @@ impl FlowrsConfig {
             servers: Vec::new(),
             managed_services: Vec::new(),
             active_server: None,
+            gcc: None,
             path: Some(CONFIG_PATHS.write_path.clone()),
         }
     }
@@ -187,7 +202,52 @@ impl FlowrsConfig {
                     self.extend_servers(astronomer_servers);
                 }
                 ManagedService::Gcc => {
-                    log::warn!("ManagedService::Gcc (Google Cloud Composer) expansion not implemented; skipping");
+                    let configured_regions: Vec<String> = self
+                        .gcc
+                        .as_ref()
+                        .map(|c| c.regions.clone())
+                        .unwrap_or_default();
+
+                    let regions = if configured_regions.is_empty() {
+                        let default_region = tokio::task::spawn_blocking(get_gcloud_default_region)
+                            .await
+                            .ok()
+                            .flatten();
+                        if let Some(region) = default_region {
+                            info!("No [gcc] regions configured, using gcloud default: {region}");
+                            vec![region]
+                        } else {
+                            all_errors.push(
+                                "Google Cloud Composer: no regions configured.\n\
+                                 Add a [gcc] section to your config:\n\n\
+                                 [gcc]\n\
+                                 regions = [\"europe-west1\"]\n\n\
+                                 Or set a default region: gcloud config set compute/region <region>"
+                                    .to_string(),
+                            );
+                            continue;
+                        }
+                    } else {
+                        configured_regions
+                    };
+
+                    let project_ids = self
+                        .gcc
+                        .as_ref()
+                        .and_then(|c| c.projects.as_ref())
+                        .filter(|p| !p.is_empty());
+
+                    match get_composer_environment_servers(&regions, project_ids.map(Vec::as_slice))
+                        .await
+                    {
+                        Ok(composer_servers) => {
+                            self.extend_servers(composer_servers);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to get Composer environments: {e}");
+                            all_errors.push(format!("Google Cloud Composer: {e}"));
+                        }
+                    }
                 }
             }
         }
@@ -284,6 +344,7 @@ password = "airflow"
             }],
             managed_services: vec![ManagedService::Conveyor],
             active_server: None,
+            gcc: None,
             path: None,
         };
 

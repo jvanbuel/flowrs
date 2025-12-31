@@ -40,7 +40,7 @@ The easiest way to user `flowrs` is with a managed Airflow service. The currentl
 
 - [x] Conveyor
 - [x] Amazon Managed Workflows for Apache Airflow (MWAA)
-- [ ] Google Cloud Composer
+- [x] Google Cloud Composer
 - [x] Astronomer
 
 To enable a managed service, run `flowrs config enable -m <service>`. This will add the configuration for the managed service to your configuration file, or prompt you for the necessary configuration details. On startup `flowrs` will then try to find and connect to all available managed service's Airflow instances.

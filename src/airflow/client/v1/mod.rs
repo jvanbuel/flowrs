@@ -28,8 +28,10 @@ impl V1Client {
         Self { base }
     }
 
-    fn base_api(&self, method: Method, endpoint: &str) -> Result<reqwest::RequestBuilder> {
-        self.base.base_api(method, endpoint, Self::API_VERSION)
+    async fn base_api(&self, method: Method, endpoint: &str) -> Result<reqwest::RequestBuilder> {
+        self.base
+            .base_api(method, endpoint, Self::API_VERSION)
+            .await
     }
 }
 

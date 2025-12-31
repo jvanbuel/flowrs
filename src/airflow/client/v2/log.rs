@@ -23,7 +23,8 @@ impl LogOperations for V2Client {
                 &format!(
                     "dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{task_try}"
                 ),
-            )?
+            )
+            .await?
             .query(&[("full_content", "true")])
             .header("Accept", "application/json")
             .send()

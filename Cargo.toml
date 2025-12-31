@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-tui"
-version = "0.8.11"
+version = "0.9.0"
 edition = "2021"
 rust-version = "1.87.0"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
@@ -28,6 +28,7 @@ clap = { version = "^4.5", features = ["derive", "env"] }
 crossterm = "0.29.0"
 dirs = "6.0.0"
 futures = "0.3.32"
+google-cloud-auth = { version = "1.6.0", default-features = false, features = ["default-rustls-provider"] }
 inquire = "0.9.3"
 log = { version = "0.4.29", features = ["std"] }
 ratatui = { version = "0.30.0", features = ["unstable-widget-ref"] }

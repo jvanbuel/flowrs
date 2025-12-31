@@ -12,7 +12,8 @@ use super::V2Client;
 impl DagRunOperations for V2Client {
     async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
         let response: Response = self
-            .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))?
+            .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))
+            .await?
             .query(&[("order_by", "-run_after"), ("limit", "50")])
             .send()
             .await?
@@ -24,7 +25,8 @@ impl DagRunOperations for V2Client {
 
     async fn list_all_dagruns(&self) -> Result<DagRunList> {
         let response: Response = self
-            .base_api(Method::POST, "dags/~/dagRuns/list")?
+            .base_api(Method::POST, "dags/~/dagRuns/list")
+            .await?
             .json(&serde_json::json!({"page_limit": 200}))
             .send()
             .await?
@@ -38,7 +40,8 @@ impl DagRunOperations for V2Client {
         self.base_api(
             Method::PATCH,
             &format!("dags/{dag_id}/dagRuns/{dag_run_id}"),
-        )?
+        )
+        .await?
         .json(&serde_json::json!({"state": status}))
         .send()
         .await?
@@ -50,7 +53,8 @@ impl DagRunOperations for V2Client {
         self.base_api(
             Method::POST,
             &format!("dags/{dag_id}/dagRuns/{dag_run_id}/clear"),
-        )?
+        )
+        .await?
         .json(&serde_json::json!({"dry_run": false}))
         .send()
         .await?
@@ -62,7 +66,8 @@ impl DagRunOperations for V2Client {
         let body = serde_json::json!({"logical_date": logical_date});
 
         let resp: Response = self
-            .base_api(Method::POST, &format!("dags/{dag_id}/dagRuns"))?
+            .base_api(Method::POST, &format!("dags/{dag_id}/dagRuns"))
+            .await?
             .json(&body)
             .send()
             .await?
