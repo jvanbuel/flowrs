@@ -1,35 +1,87 @@
 use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService};
 use anyhow::{Context, Result};
 use dirs::home_dir;
-use expectrl::spawn;
 use log::info;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
+use std::process::{Child, Command, Stdio};
+use std::sync::mpsc;
+use std::thread;
+use std::time::Duration;
 
-// New ConveyorClient struct
+/// Timeout in seconds for conveyor CLI commands.
+/// If the CLI hangs (e.g., waiting for input), the operation will fail after this duration.
+const CONVEYOR_TIMEOUT_SECS: u64 = 30;
+
+/// Run a conveyor command with timeout, returning stdout on success.
+fn run_conveyor_command(args: &[&str]) -> Result<String> {
+    let mut child = Command::new("conveyor")
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("Failed to spawn conveyor {} command", args.join(" ")))?;
+
+    let mut stdout = child.stdout.take().context("Failed to capture stdout")?;
+
+    let (tx, rx) = mpsc::channel();
+
+    // Spawn a thread to read stdout - this allows us to implement a timeout
+    // since the read operation itself is blocking
+    thread::spawn(move || {
+        let mut output = String::new();
+        let result = stdout.read_to_string(&mut output).map(|_| output);
+        let _ = tx.send(result);
+    });
+
+    let timeout = Duration::from_secs(CONVEYOR_TIMEOUT_SECS);
+    let cmd_desc = args.join(" ");
+
+    let error = match rx.recv_timeout(timeout) {
+        Ok(Ok(output)) => {
+            let status = child.wait().context("Failed to wait for process")?;
+            if !status.success() {
+                let stderr = read_stderr(&mut child);
+                anyhow::bail!("conveyor {cmd_desc} failed: {stderr}");
+            }
+            return Ok(output);
+        }
+        Ok(Err(e)) => Err(e).with_context(|| format!("Failed to read conveyor {cmd_desc} output")),
+        Err(mpsc::RecvTimeoutError::Timeout) => Err(anyhow::anyhow!(
+            "Conveyor {cmd_desc} command timed out after {CONVEYOR_TIMEOUT_SECS} seconds. \
+             The conveyor CLI may be hung or waiting for input."
+        )),
+        Err(mpsc::RecvTimeoutError::Disconnected) => {
+            Err(anyhow::anyhow!("Reader thread disconnected unexpectedly"))
+        }
+    };
+
+    // Kill and reap child process to prevent zombies
+    let _ = child.kill();
+    let _ = child.wait();
+    error
+}
+
+fn read_stderr(child: &mut Child) -> String {
+    child
+        .stderr
+        .take()
+        .and_then(|mut s| {
+            let mut buf = String::new();
+            s.read_to_string(&mut buf).ok().map(|_| buf)
+        })
+        .unwrap_or_default()
+}
+
 #[derive(Debug, Clone)]
 pub struct ConveyorClient {}
 
 impl ConveyorClient {
     pub fn get_token() -> Result<String> {
-        // Use expectrl to spawn the command in a pseudo-terminal
-        let mut session = spawn("conveyor auth get --quiet")
-            .context("Failed to spawn conveyor auth get command")?;
-
-        // Create a buffer to read the output into
-        let mut output_bytes = Vec::new();
-
-        // Read all output until EOF into the buffer
-        session
-            .read_to_end(&mut output_bytes)
-            .context("Failed to read output from conveyor auth get")?;
-
-        let token = serde_json::from_str::<ConveyorTokenResponse>(
-            &String::from_utf8(output_bytes).context("Failed to decode output as UTF-8")?,
-        )
-        .context("Failed to parse JSON token from conveyor output")?
-        .access_token;
-
+        let output = run_conveyor_command(&["auth", "get", "--quiet"])?;
+        let token = serde_json::from_str::<ConveyorTokenResponse>(&output)
+            .context("Failed to parse JSON token from conveyor output")?
+            .access_token;
         Ok(token)
     }
 }
@@ -46,25 +98,12 @@ pub struct ConveyorEnvironment {
 }
 
 pub fn list_conveyor_environments() -> Result<Vec<ConveyorEnvironment>> {
-    // Use the new ConveyorClient to authenticate
-    ConveyorClient::get_token()?; // Ensure authentication before listing environments
+    // Ensure authentication before listing environments
+    ConveyorClient::get_token()?;
 
-    let output = std::process::Command::new("conveyor")
-        .arg("environment")
-        .arg("list")
-        .arg("-o")
-        .arg("json")
-        .output()
-        .context("Failed to execute conveyor environment list command")?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("conveyor environment list failed: {stderr}");
-    }
-
-    let environments: Vec<ConveyorEnvironment> =
-        serde_json::from_str(&String::from_utf8(output.stdout)?)
-            .context("Failed to parse conveyor environment list output")?;
+    let output = run_conveyor_command(&["environment", "list", "-o", "json"])?;
+    let environments: Vec<ConveyorEnvironment> = serde_json::from_str(&output)
+        .context("Failed to parse conveyor environment list output")?;
 
     info!("Found {} Conveyor environment(s)", environments.len());
     Ok(environments)
