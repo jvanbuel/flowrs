@@ -1,18 +1,49 @@
 use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
 use crossterm::event::{DisableFocusChange, EnableFocusChange};
 use crossterm::ExecutableCommand;
-use log::{info, LevelFilter};
-use simplelog::{Config, WriteLogger};
+use log::{info, LevelFilter, Log, Metadata, Record};
 
 use crate::airflow::config::FlowrsConfig;
 use crate::app::run_app;
 use crate::app::state::App;
 use crate::CONFIG_PATHS;
 use anyhow::Result;
+
+struct FileLogger {
+    file: Mutex<File>,
+    level: LevelFilter,
+}
+
+impl Log for FileLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= self.level
+    }
+
+    fn log(&self, record: &Record) {
+        if self.enabled(record.metadata()) {
+            if let Ok(mut file) = self.file.lock() {
+                let _ = writeln!(
+                    file,
+                    "[{}] {} - {}",
+                    record.level(),
+                    record.target(),
+                    record.args()
+                );
+            }
+        }
+    }
+
+    fn flush(&self) {
+        if let Ok(mut file) = self.file.lock() {
+            let _ = file.flush();
+        }
+    }
+}
 
 #[derive(Parser, Debug)]
 pub struct RunCommand {
@@ -63,11 +94,15 @@ impl RunCommand {
 }
 
 fn setup_logging(log_level: &str) -> Result<()> {
+    let log_dir = dirs::state_dir().map_or_else(|| PathBuf::from("."), |p| p.join("flowrs"));
+    std::fs::create_dir_all(&log_dir)?;
+
     let log_file = format!(
-        "./flowrs-debug-{}.log",
+        "{}/flowrs-debug-{}.log",
+        log_dir.display(),
         chrono::Local::now().format("%Y%m%d%H%M%S")
     );
-    let log_level = match log_level.to_lowercase().as_str() {
+    let level = match log_level.to_lowercase().as_str() {
         "debug" => LevelFilter::Debug,
         "trace" => LevelFilter::Trace,
         "warn" => LevelFilter::Warn,
@@ -75,6 +110,11 @@ fn setup_logging(log_level: &str) -> Result<()> {
         _ => LevelFilter::Info,
     };
 
-    WriteLogger::init(log_level, Config::default(), File::create(log_file)?)?;
+    let logger = FileLogger {
+        file: Mutex::new(File::create(log_file)?),
+        level,
+    };
+    log::set_boxed_logger(Box::new(logger))?;
+    log::set_max_level(level);
     Ok(())
 }
