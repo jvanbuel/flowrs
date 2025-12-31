@@ -20,7 +20,8 @@ impl DagOperations for V2Client {
 
         loop {
             let response = self
-                .base_api(Method::GET, "dags")?
+                .base_api(Method::GET, "dags")
+                .await?
                 .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
                 .send()
                 .await?
@@ -56,7 +57,8 @@ impl DagOperations for V2Client {
     }
 
     async fn toggle_dag(&self, dag_id: &str, is_paused: bool) -> Result<()> {
-        self.base_api(Method::PATCH, &format!("dags/{dag_id}"))?
+        self.base_api(Method::PATCH, &format!("dags/{dag_id}"))
+            .await?
             .json(&serde_json::json!({"is_paused": !is_paused}))
             .send()
             .await?
@@ -66,7 +68,8 @@ impl DagOperations for V2Client {
 
     async fn get_dag_code(&self, dag: &crate::airflow::model::common::Dag) -> Result<String> {
         let r = self
-            .base_api(Method::GET, &format!("dagSources/{}", dag.dag_id))?
+            .base_api(Method::GET, &format!("dagSources/{}", dag.dag_id))
+            .await?
             .build()?;
         let response = self.base.client.execute(r).await?.error_for_status()?;
         let dag_source: model::dag::DagSource = response.json().await?;

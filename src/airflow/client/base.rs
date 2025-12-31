@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
+use google_cloud_auth::credentials::{AccessTokenCredentials, Builder};
 use log::{debug, info};
 use reqwest::{Method, Url};
 use std::convert::TryFrom;
+use std::fmt;
 use std::time::Duration;
 
 use crate::airflow::config::{AirflowAuth, AirflowConfig};
@@ -9,10 +11,24 @@ use crate::airflow::managed_services::conveyor::ConveyorClient;
 
 /// Base HTTP client for Airflow API communication.
 /// Handles authentication and provides base request building functionality.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct BaseClient {
     pub client: reqwest::Client,
     pub config: AirflowConfig,
+    gcp_credentials: Option<AccessTokenCredentials>,
+}
+
+impl fmt::Debug for BaseClient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BaseClient")
+            .field("client", &self.client)
+            .field("config", &self.config)
+            .field(
+                "gcp_credentials",
+                &self.gcp_credentials.as_ref().map(|_| "***"),
+            )
+            .finish()
+    }
 }
 
 impl BaseClient {
@@ -21,11 +37,26 @@ impl BaseClient {
             .timeout(Duration::from_secs(config.timeout_secs))
             .use_rustls_tls()
             .build()?;
-        Ok(Self { client, config })
+
+        let gcp_credentials = if matches!(config.auth, AirflowAuth::Composer(_)) {
+            Some(
+                Builder::default()
+                    .build_access_token_credentials()
+                    .context("Failed to build GCP credentials")?,
+            )
+        } else {
+            None
+        };
+
+        Ok(Self {
+            client,
+            config,
+            gcp_credentials,
+        })
     }
 
     /// Build a base request with authentication for the specified API version
-    pub fn base_api(
+    pub async fn base_api(
         &self,
         method: Method,
         endpoint: &str,
@@ -102,6 +133,21 @@ impl BaseClient {
                     .client
                     .request(method, url)
                     .bearer_auth(&auth.api_token))
+            }
+            AirflowAuth::Composer(auth) => {
+                info!(
+                    "🔑 Composer Auth: {}/{}",
+                    auth.project_id, auth.environment_name
+                );
+                let credentials = self
+                    .gcp_credentials
+                    .as_ref()
+                    .expect("GCP credentials must be set for Composer auth");
+                let token = credentials
+                    .access_token()
+                    .await
+                    .context("Failed to get GCP access token")?;
+                Ok(self.client.request(method, url).bearer_auth(token.token))
             }
         }
     }

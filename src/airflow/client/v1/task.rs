@@ -10,7 +10,8 @@ use crate::airflow::{model::common::TaskList, traits::TaskOperations};
 impl TaskOperations for V1Client {
     async fn list_tasks(&self, dag_id: &str) -> Result<TaskList> {
         let response = self
-            .base_api(Method::GET, &format!("dags/{dag_id}/tasks"))?
+            .base_api(Method::GET, &format!("dags/{dag_id}/tasks"))
+            .await?
             .send()
             .await?
             .error_for_status()?;

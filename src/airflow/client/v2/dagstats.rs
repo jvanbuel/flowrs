@@ -11,7 +11,8 @@ use super::V2Client;
 impl DagStatsOperations for V2Client {
     async fn get_dag_stats(&self, dag_ids: Vec<&str>) -> Result<DagStatsResponse> {
         let response = self
-            .base_api(Method::GET, "dagStats")?
+            .base_api(Method::GET, "dagStats")
+            .await?
             .query(
                 &dag_ids
                     .into_iter()

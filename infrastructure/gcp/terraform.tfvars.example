@@ -1,0 +1,7 @@
+# Required: Existing GCP project ID
+project_id = "my-gcp-project-id"
+
+# Optional: Override defaults
+# region                = "europe-west1"
+# environment_name      = "flowrs-composer"
+# airflow_image_version = "composer-3-airflow-2.10.2"

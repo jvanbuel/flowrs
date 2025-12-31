@@ -19,13 +19,13 @@ pub enum ConfigCommand {
 }
 
 impl ConfigCommand {
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self) -> Result<()> {
         match self {
             Self::Add(cmd) => cmd.run(),
             Self::Remove(cmd) => cmd.run(),
             Self::Update(cmd) => cmd.run(),
             Self::List(cmd) => cmd.run(),
-            Self::Enable(cmd) => cmd.run(),
+            Self::Enable(cmd) => cmd.run().await,
             Self::Disable(cmd) => cmd.disable(),
         }
     }

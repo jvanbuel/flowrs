@@ -26,7 +26,8 @@ impl TaskInstanceOperations for V2Client {
                 .base_api(
                     Method::GET,
                     &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"),
-                )?
+                )
+                .await?
                 .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
                 .send()
                 .await?
@@ -72,7 +73,8 @@ impl TaskInstanceOperations for V2Client {
 
         loop {
             let response: Response = self
-                .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")?
+                .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")
+                .await?
                 .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
                 .send()
                 .await?
@@ -121,7 +123,8 @@ impl TaskInstanceOperations for V2Client {
             .base_api(
                 Method::PATCH,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
-            )?
+            )
+            .await?
             .json(&serde_json::json!({"new_state": status, "dry_run": false}))
             .send()
             .await?
@@ -137,7 +140,8 @@ impl TaskInstanceOperations for V2Client {
         task_id: &str,
     ) -> Result<()> {
         let resp: Response = self
-            .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))?
+            .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))
+            .await?
             .json(&serde_json::json!(
                 {
                     "dry_run": false,

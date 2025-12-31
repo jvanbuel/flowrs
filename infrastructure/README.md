@@ -58,19 +58,22 @@ Deploy Apache Airflow using Astronomer (Cloud or Software).
 See [astronomer/README.md](astronomer/README.md) for more information.
 
 ### GCP (Google Cloud Platform)
-**Status**: Coming soon
+**Status**: Implemented ✓
 
-Deploy Apache Airflow using Google Cloud Composer.
+Deploy Apache Airflow using Google Cloud Composer 3.
 
 - **Directory**: `gcp/`
 - **Technology**: Terraform
-- **Planned Features**:
-  - VPC network configuration
-  - Cloud Composer environment
-  - GCS buckets for DAGs
-  - Service account with IAM bindings
+- **Features**:
+  - Configures required APIs in an existing GCP project
+  - VPC network with Composer 3 subnet configuration
+  - Cloud Composer 3 environment (minimal config)
+  - Service account with Composer Worker role
+  - Example DAG included
 
-See [gcp/README.md](gcp/README.md) for more information.
+**Cost**: Starting at ~$300-400/month for smallest configuration
+
+See [gcp/README.md](gcp/README.md) for detailed instructions.
 
 ## Contributing
 

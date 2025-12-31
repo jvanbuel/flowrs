@@ -50,13 +50,22 @@ impl Widget for &ErrorPopup {
 
         let mut text = Text::default();
         for (idx, error) in self.errors.iter().enumerate() {
-            text.push_line(Line::from(vec![
-                Span::styled(
-                    format!("Error {}: ", idx + 1),
-                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(error.as_str(), Style::default().fg(Color::White)),
-            ]));
+            let mut lines = error.split('\n');
+            if let Some(first_line) = lines.next() {
+                text.push_line(Line::from(vec![
+                    Span::styled(
+                        format!("Error {}: ", idx + 1),
+                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(first_line.to_string(), Style::default().fg(Color::White)),
+                ]));
+            }
+            for line in lines {
+                text.push_line(Line::from(Span::styled(
+                    line.to_string(),
+                    Style::default().fg(Color::White),
+                )));
+            }
             if idx < self.errors.len() - 1 {
                 text.push_line(Line::from(""));
             }
