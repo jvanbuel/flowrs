@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.8](https://github.com/jvanbuel/flowrs/compare/v0.7.7...v0.7.8) - 2025-12-31
+
+### Fixed
+
+- add conveyor auth timeout ([#506](https://github.com/jvanbuel/flowrs/pull/506))
+
+### Other
+
+- dependency reduction ([#508](https://github.com/jvanbuel/flowrs/pull/508))
+
 ## [0.7.7](https://github.com/jvanbuel/flowrs/compare/v0.7.6...v0.7.7) - 2025-12-29
 
 ### Other
