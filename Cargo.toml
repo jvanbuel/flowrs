@@ -22,26 +22,19 @@ ansi-to-tui = { version = "8.0.0" }
 anyhow = "1.0.100"
 aws-config = { version = "1.8.11" }
 aws-sdk-mwaa = "1.96.0"
-backtrace = "0.3.76"
 chrono = "0.4.42"
 async-trait = "0.1.89"
 clap = { version = "^4.5", features = ["derive", "env"] }
 crossterm = "0.29.0"
-custom_error = "1.9.2"
 dirs = "6.0.0"
-env_logger = "0.11.8"
 futures = "0.3.31"
-indoc = "2.0.6"
 inquire = "0.9.1"
-left-pad = "1.0.1"
-log = "0.4.29"
+log = { version = "0.4.29", features = ["std"] }
 ratatui = { version = "0.30.0", features = ["unstable-widget-ref"] }
 regex = "1.12.2"
 reqwest = { version = "0.12.28", features = ["json", "rustls-tls"] }
-rstest = "0.26.1"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
-simplelog = "0.12.2"
 strum = { version = "0.27.2", features = ["derive"] }
 syntect = "5.3.0"
 time = { version = "0.3.44", features = [

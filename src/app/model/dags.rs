@@ -267,7 +267,7 @@ impl Widget for &mut DagModel {
                                 .iter()
                                 .map(|stat| {
                                     Span::styled(
-                                        left_pad::leftpad(stat.count.to_string(), 7),
+                                        format!("{:>7}", stat.count),
                                         match stat.state.as_str() {
                                             "success" => Style::default()
                                                 .fg(AirflowStateColor::Success.into()),
