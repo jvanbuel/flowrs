@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.9](https://github.com/jvanbuel/flowrs/compare/v0.7.8...v0.7.9) - 2026-01-01
+
+### Added
+
+- filter state machine ([#497](https://github.com/jvanbuel/flowrs/pull/497))
+
 ## [0.7.8](https://github.com/jvanbuel/flowrs/compare/v0.7.7...v0.7.8) - 2025-12-31
 
 ### Fixed
