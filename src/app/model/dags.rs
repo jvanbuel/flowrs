@@ -150,9 +150,6 @@ impl Model for DagModel {
                                 ]));
                             }
                         },
-                        KeyCode::Char('/') => {
-                            self.table.activate_filter();
-                        }
                         KeyCode::Char('?') => {
                             self.commands = Some(&*DAG_COMMAND_POP_UP);
                         }

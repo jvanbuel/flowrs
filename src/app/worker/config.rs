@@ -13,10 +13,10 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
         .lock()
         .map_err(|_| anyhow::anyhow!("Failed to acquire app lock"))?;
 
-    let Some(selected_config) = app.configs.filtered.items.get(idx).cloned() else {
+    let Some(selected_config) = app.configs.table.filtered.items.get(idx).cloned() else {
         log::error!(
             "Config index {idx} out of bounds (total: {})",
-            app.configs.filtered.items.len()
+            app.configs.table.filtered.items.len()
         );
         app.configs.error_popup = Some(ErrorPopup::from_strings(vec![format!(
             "Configuration index {idx} not found"

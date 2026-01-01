@@ -62,9 +62,13 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         self.apply_filter();
     }
 
-    /// Handles a key event for the filter, returns true if the event was consumed
+    /// Handles a key event for the filter, returns true if the event was consumed.
+    /// This handles both:
+    /// - `/` key when filter is inactive (activates filter)
+    /// - All filter input keys when filter is active
     pub fn handle_filter_key(&mut self, key_event: &KeyEvent) -> bool {
-        if self.filter.is_active() && self.filter.update(key_event, &T::filterable_fields()) {
+        // Handle '/' to activate filter even when inactive
+        if self.filter.update(key_event, &T::filterable_fields()) {
             self.apply_filter();
             return true;
         }

@@ -354,10 +354,6 @@ impl Model for DagRunModel {
                                 KeyCode::Char('?') => {
                                     self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
                                 }
-                                KeyCode::Char('/') => {
-                                    self.table.activate_filter();
-                                    self.filter_dag_runs();
-                                }
                                 KeyCode::Char('v') => {
                                     if let Some(dag_id) = &self.dag_id {
                                         return (

@@ -220,9 +220,6 @@ impl Model for TaskInstanceModel {
                                 KeyCode::Char('?') => {
                                     self.commands = Some(&*TASK_COMMAND_POP_UP);
                                 }
-                                KeyCode::Char('/') => {
-                                    self.table.activate_filter();
-                                }
                                 KeyCode::Enter => {
                                     if let Some(task_instance) = self.current() {
                                         return (

@@ -258,8 +258,8 @@ impl App {
             Panel::Config => {
                 // Set primary values for config filter (name is the primary field)
                 let config_names: Vec<String> =
-                    self.configs.all.iter().map(|c| c.name.clone()).collect();
-                self.configs.filter.set_primary_values("name", config_names);
+                    self.configs.table.all.iter().map(|c| c.name.clone()).collect();
+                self.configs.table.set_primary_values("name", config_names);
             }
         }
     }

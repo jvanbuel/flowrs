@@ -16,35 +16,29 @@ use crate::ui::theme::{
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
 use super::popup::error::ErrorPopup;
-use super::{
-    filter::{filter_items, FilterStateMachine, Filterable},
-    Model, StatefulTable,
-};
+use super::{FilterableTable, Model};
 use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
-    pub all: Vec<AirflowConfig>,
-    pub filtered: StatefulTable<AirflowConfig>,
-    pub filter: FilterStateMachine,
+    /// Filterable table containing all configs and filtered view
+    pub table: FilterableTable<AirflowConfig>,
     pub commands: Option<&'static CommandPopUp<'static>>,
     pub error_popup: Option<ErrorPopup>,
+    event_buffer: Vec<KeyCode>,
 }
 
 impl ConfigModel {
-    fn create_filter(configs: &[AirflowConfig]) -> FilterStateMachine {
-        let mut filter = FilterStateMachine::default();
-        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
-        filter.set_primary_values("name", config_names);
-        filter
-    }
-
     pub fn new(configs: &[AirflowConfig]) -> Self {
+        let mut table = FilterableTable::new();
+        table.set_items(configs.to_vec());
+        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
+        table.set_primary_values("name", config_names);
+
         Self {
-            all: configs.to_vec(),
-            filtered: StatefulTable::new(configs.to_vec()),
-            filter: Self::create_filter(configs),
+            table,
             commands: None,
             error_popup: None,
+            event_buffer: Vec::new(),
         }
     }
 
@@ -55,19 +49,22 @@ impl ConfigModel {
             Some(ErrorPopup::from_strings(errors))
         };
 
+        let mut table = FilterableTable::new();
+        table.set_items(configs.to_vec());
+        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
+        table.set_primary_values("name", config_names);
+
         Self {
-            all: configs.to_vec(),
-            filtered: StatefulTable::new(configs.to_vec()),
-            filter: Self::create_filter(configs),
+            table,
             commands: None,
             error_popup,
+            event_buffer: Vec::new(),
         }
     }
 
+    /// Apply filter to configs
     pub fn filter_configs(&mut self) {
-        let conditions = self.filter.active_conditions();
-        let filtered = filter_items(&self.all, &conditions);
-        self.filtered.items = filtered;
+        self.table.apply_filter();
     }
 }
 
@@ -77,12 +74,7 @@ impl Model for ConfigModel {
             FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),
             FlowrsEvent::Key(key_event) => {
                 // Handle filter state machine
-                if self.filter.is_active()
-                    && self
-                        .filter
-                        .update(key_event, &AirflowConfig::filterable_fields())
-                {
-                    self.filter_configs();
+                if self.table.handle_filter_key(key_event) {
                     return (None, vec![]);
                 }
 
@@ -101,21 +93,17 @@ impl Model for ConfigModel {
                         _ => (),
                     }
                 } else {
+                    // Handle navigation with the table
+                    if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
+                        return (None, vec![]);
+                    }
+
                     match key_event.code {
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            self.filtered.next();
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            self.filtered.previous();
-                        }
-                        KeyCode::Char('/') => {
-                            self.filter.activate();
-                            self.filter_configs();
-                        }
                         KeyCode::Char('o') => {
                             let selected_config =
-                                self.filtered.state.selected().unwrap_or_default();
-                            let endpoint = self.filtered.items[selected_config].endpoint.clone();
+                                self.table.filtered.state.selected().unwrap_or_default();
+                            let endpoint =
+                                self.table.filtered.items[selected_config].endpoint.clone();
                             return (
                                 Some(event.clone()),
                                 vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))],
@@ -126,10 +114,10 @@ impl Model for ConfigModel {
                         }
                         KeyCode::Enter => {
                             let selected_config =
-                                self.filtered.state.selected().unwrap_or_default();
+                                self.table.filtered.state.selected().unwrap_or_default();
                             debug!(
                                 "Selected config: {}",
-                                self.filtered.items[selected_config].name
+                                self.table.filtered.items[selected_config].name
                             );
 
                             return (
@@ -152,13 +140,13 @@ impl Model for ConfigModel {
 
 impl Widget for &mut ConfigModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.filter.is_active() {
+        let rects = if self.table.is_filter_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
                 .split(area);
 
-            self.filter.render_widget(rects[1], buf);
+            self.table.filter.render_widget(rects[1], buf);
             rects
         } else {
             Layout::default()
@@ -170,26 +158,32 @@ impl Widget for &mut ConfigModel {
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
-        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
-            Row::new(vec![
-                Line::from(item.name.as_str()),
-                Line::from(item.endpoint.as_str()),
-                Line::from(
-                    item.managed
-                        .as_ref()
-                        .map_or_else(|| "None".to_string(), ToString::to_string),
-                ),
-                Line::from(match item.version {
-                    crate::airflow::config::AirflowVersion::V2 => "v2",
-                    crate::airflow::config::AirflowVersion::V3 => "v3",
-                }),
-            ])
-            .style(if (idx % 2) == 0 {
-                DEFAULT_STYLE
-            } else {
-                ALT_ROW_STYLE
-            })
-        });
+        let rows = self
+            .table
+            .filtered
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                Row::new(vec![
+                    Line::from(item.name.as_str()),
+                    Line::from(item.endpoint.as_str()),
+                    Line::from(
+                        item.managed
+                            .as_ref()
+                            .map_or_else(|| "None".to_string(), ToString::to_string),
+                    ),
+                    Line::from(match item.version {
+                        crate::airflow::config::AirflowVersion::V2 => "v2",
+                        crate::airflow::config::AirflowVersion::V3 => "v3",
+                    }),
+                ])
+                .style(if (idx % 2) == 0 {
+                    DEFAULT_STYLE
+                } else {
+                    ALT_ROW_STYLE
+                })
+            });
 
         let t = Table::new(
             rows,
@@ -207,7 +201,7 @@ impl Widget for &mut ConfigModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if let Some(filter_text) = self.filter.filter_display() {
+            if let Some(filter_text) = self.table.filter.filter_display() {
                 block.title_bottom(Line::from(Span::styled(
                     format!(" Filter: {filter_text} "),
                     Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
@@ -217,7 +211,7 @@ impl Widget for &mut ConfigModel {
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
-        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+        StatefulWidget::render(t, rects[0], buf, &mut self.table.filtered.state);
 
         if let Some(commands) = &self.commands {
             commands.render(area, buf);

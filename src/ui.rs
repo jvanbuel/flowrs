@@ -96,8 +96,8 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     match app.active_panel {
         Panel::Config => {
             app.configs.render(panel_area, f.buffer_mut());
-            if app.configs.filter.is_active() {
-                f.set_cursor_position(app.configs.filter.cursor_position);
+            if app.configs.table.filter.is_active() {
+                f.set_cursor_position(app.configs.table.filter.cursor_position);
             }
         }
         Panel::Dag => {
