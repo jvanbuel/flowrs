@@ -1,7 +1,7 @@
 Set Shell zsh
 Set Framerate 24
 Set Width 1600
-Set Height 900
+Set Height 1200
 Require flowrs
 
 Sleep 1s
@@ -24,7 +24,7 @@ Sleep 0.5s
 Type "h"
 Sleep 1s
 Enter
-Sleep 1.5s
+Sleep 2s
 Type "jjjj"
 Enter
 Sleep 1s
