@@ -91,18 +91,20 @@ impl DagModel {
     /// Handle model-specific keys
     fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
-            KeyCode::Char('p') => if let Some(dag) = self.current() {
-                let current_state = dag.is_paused;
-                dag.is_paused = !current_state;
-                KeyResult::ConsumedWith(vec![WorkerMessage::ToggleDag {
-                    dag_id: dag.dag_id.clone(),
-                    is_paused: current_state,
-                }])
-            } else {
-                self.popup
-                    .show_error(vec!["No DAG selected to pause/resume".to_string()]);
-                KeyResult::Consumed
-            },
+            KeyCode::Char('p') => {
+                if let Some(dag) = self.current() {
+                    let current_state = dag.is_paused;
+                    dag.is_paused = !current_state;
+                    KeyResult::ConsumedWith(vec![WorkerMessage::ToggleDag {
+                        dag_id: dag.dag_id.clone(),
+                        is_paused: current_state,
+                    }])
+                } else {
+                    self.popup
+                        .show_error(vec!["No DAG selected to pause/resume".to_string()]);
+                    KeyResult::Consumed
+                }
+            }
             KeyCode::Char('?') => {
                 self.popup.show_commands(&DAG_COMMAND_POP_UP);
                 KeyResult::Consumed
