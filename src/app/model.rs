@@ -6,9 +6,12 @@ pub mod config;
 pub mod dagruns;
 pub mod dags;
 pub mod filter;
+pub mod filterable_table;
 pub mod logs;
 pub mod popup;
 pub mod taskinstances;
+
+pub use filterable_table::FilterableTable;
 
 pub trait Model {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);

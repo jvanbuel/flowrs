@@ -102,20 +102,20 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         }
         Panel::Dag => {
             app.dags.render(panel_area, f.buffer_mut());
-            if app.dags.filter.is_active() {
-                f.set_cursor_position(app.dags.filter.cursor_position);
+            if app.dags.table.filter.is_active() {
+                f.set_cursor_position(app.dags.table.filter.cursor_position);
             }
         }
         Panel::DAGRun => {
             app.dagruns.render(panel_area, f.buffer_mut());
-            if app.dagruns.filter.is_active() {
-                f.set_cursor_position(app.dagruns.filter.cursor_position);
+            if app.dagruns.table.filter.is_active() {
+                f.set_cursor_position(app.dagruns.table.filter.cursor_position);
             }
         }
         Panel::TaskInstance => {
             app.task_instances.render(panel_area, f.buffer_mut());
-            if app.task_instances.filter.is_active() {
-                f.set_cursor_position(app.task_instances.filter.cursor_position);
+            if app.task_instances.table.filter.is_active() {
+                f.set_cursor_position(app.task_instances.table.filter.cursor_position);
             }
         }
         Panel::Logs => app.logs.render(panel_area, f.buffer_mut()),

@@ -23,23 +23,34 @@ use crate::ui::theme::{
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
-use super::{
-    filter::{filter_items, FilterStateMachine, Filterable},
-    Model, StatefulTable,
-};
+use super::{FilterableTable, Model};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
-#[derive(Default)]
+/// Model for the DAG panel, managing the list of DAGs and their filtering.
 pub struct DagModel {
-    pub all: Vec<Dag>,
+    /// Filterable table containing all DAGs and filtered view
+    pub table: FilterableTable<Dag>,
+    /// DAG statistics by dag_id
     pub dag_stats: HashMap<String, Vec<DagStatistic>>,
-    pub filtered: StatefulTable<Dag>,
-    pub filter: FilterStateMachine,
     commands: Option<&'static CommandPopUp<'static>>,
     pub error_popup: Option<ErrorPopup>,
     popup: Option<DagPopUp>,
     ticks: u32,
-    event_buffer: Vec<FlowrsEvent>,
+    event_buffer: Vec<KeyCode>,
+}
+
+impl Default for DagModel {
+    fn default() -> Self {
+        Self {
+            table: FilterableTable::new(),
+            dag_stats: HashMap::new(),
+            commands: None,
+            error_popup: None,
+            popup: None,
+            ticks: 0,
+            event_buffer: Vec::new(),
+        }
+    }
 }
 
 impl DagModel {
@@ -47,20 +58,19 @@ impl DagModel {
         Self::default()
     }
 
+    /// Apply filter to the DAGs
     pub fn filter_dags(&mut self) {
-        let conditions = self.filter.active_conditions();
-        let filtered = filter_items(&self.all, &conditions);
-        self.filtered.items = filtered;
+        self.table.apply_filter();
     }
 
+    /// Get the currently selected DAG (mutable)
     pub fn current(&mut self) -> Option<&mut Dag> {
-        self.filtered
-            .state
-            .selected()
-            .map(|i| &mut self.filtered.items[i])
+        self.table.current_mut()
     }
+
+    /// Find a DAG by its ID
     pub fn get_dag_by_id(&self, dag_id: &str) -> Option<&Dag> {
-        self.all.iter().find(|dag| dag.dag_id == dag_id)
+        self.table.all.iter().find(|dag| dag.dag_id == dag_id)
     }
 }
 
@@ -96,10 +106,7 @@ impl Model for DagModel {
                     }
                 }
                 // Handle filter state machine
-                if self.filter.is_active()
-                    && self.filter.update(key_event, &Dag::filterable_fields())
-                {
-                    self.filter_dags();
+                if self.table.handle_filter_key(key_event) {
                     return (None, vec![]);
                 }
 
@@ -119,20 +126,12 @@ impl Model for DagModel {
                         _ => (),
                     }
                 } else {
+                    // Handle navigation with the table
+                    if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
+                        return (None, vec![]);
+                    }
+
                     match key_event.code {
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            self.filtered.next();
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            self.filtered.previous();
-                        }
-                        KeyCode::Char('G') => {
-                            if !self.filtered.items.is_empty() {
-                                self.filtered
-                                    .state
-                                    .select(Some(self.filtered.items.len() - 1));
-                            }
-                        }
                         KeyCode::Char('p') => match self.current() {
                             Some(dag) => {
                                 let current_state = dag.is_paused;
@@ -152,8 +151,7 @@ impl Model for DagModel {
                             }
                         },
                         KeyCode::Char('/') => {
-                            self.filter.activate();
-                            self.filter_dags();
+                            self.table.activate_filter();
                         }
                         KeyCode::Char('?') => {
                             self.commands = Some(&*DAG_COMMAND_POP_UP);
@@ -173,17 +171,6 @@ impl Model for DagModel {
                             self.error_popup = Some(ErrorPopup::from_strings(vec![
                                 "No DAG selected to view DAG Runs".to_string(),
                             ]));
-                        }
-                        KeyCode::Char('g') => {
-                            if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
-                                if key_event.code == KeyCode::Char('g') {
-                                    self.filtered.state.select_first();
-                                } else {
-                                    self.event_buffer.push(FlowrsEvent::Key(key_event));
-                                }
-                            } else {
-                                self.event_buffer.push(FlowrsEvent::Key(*key_event));
-                            }
                         }
                         KeyCode::Char('o') => {
                             if let Some(dag) = self.current() {
@@ -225,13 +212,13 @@ impl Model for DagModel {
 
 impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.filter.is_active() {
+        let rects = if self.table.is_filter_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
                 .split(area);
 
-            self.filter.render_widget(rects[1], buf);
+            self.table.filter.render_widget(rects[1], buf);
             rects
         } else {
             Layout::default()
@@ -243,7 +230,7 @@ impl Widget for &mut DagModel {
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
         let rows =
-            self.filtered.items.iter().enumerate().map(|(idx, item)| {
+            self.table.filtered.items.iter().enumerate().map(|(idx, item)| {
                 Row::new(vec![
                     if item.is_paused {
                         Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
@@ -316,7 +303,7 @@ impl Widget for &mut DagModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if let Some(filter_text) = self.filter.filter_display() {
+            if let Some(filter_text) = self.table.filter.filter_display() {
                 block.title_bottom(Line::from(Span::styled(
                     format!(" Filter: {filter_text} "),
                     Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
@@ -327,7 +314,7 @@ impl Widget for &mut DagModel {
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
 
-        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+        StatefulWidget::render(t, rects[0], buf, &mut self.table.filtered.state);
 
         if let Some(commands) = &self.commands {
             commands.render(area, buf);
