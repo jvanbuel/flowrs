@@ -1,4 +1,4 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
@@ -16,7 +16,7 @@ use crate::ui::theme::{
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
 use super::popup::error::ErrorPopup;
-use super::{FilterableTable, Model};
+use super::{FilterableTable, KeyResult, Model};
 use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
@@ -66,6 +66,52 @@ impl ConfigModel {
     pub fn filter_configs(&mut self) {
         self.table.apply_filter();
     }
+
+    /// Handle error popup dismissal
+    fn handle_error_popup(&mut self, key_code: KeyCode) -> KeyResult {
+        if self.error_popup.is_none() {
+            return KeyResult::Ignored;
+        }
+        if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
+            self.error_popup = None;
+        }
+        KeyResult::Consumed
+    }
+
+    /// Handle commands popup dismissal
+    fn handle_commands_popup(&mut self, key_code: KeyCode) -> KeyResult {
+        if self.commands.is_none() {
+            return KeyResult::Ignored;
+        }
+        if matches!(key_code, KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter) {
+            self.commands = None;
+        }
+        KeyResult::Consumed
+    }
+
+    /// Handle model-specific keys
+    fn handle_keys(&mut self, key_event: &KeyEvent) -> KeyResult {
+        match key_event.code {
+            KeyCode::Char('o') => {
+                let selected_config = self.table.filtered.state.selected().unwrap_or_default();
+                let endpoint = self.table.filtered.items[selected_config].endpoint.clone();
+                KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))])
+            }
+            KeyCode::Char('?') => {
+                self.commands = Some(&*CONFIG_COMMAND_POP_UP);
+                KeyResult::Consumed
+            }
+            KeyCode::Enter => {
+                let selected_config = self.table.filtered.state.selected().unwrap_or_default();
+                debug!(
+                    "Selected config: {}",
+                    self.table.filtered.items[selected_config].name
+                );
+                KeyResult::PassWith(vec![WorkerMessage::ConfigSelected(selected_config)])
+            }
+            _ => KeyResult::PassThrough,
+        }
+    }
 }
 
 impl Model for ConfigModel {
@@ -73,63 +119,15 @@ impl Model for ConfigModel {
         match event {
             FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),
             FlowrsEvent::Key(key_event) => {
-                // Handle filter state machine
-                if self.table.handle_filter_key(key_event) {
-                    return (None, vec![]);
-                }
+                let result = self
+                    .table
+                    .handle_filter_key(key_event)
+                    .or_else(|| self.handle_error_popup(key_event.code))
+                    .or_else(|| self.handle_commands_popup(key_event.code))
+                    .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
+                    .or_else(|| self.handle_keys(key_event));
 
-                if self.error_popup.is_some() {
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc => {
-                            self.error_popup = None;
-                        }
-                        _ => (),
-                    }
-                } else if let Some(_commands) = &mut self.commands {
-                    match key_event.code {
-                        KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter => {
-                            self.commands = None;
-                        }
-                        _ => (),
-                    }
-                } else {
-                    // Handle navigation with the table
-                    if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
-                        return (None, vec![]);
-                    }
-
-                    match key_event.code {
-                        KeyCode::Char('o') => {
-                            let selected_config =
-                                self.table.filtered.state.selected().unwrap_or_default();
-                            let endpoint =
-                                self.table.filtered.items[selected_config].endpoint.clone();
-                            return (
-                                Some(event.clone()),
-                                vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))],
-                            );
-                        }
-                        KeyCode::Char('?') => {
-                            self.commands = Some(&*CONFIG_COMMAND_POP_UP);
-                        }
-                        KeyCode::Enter => {
-                            let selected_config =
-                                self.table.filtered.state.selected().unwrap_or_default();
-                            debug!(
-                                "Selected config: {}",
-                                self.table.filtered.items[selected_config].name
-                            );
-
-                            return (
-                                Some(event.clone()),
-                                vec![WorkerMessage::ConfigSelected(selected_config)],
-                            );
-                        }
-                        _ => (),
-                    }
-                    return (Some(event.clone()), vec![]);
-                }
-                (None, vec![])
+                result.into_result(event)
             }
             FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
                 (Some(event.clone()), vec![])

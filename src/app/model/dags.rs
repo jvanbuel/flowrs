@@ -23,7 +23,7 @@ use crate::ui::theme::{
 
 use super::popup::commands_help::CommandPopUp;
 use super::popup::error::ErrorPopup;
-use super::{FilterableTable, Model};
+use super::{FilterableTable, KeyResult, Model};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG panel, managing the list of DAGs and their filtering.
@@ -74,6 +74,114 @@ impl DagModel {
     }
 }
 
+impl DagModel {
+    /// Handle error popup dismissal
+    fn handle_error_popup(&mut self, key_code: KeyCode) -> KeyResult {
+        if self.error_popup.is_none() {
+            return KeyResult::Ignored;
+        }
+        if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
+            self.error_popup = None;
+        }
+        KeyResult::Consumed
+    }
+
+    /// Handle commands popup dismissal
+    fn handle_commands_popup(&mut self, key_code: KeyCode) -> KeyResult {
+        if self.commands.is_none() {
+            return KeyResult::Ignored;
+        }
+        if matches!(key_code, KeyCode::Char('q' | '?') | KeyCode::Esc) {
+            self.commands = None;
+        }
+        KeyResult::Consumed
+    }
+
+    /// Handle model-specific popup (returns messages from popup)
+    fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
+        let popup = self.popup.as_mut()?;
+        let DagPopUp::Trigger(trigger_popup) = popup;
+        let (key_event, messages) = trigger_popup.update(event);
+        debug!("Popup messages: {messages:?}");
+
+        if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+            if matches!(
+                key_event.code,
+                KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
+            ) {
+                self.popup = None;
+            }
+        }
+        Some(messages)
+    }
+
+    /// Handle model-specific keys
+    fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
+        match key_code {
+            KeyCode::Char('p') => match self.current() {
+                Some(dag) => {
+                    let current_state = dag.is_paused;
+                    dag.is_paused = !current_state;
+                    KeyResult::ConsumedWith(vec![WorkerMessage::ToggleDag {
+                        dag_id: dag.dag_id.clone(),
+                        is_paused: current_state,
+                    }])
+                }
+                None => {
+                    self.error_popup = Some(ErrorPopup::from_strings(vec![
+                        "No DAG selected to pause/resume".to_string(),
+                    ]));
+                    KeyResult::Consumed
+                }
+            },
+            KeyCode::Char('?') => {
+                self.commands = Some(&*DAG_COMMAND_POP_UP);
+                KeyResult::Consumed
+            }
+            KeyCode::Enter => {
+                if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone()) {
+                    debug!("Selected dag: {selected_dag}");
+                    KeyResult::PassWith(vec![WorkerMessage::UpdateDagRuns {
+                        dag_id: selected_dag,
+                        clear: true,
+                    }])
+                } else {
+                    self.error_popup = Some(ErrorPopup::from_strings(vec![
+                        "No DAG selected to view DAG Runs".to_string(),
+                    ]));
+                    KeyResult::Consumed
+                }
+            }
+            KeyCode::Char('o') => {
+                if let Some(dag) = self.current() {
+                    debug!("Selected dag: {}", dag.dag_id);
+                    KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::Dag {
+                        dag_id: dag.dag_id.clone(),
+                    })])
+                } else {
+                    self.error_popup = Some(ErrorPopup::from_strings(vec![
+                        "No DAG selected to open in the browser".to_string(),
+                    ]));
+                    KeyResult::Consumed
+                }
+            }
+            KeyCode::Char('t') => {
+                if let Some(dag) = self.current() {
+                    self.popup = Some(DagPopUp::Trigger(TriggerDagRunPopUp::new(
+                        dag.dag_id.clone(),
+                    )));
+                } else {
+                    self.error_popup = Some(ErrorPopup::from_strings(vec![
+                        "No DAG selected to trigger".to_string(),
+                    ]));
+                }
+                KeyResult::Consumed
+            }
+            _ => KeyResult::PassThrough,
+        }
+    }
+}
+
 impl Model for DagModel {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
@@ -88,117 +196,21 @@ impl Model for DagModel {
                 )
             }
             FlowrsEvent::Key(key_event) => {
-                if let Some(popup) = &mut self.popup {
-                    match popup {
-                        DagPopUp::Trigger(trigger_popup) => {
-                            let (key_event, messages) = trigger_popup.update(event);
-                            debug!("Popup messages: {messages:?}");
-                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
-                                match key_event.code {
-                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
-                                        self.popup = None;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            return (None, messages);
-                        }
-                    }
-                }
-                // Handle filter state machine
-                if self.table.handle_filter_key(key_event) {
-                    return (None, vec![]);
+                // Popup handling (has its own update method)
+                if let Some(messages) = self.handle_popup(event) {
+                    return (None, messages);
                 }
 
-                if let Some(_error_popup) = &mut self.error_popup {
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc => {
-                            self.error_popup = None;
-                        }
-                        _ => (),
-                    }
-                    return (None, vec![]);
-                } else if let Some(_commands) = &mut self.commands {
-                    match key_event.code {
-                        KeyCode::Char('q' | '?') | KeyCode::Esc => {
-                            self.commands = None;
-                        }
-                        _ => (),
-                    }
-                } else {
-                    // Handle navigation with the table
-                    if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
-                        return (None, vec![]);
-                    }
+                // Chain the handlers
+                let result = self
+                    .table
+                    .handle_filter_key(key_event)
+                    .or_else(|| self.handle_error_popup(key_event.code))
+                    .or_else(|| self.handle_commands_popup(key_event.code))
+                    .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
+                    .or_else(|| self.handle_keys(key_event.code));
 
-                    match key_event.code {
-                        KeyCode::Char('p') => match self.current() {
-                            Some(dag) => {
-                                let current_state = dag.is_paused;
-                                dag.is_paused = !current_state;
-                                return (
-                                    None,
-                                    vec![WorkerMessage::ToggleDag {
-                                        dag_id: dag.dag_id.clone(),
-                                        is_paused: current_state,
-                                    }],
-                                );
-                            }
-                            None => {
-                                self.error_popup = Some(ErrorPopup::from_strings(vec![
-                                    "No DAG selected to pause/resume".to_string(),
-                                ]));
-                            }
-                        },
-                        KeyCode::Char('?') => {
-                            self.commands = Some(&*DAG_COMMAND_POP_UP);
-                        }
-                        KeyCode::Enter => {
-                            if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone())
-                            {
-                                debug!("Selected dag: {selected_dag}");
-                                return (
-                                    Some(FlowrsEvent::Key(*key_event)),
-                                    vec![WorkerMessage::UpdateDagRuns {
-                                        dag_id: selected_dag,
-                                        clear: true,
-                                    }],
-                                );
-                            }
-                            self.error_popup = Some(ErrorPopup::from_strings(vec![
-                                "No DAG selected to view DAG Runs".to_string(),
-                            ]));
-                        }
-                        KeyCode::Char('o') => {
-                            if let Some(dag) = self.current() {
-                                debug!("Selected dag: {}", dag.dag_id);
-                                return (
-                                    Some(FlowrsEvent::Key(*key_event)),
-                                    vec![WorkerMessage::OpenItem(OpenItem::Dag {
-                                        dag_id: dag.dag_id.clone(),
-                                    })],
-                                );
-                            }
-                            self.error_popup = Some(ErrorPopup::from_strings(vec![
-                                "No DAG selected to open in the browser".to_string(),
-                            ]));
-                        }
-                        KeyCode::Char('t') => {
-                            if let Some(dag) = self.current() {
-                                self.popup = Some(DagPopUp::Trigger(TriggerDagRunPopUp::new(
-                                    dag.dag_id.clone(),
-                                )));
-                            } else {
-                                self.error_popup = Some(ErrorPopup::from_strings(vec![
-                                    "No DAG selected to trigger".to_string(),
-                                ]));
-                            }
-                        }
-                        _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
-                    }
-                    return (None, vec![]);
-                }
-                (None, vec![])
+                result.into_result(event)
             }
             FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
                 (Some(event.clone()), vec![])

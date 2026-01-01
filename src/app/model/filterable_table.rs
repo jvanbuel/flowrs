@@ -12,7 +12,7 @@ use std::ops::RangeInclusive;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use super::filter::{filter_items, FilterStateMachine, Filterable};
-use super::StatefulTable;
+use super::{KeyResult, StatefulTable};
 
 /// A generic filterable table that combines data storage, filtering, and visual selection.
 ///
@@ -62,17 +62,17 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         self.apply_filter();
     }
 
-    /// Handles a key event for the filter, returns true if the event was consumed.
+    /// Handles a key event for the filter.
     /// This handles both:
     /// - `/` key when filter is inactive (activates filter)
     /// - All filter input keys when filter is active
-    pub fn handle_filter_key(&mut self, key_event: &KeyEvent) -> bool {
-        // Handle '/' to activate filter even when inactive
+    pub fn handle_filter_key(&mut self, key_event: &KeyEvent) -> KeyResult {
         if self.filter.update(key_event, &T::filterable_fields()) {
             self.apply_filter();
-            return true;
+            KeyResult::Consumed
+        } else {
+            KeyResult::Ignored
         }
-        false
     }
 
     /// Returns whether the filter is active
@@ -192,20 +192,19 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     }
 
     /// Handle common navigation keys (j/k/G/gg pattern)
-    /// Returns true if the event was handled
-    pub fn handle_navigation(&mut self, key_code: KeyCode, event_buffer: &mut Vec<KeyCode>) -> bool {
+    pub fn handle_navigation(&mut self, key_code: KeyCode, event_buffer: &mut Vec<KeyCode>) -> KeyResult {
         match key_code {
             KeyCode::Down | KeyCode::Char('j') => {
                 self.next();
-                true
+                KeyResult::Consumed
             }
             KeyCode::Up | KeyCode::Char('k') => {
                 self.previous();
-                true
+                KeyResult::Consumed
             }
             KeyCode::Char('G') => {
                 self.select_last();
-                true
+                KeyResult::Consumed
             }
             KeyCode::Char('g') => {
                 if let Some(last_key) = event_buffer.pop() {
@@ -218,32 +217,29 @@ impl<T: Filterable + Clone> FilterableTable<T> {
                 } else {
                     event_buffer.push(key_code);
                 }
-                true
+                KeyResult::Consumed
             }
-            _ => false,
+            _ => KeyResult::Ignored,
         }
     }
 
     /// Handle visual mode keys (V to enter, Esc to exit)
-    /// Returns:
-    /// - `Some(true)` if the key was consumed (visual mode toggled)
-    /// - `Some(false)` if Esc was pressed but not in visual mode (caller should handle)
-    /// - `None` if the key is not a visual mode key
-    pub fn handle_visual_mode_key(&mut self, key_code: KeyCode) -> Option<bool> {
+    pub fn handle_visual_mode_key(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('V') => {
                 self.enter_visual_mode();
-                Some(true)
+                KeyResult::Consumed
             }
             KeyCode::Esc => {
                 if self.visual_mode {
                     self.exit_visual_mode();
-                    Some(true)
+                    KeyResult::Consumed
                 } else {
-                    Some(false) // Esc pressed but not in visual mode
+                    // Esc not in visual mode - pass through for panel navigation
+                    KeyResult::PassThrough
                 }
             }
-            _ => None,
+            _ => KeyResult::Ignored,
         }
     }
 }
@@ -423,29 +419,41 @@ mod tests {
         let mut buffer = Vec::new();
 
         // j key
-        assert!(table.handle_navigation(KeyCode::Char('j'), &mut buffer));
+        assert!(matches!(
+            table.handle_navigation(KeyCode::Char('j'), &mut buffer),
+            KeyResult::Consumed
+        ));
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
 
         // k key
-        assert!(table.handle_navigation(KeyCode::Char('j'), &mut buffer));
-        assert!(table.handle_navigation(KeyCode::Char('k'), &mut buffer));
+        table.handle_navigation(KeyCode::Char('j'), &mut buffer);
+        assert!(matches!(
+            table.handle_navigation(KeyCode::Char('k'), &mut buffer),
+            KeyResult::Consumed
+        ));
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
 
         // G key (go to last)
-        assert!(table.handle_navigation(KeyCode::Char('G'), &mut buffer));
+        assert!(matches!(
+            table.handle_navigation(KeyCode::Char('G'), &mut buffer),
+            KeyResult::Consumed
+        ));
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("2"));
 
         // gg (go to first) - first g
-        assert!(table.handle_navigation(KeyCode::Char('g'), &mut buffer));
+        table.handle_navigation(KeyCode::Char('g'), &mut buffer);
         assert_eq!(buffer, vec![KeyCode::Char('g')]);
 
         // gg - second g
-        assert!(table.handle_navigation(KeyCode::Char('g'), &mut buffer));
+        table.handle_navigation(KeyCode::Char('g'), &mut buffer);
         assert!(buffer.is_empty());
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
 
         // Unknown key
-        assert!(!table.handle_navigation(KeyCode::Char('x'), &mut buffer));
+        assert!(matches!(
+            table.handle_navigation(KeyCode::Char('x'), &mut buffer),
+            KeyResult::Ignored
+        ));
     }
 
     #[test]
@@ -467,18 +475,30 @@ mod tests {
         assert!(!table.visual_mode);
 
         // V key enters visual mode
-        assert_eq!(table.handle_visual_mode_key(KeyCode::Char('V')), Some(true));
+        assert!(matches!(
+            table.handle_visual_mode_key(KeyCode::Char('V')),
+            KeyResult::Consumed
+        ));
         assert!(table.visual_mode);
 
         // Esc key exits visual mode when in visual mode
-        assert_eq!(table.handle_visual_mode_key(KeyCode::Esc), Some(true));
+        assert!(matches!(
+            table.handle_visual_mode_key(KeyCode::Esc),
+            KeyResult::Consumed
+        ));
         assert!(!table.visual_mode);
 
-        // Esc key returns Some(false) when not in visual mode
-        assert_eq!(table.handle_visual_mode_key(KeyCode::Esc), Some(false));
+        // Esc key returns PassThrough when not in visual mode
+        assert!(matches!(
+            table.handle_visual_mode_key(KeyCode::Esc),
+            KeyResult::PassThrough
+        ));
         assert!(!table.visual_mode);
 
-        // Unknown key returns None
-        assert_eq!(table.handle_visual_mode_key(KeyCode::Char('x')), None);
+        // Unknown key returns Ignored
+        assert!(matches!(
+            table.handle_visual_mode_key(KeyCode::Char('x')),
+            KeyResult::Ignored
+        ));
     }
 }
