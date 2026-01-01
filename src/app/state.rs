@@ -272,7 +272,10 @@ impl App {
                     .iter()
                     .map(|c| c.name.clone())
                     .collect();
-                self.configs.table.filter.set_primary_values("name", config_names);
+                self.configs
+                    .table
+                    .filter
+                    .set_primary_values("name", config_names);
             }
         }
     }

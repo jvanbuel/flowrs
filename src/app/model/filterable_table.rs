@@ -281,7 +281,10 @@ mod tests {
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("2"));
 
         // Select last
-        table.filtered.state.select(Some(table.filtered.items.len() - 1));
+        table
+            .filtered
+            .state
+            .select(Some(table.filtered.items.len() - 1));
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("3"));
 
         // Select first
