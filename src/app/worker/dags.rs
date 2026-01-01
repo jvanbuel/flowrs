@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use crate::airflow::traits::AirflowClient;
-use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
 
 /// Handle updating DAGs and their statistics from the Airflow server.
@@ -40,7 +39,7 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
             }
         }
         Err(e) => {
-            app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+            app.dags.popup.show_error(vec![e.to_string()]);
         }
     }
 
@@ -73,7 +72,7 @@ pub async fn handle_toggle_dag(
     let dag = client.toggle_dag(dag_id, is_paused).await;
     if let Err(e) = dag {
         let mut app = app.lock().unwrap();
-        app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+        app.dags.popup.show_error(vec![e.to_string()]);
     }
 }
 
@@ -96,11 +95,11 @@ pub async fn handle_get_dag_code(
                 app.dagruns.dag_code.set_code(&dag_code);
             }
             Err(e) => {
-                app.dags.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                app.dags.popup.show_error(vec![e.to_string()]);
             }
         }
     } else {
         let mut app = app.lock().unwrap();
-        app.dags.error_popup = Some(ErrorPopup::from_strings(vec!["DAG not found".to_string()]));
+        app.dags.popup.show_error(vec!["DAG not found".to_string()]);
     }
 }

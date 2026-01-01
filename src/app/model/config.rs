@@ -13,17 +13,15 @@ use crate::ui::theme::{
     ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE,
 };
 
-use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
-use super::popup::error::ErrorPopup;
-use super::{dismiss_commands_popup, dismiss_error_popup, FilterableTable, KeyResult, Model};
+use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
     /// Filterable table containing all configs and filtered view
     pub table: FilterableTable<AirflowConfig>,
-    pub commands: Option<&'static CommandPopUp<'static>>,
-    pub error_popup: Option<ErrorPopup>,
+    /// Unified popup state (error, commands, or none for this model)
+    pub popup: Popup,
     event_buffer: Vec<KeyCode>,
 }
 
@@ -36,30 +34,17 @@ impl ConfigModel {
 
         Self {
             table,
-            commands: None,
-            error_popup: None,
+            popup: Popup::None,
             event_buffer: Vec::new(),
         }
     }
 
     pub fn new_with_errors(configs: &[AirflowConfig], errors: Vec<String>) -> Self {
-        let error_popup = if errors.is_empty() {
-            None
-        } else {
-            Some(ErrorPopup::from_strings(errors))
-        };
-
-        let mut table = FilterableTable::new();
-        table.set_items(configs.to_vec());
-        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
-        table.set_primary_values("name", config_names);
-
-        Self {
-            table,
-            commands: None,
-            error_popup,
-            event_buffer: Vec::new(),
+        let mut model = Self::new(configs);
+        if !errors.is_empty() {
+            model.popup.show_error(errors);
         }
+        model
     }
 
     /// Apply filter to configs
@@ -76,7 +61,7 @@ impl ConfigModel {
                 KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))])
             }
             KeyCode::Char('?') => {
-                self.commands = Some(&*CONFIG_COMMAND_POP_UP);
+                self.popup.show_commands(&CONFIG_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
@@ -100,8 +85,7 @@ impl Model for ConfigModel {
                 let result = self
                     .table
                     .handle_filter_key(key_event)
-                    .or_else(|| dismiss_error_popup(&mut self.error_popup, key_event.code))
-                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
+                    .or_else(|| self.popup.handle_dismiss(key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
                     .or_else(|| self.handle_keys(key_event));
 
@@ -189,12 +173,7 @@ impl Widget for &mut ConfigModel {
         .row_highlight_style(SELECTED_ROW_STYLE);
         StatefulWidget::render(t, rects[0], buf, &mut self.table.filtered.state);
 
-        if let Some(commands) = &self.commands {
-            commands.render(area, buf);
-        }
-
-        if let Some(error_popup) = &self.error_popup {
-            error_popup.render(area, buf);
-        }
+        // Render any active popup (error or commands)
+        (&self.popup).render(area, buf);
     }
 }

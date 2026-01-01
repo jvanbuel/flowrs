@@ -13,7 +13,6 @@ use crate::airflow::model::common::{Dag, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dagruns::trigger::TriggerDagRunPopUp;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
-use crate::app::model::popup::dags::DagPopUp;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
@@ -21,9 +20,8 @@ use crate::ui::theme::{
     TABLE_HEADER_STYLE, TEXT_PRIMARY,
 };
 
-use super::popup::commands_help::CommandPopUp;
-use super::popup::error::ErrorPopup;
-use super::{dismiss_commands_popup, dismiss_error_popup, FilterableTable, KeyResult, Model};
+use super::popup::dags::DagPopUp;
+use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG panel, managing the list of DAGs and their filtering.
@@ -32,9 +30,8 @@ pub struct DagModel {
     pub table: FilterableTable<Dag>,
     /// DAG statistics by dag_id
     pub dag_stats: HashMap<String, Vec<DagStatistic>>,
-    commands: Option<&'static CommandPopUp<'static>>,
-    pub error_popup: Option<ErrorPopup>,
-    popup: Option<DagPopUp>,
+    /// Unified popup state (error, commands, or custom for this model)
+    pub popup: Popup<DagPopUp>,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
 }
@@ -44,9 +41,7 @@ impl Default for DagModel {
         Self {
             table: FilterableTable::new(),
             dag_stats: HashMap::new(),
-            commands: None,
-            error_popup: None,
-            popup: None,
+            popup: Popup::None,
             ticks: 0,
             event_buffer: Vec::new(),
         }
@@ -77,8 +72,8 @@ impl DagModel {
 impl DagModel {
     /// Handle model-specific popup (returns messages from popup)
     fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
-        let popup = self.popup.as_mut()?;
-        let DagPopUp::Trigger(trigger_popup) = popup;
+        let custom_popup = self.popup.custom_mut()?;
+        let DagPopUp::Trigger(trigger_popup) = custom_popup;
         let (key_event, messages) = trigger_popup.update(event);
         debug!("Popup messages: {messages:?}");
 
@@ -87,7 +82,7 @@ impl DagModel {
                 key_event.code,
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
-                self.popup = None;
+                self.popup.close();
             }
         }
         Some(messages)
@@ -106,14 +101,13 @@ impl DagModel {
                     }])
                 }
                 None => {
-                    self.error_popup = Some(ErrorPopup::from_strings(vec![
-                        "No DAG selected to pause/resume".to_string(),
-                    ]));
+                    self.popup
+                        .show_error(vec!["No DAG selected to pause/resume".to_string()]);
                     KeyResult::Consumed
                 }
             },
             KeyCode::Char('?') => {
-                self.commands = Some(&*DAG_COMMAND_POP_UP);
+                self.popup.show_commands(&DAG_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
@@ -124,9 +118,8 @@ impl DagModel {
                         clear: true,
                     }])
                 } else {
-                    self.error_popup = Some(ErrorPopup::from_strings(vec![
-                        "No DAG selected to view DAG Runs".to_string(),
-                    ]));
+                    self.popup
+                        .show_error(vec!["No DAG selected to view DAG Runs".to_string()]);
                     KeyResult::Consumed
                 }
             }
@@ -137,21 +130,18 @@ impl DagModel {
                         dag_id: dag.dag_id.clone(),
                     })])
                 } else {
-                    self.error_popup = Some(ErrorPopup::from_strings(vec![
-                        "No DAG selected to open in the browser".to_string(),
-                    ]));
+                    self.popup
+                        .show_error(vec!["No DAG selected to open in the browser".to_string()]);
                     KeyResult::Consumed
                 }
             }
             KeyCode::Char('t') => {
-                if let Some(dag) = self.current() {
-                    self.popup = Some(DagPopUp::Trigger(TriggerDagRunPopUp::new(
-                        dag.dag_id.clone(),
-                    )));
+                if let Some(dag_id) = self.current().map(|dag| dag.dag_id.clone()) {
+                    self.popup
+                        .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(dag_id)));
                 } else {
-                    self.error_popup = Some(ErrorPopup::from_strings(vec![
-                        "No DAG selected to trigger".to_string(),
-                    ]));
+                    self.popup
+                        .show_error(vec!["No DAG selected to trigger".to_string()]);
                 }
                 KeyResult::Consumed
             }
@@ -183,8 +173,7 @@ impl Model for DagModel {
                 let result = self
                     .table
                     .handle_filter_key(key_event)
-                    .or_else(|| dismiss_error_popup(&mut self.error_popup, key_event.code))
-                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
+                    .or_else(|| self.popup.handle_dismiss(key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
                     .or_else(|| self.handle_keys(key_event.code));
 
@@ -303,20 +292,12 @@ impl Widget for &mut DagModel {
 
         StatefulWidget::render(t, rects[0], buf, &mut self.table.filtered.state);
 
-        if let Some(commands) = &self.commands {
-            commands.render(area, buf);
-        }
+        // Render any active popup (error, commands, or custom)
+        (&self.popup).render(area, buf);
 
-        if let Some(error_popup) = &self.error_popup {
-            error_popup.render(area, buf);
-        }
-
-        if let Some(popup) = &mut self.popup {
-            match popup {
-                DagPopUp::Trigger(trigger_popup) => {
-                    trigger_popup.render(area, buf);
-                }
-            }
+        // Render custom popups that need special handling
+        if let Some(DagPopUp::Trigger(trigger_popup)) = self.popup.custom_mut() {
+            trigger_popup.render(area, buf);
         }
     }
 }

@@ -6,13 +6,104 @@ pub mod error;
 pub mod taskinstances;
 pub mod warning;
 
+use crossterm::event::KeyCode;
 use ratatui::{
+    buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
     style::Style,
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph, Widget},
 };
 
 use crate::ui::theme::{BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED};
+
+use self::{commands_help::CommandPopUp, error::ErrorPopup};
+use super::KeyResult;
+
+/// A unified popup type that can hold any of the common popup types.
+///
+/// This simplifies popup handling by providing a single field that can
+/// represent error popups, command help popups, or panel-specific popups.
+#[derive(Default)]
+pub enum Popup<T = ()> {
+    /// No popup is shown
+    #[default]
+    None,
+    /// Error popup (common to all panels)
+    Error(ErrorPopup),
+    /// Commands help popup (common to all panels)
+    Commands(&'static CommandPopUp<'static>),
+    /// Panel-specific popup
+    Custom(T),
+}
+
+impl<T> Popup<T> {
+    /// Returns true if no popup is shown
+    pub fn is_none(&self) -> bool {
+        matches!(self, Popup::None)
+    }
+
+    /// Handle common popup dismissal keys (error and commands popups)
+    pub fn handle_dismiss(&mut self, key_code: KeyCode) -> KeyResult {
+        match self {
+            Popup::None => KeyResult::Ignored,
+            Popup::Error(_) => {
+                if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
+                    *self = Popup::None;
+                }
+                KeyResult::Consumed
+            }
+            Popup::Commands(_) => {
+                if matches!(
+                    key_code,
+                    KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter
+                ) {
+                    *self = Popup::None;
+                }
+                KeyResult::Consumed
+            }
+            Popup::Custom(_) => KeyResult::Ignored, // Custom popups need custom handling
+        }
+    }
+
+    /// Show error popup
+    pub fn show_error(&mut self, errors: Vec<String>) {
+        *self = Popup::Error(ErrorPopup::from_strings(errors));
+    }
+
+    /// Show commands popup
+    pub fn show_commands(&mut self, commands: &'static CommandPopUp<'static>) {
+        *self = Popup::Commands(commands);
+    }
+
+    /// Show custom popup
+    pub fn show_custom(&mut self, popup: T) {
+        *self = Popup::Custom(popup);
+    }
+
+    /// Get mutable reference to custom popup if present
+    pub fn custom_mut(&mut self) -> Option<&mut T> {
+        match self {
+            Popup::Custom(p) => Some(p),
+            _ => None,
+        }
+    }
+
+    /// Close the popup
+    pub fn close(&mut self) {
+        *self = Popup::None;
+    }
+}
+
+impl<T> Widget for &Popup<T> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        match self {
+            Popup::None => {}
+            Popup::Error(e) => e.render(area, buf),
+            Popup::Commands(c) => c.render(area, buf),
+            Popup::Custom(_) => {} // Custom popups rendered separately by the model
+        }
+    }
+}
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 #[allow(dead_code)]

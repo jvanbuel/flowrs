@@ -24,14 +24,12 @@ use crate::ui::theme::{
 };
 use crate::ui::TIME_FORMAT;
 
-use super::popup::commands_help::CommandPopUp;
 use super::popup::dagruns::commands::DAGRUN_COMMAND_POP_UP;
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
-use super::popup::error::ErrorPopup;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
-use super::{dismiss_commands_popup, dismiss_error_popup, filter::filter_items, FilterableTable, KeyResult, Model};
+use super::{filter::filter_items, FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
@@ -40,9 +38,8 @@ pub struct DagRunModel {
     pub dag_code: DagCodeWidget,
     /// Filterable table containing all DAG runs and filtered view
     pub table: FilterableTable<DagRun>,
-    pub popup: Option<DagRunPopUp>,
-    pub commands: Option<&'static CommandPopUp<'static>>,
-    pub error_popup: Option<ErrorPopup>,
+    /// Unified popup state (error, commands, or custom for this model)
+    pub popup: Popup<DagRunPopUp>,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
 }
@@ -53,9 +50,7 @@ impl Default for DagRunModel {
             dag_id: None,
             dag_code: DagCodeWidget::default(),
             table: FilterableTable::new(),
-            popup: None,
-            commands: None,
-            error_popup: None,
+            popup: Popup::None,
             ticks: 0,
             event_buffer: Vec::new(),
         }
@@ -235,8 +230,8 @@ impl DagRunModel {
 
     /// Handle model-specific popups (returns messages from popup)
     fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
-        let popup = self.popup.as_mut()?;
-        let (key_event, messages) = match popup {
+        let custom_popup = self.popup.custom_mut()?;
+        let (key_event, messages) = match custom_popup {
             DagRunPopUp::Clear(p) => p.update(event),
             DagRunPopUp::Mark(p) => p.update(event),
             DagRunPopUp::Trigger(p) => p.update(event),
@@ -248,8 +243,9 @@ impl DagRunModel {
                 key_event.code,
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
-                let exit_visual = matches!(popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
-                self.popup = None;
+                let exit_visual =
+                    matches!(custom_popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
+                self.popup.close();
                 if exit_visual {
                     self.table.exit_visual_mode();
                 }
@@ -262,18 +258,19 @@ impl DagRunModel {
     fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('t') => {
-                self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                    self.dag_id
-                        .clone()
-                        .expect("DAG ID should be set when viewing DAG runs"),
-                )));
+                self.popup
+                    .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
+                        self.dag_id
+                            .clone()
+                            .expect("DAG ID should be set when viewing DAG runs"),
+                    )));
                 KeyResult::Consumed
             }
             KeyCode::Char('m') => {
                 let dag_run_ids = self.selected_dag_run_ids();
                 if let Some(dag_id) = &self.dag_id {
                     if !dag_run_ids.is_empty() {
-                        self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
+                        self.popup.show_custom(DagRunPopUp::Mark(MarkDagRunPopup::new(
                             dag_run_ids,
                             dag_id.clone(),
                         )));
@@ -282,7 +279,7 @@ impl DagRunModel {
                 KeyResult::Consumed
             }
             KeyCode::Char('?') => {
-                self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
+                self.popup.show_commands(&DAGRUN_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
             KeyCode::Char('v') => {
@@ -298,7 +295,7 @@ impl DagRunModel {
                 let dag_run_ids = self.selected_dag_run_ids();
                 if let Some(dag_id) = &self.dag_id {
                     if !dag_run_ids.is_empty() {
-                        self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
+                        self.popup.show_custom(DagRunPopUp::Clear(ClearDagRunPopup::new(
                             dag_run_ids,
                             dag_id.clone(),
                         )));
@@ -371,8 +368,9 @@ impl Model for DagRunModel {
                 }
 
                 // Chain the remaining handlers
-                let result = dismiss_error_popup(&mut self.error_popup, key_event.code)
-                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
+                let result = self
+                    .popup
+                    .handle_dismiss(key_event.code)
                     .or_else(|| self.handle_dag_code_viewer(key_event.code))
                     .or_else(|| self.table.handle_visual_mode_key(key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
@@ -565,25 +563,15 @@ impl Widget for &mut DagRunModel {
             scrollbar.render(area, buf, &mut self.dag_code.vertical_scroll_state);
         }
 
-        match &mut self.popup {
-            Some(DagRunPopUp::Clear(popup)) => {
-                popup.render(area, buf);
-            }
-            Some(DagRunPopUp::Mark(popup)) => {
-                popup.render(area, buf);
-            }
-            Some(DagRunPopUp::Trigger(popup)) => {
-                popup.render(area, buf);
-            }
-            _ => (),
-        }
+        // Render any active popup (error, commands, or custom)
+        (&self.popup).render(area, buf);
 
-        if let Some(commands) = &self.commands {
-            commands.render(area, buf);
-        }
-
-        if let Some(error_popup) = &self.error_popup {
-            error_popup.render(area, buf);
+        // Render custom popups that need special handling
+        match self.popup.custom_mut() {
+            Some(DagRunPopUp::Clear(popup)) => popup.render(area, buf),
+            Some(DagRunPopUp::Mark(popup)) => popup.render(area, buf),
+            Some(DagRunPopUp::Trigger(popup)) => popup.render(area, buf),
+            None => {}
         }
     }
 }

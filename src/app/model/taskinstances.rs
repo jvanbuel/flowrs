@@ -1,7 +1,5 @@
 use std::vec;
 
-use super::popup::commands_help::CommandPopUp;
-use super::popup::error::ErrorPopup;
 use super::popup::taskinstances::commands::TASK_COMMAND_POP_UP;
 use crossterm::event::KeyCode;
 use log::debug;
@@ -26,7 +24,7 @@ use crate::ui::TIME_FORMAT;
 use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
-use super::{dismiss_commands_popup, dismiss_error_popup, FilterableTable, KeyResult, Model};
+use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
@@ -35,9 +33,8 @@ pub struct TaskInstanceModel {
     pub dag_run_id: Option<String>,
     /// Filterable table containing all task instances and filtered view
     pub table: FilterableTable<TaskInstance>,
-    pub popup: Option<TaskInstancePopUp>,
-    commands: Option<&'static CommandPopUp<'static>>,
-    pub error_popup: Option<ErrorPopup>,
+    /// Unified popup state (error, commands, or custom for this model)
+    pub popup: Popup<TaskInstancePopUp>,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
     pub task_graph: Option<TaskGraph>,
@@ -49,9 +46,7 @@ impl Default for TaskInstanceModel {
             dag_id: None,
             dag_run_id: None,
             table: FilterableTable::new(),
-            popup: None,
-            commands: None,
-            error_popup: None,
+            popup: Popup::None,
             ticks: 0,
             event_buffer: Vec::new(),
             task_graph: None,
@@ -104,8 +99,8 @@ impl TaskInstanceModel {
 impl TaskInstanceModel {
     /// Handle model-specific popups (returns messages from popup)
     fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
-        let popup = self.popup.as_mut()?;
-        let (key_event, messages) = match popup {
+        let custom_popup = self.popup.custom_mut()?;
+        let (key_event, messages) = match custom_popup {
             TaskInstancePopUp::Clear(p) => p.update(event),
             TaskInstancePopUp::Mark(p) => p.update(event),
         };
@@ -116,7 +111,7 @@ impl TaskInstanceModel {
                 key_event.code,
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
-                self.popup = None;
+                self.popup.close();
                 self.table.exit_visual_mode();
             }
         }
@@ -130,9 +125,10 @@ impl TaskInstanceModel {
                 let task_ids = self.selected_task_ids();
                 if !task_ids.is_empty() {
                     if let (Some(dag_id), Some(dag_run_id)) = (&self.dag_id, &self.dag_run_id) {
-                        self.popup = Some(TaskInstancePopUp::Mark(MarkTaskInstancePopup::new(
-                            task_ids, dag_id, dag_run_id,
-                        )));
+                        self.popup
+                            .show_custom(TaskInstancePopUp::Mark(MarkTaskInstancePopup::new(
+                                task_ids, dag_id, dag_run_id,
+                            )));
                     }
                 }
                 KeyResult::Consumed
@@ -141,15 +137,16 @@ impl TaskInstanceModel {
                 let task_ids = self.selected_task_ids();
                 if let (Some(dag_id), Some(dag_run_id)) = (&self.dag_id, &self.dag_run_id) {
                     if !task_ids.is_empty() {
-                        self.popup = Some(TaskInstancePopUp::Clear(ClearTaskInstancePopup::new(
-                            dag_run_id, dag_id, task_ids,
-                        )));
+                        self.popup
+                            .show_custom(TaskInstancePopUp::Clear(ClearTaskInstancePopup::new(
+                                dag_run_id, dag_id, task_ids,
+                            )));
                     }
                 }
                 KeyResult::Consumed
             }
             KeyCode::Char('?') => {
-                self.commands = Some(&*TASK_COMMAND_POP_UP);
+                self.popup.show_commands(&TASK_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
@@ -214,8 +211,7 @@ impl Model for TaskInstanceModel {
                 let result = self
                     .table
                     .handle_filter_key(key_event)
-                    .or_else(|| dismiss_error_popup(&mut self.error_popup, key_event.code))
-                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
+                    .or_else(|| self.popup.handle_dismiss(key_event.code))
                     .or_else(|| self.table.handle_visual_mode_key(key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
                     .or_else(|| self.handle_keys(key_event.code));
@@ -342,22 +338,14 @@ impl Widget for &mut TaskInstanceModel {
 
         StatefulWidget::render(t, rects[0], buffer, &mut self.table.filtered.state);
 
-        match &mut self.popup {
-            Some(TaskInstancePopUp::Clear(popup)) => {
-                popup.render(area, buffer);
-            }
-            Some(TaskInstancePopUp::Mark(popup)) => {
-                popup.render(area, buffer);
-            }
-            _ => (),
-        }
+        // Render any active popup (error, commands, or custom)
+        (&self.popup).render(area, buffer);
 
-        if let Some(commands) = &self.commands {
-            commands.render(area, buffer);
-        }
-
-        if let Some(error_popup) = &self.error_popup {
-            error_popup.render(area, buffer);
+        // Render custom popups that need special handling
+        match self.popup.custom_mut() {
+            Some(TaskInstancePopUp::Clear(popup)) => popup.render(area, buffer),
+            Some(TaskInstancePopUp::Mark(popup)) => popup.render(area, buffer),
+            None => {}
         }
     }
 }
