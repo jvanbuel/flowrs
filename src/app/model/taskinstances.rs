@@ -59,11 +59,6 @@ impl TaskInstanceModel {
         Self::default()
     }
 
-    /// Apply filter to task instances
-    pub fn filter_task_instances(&mut self) {
-        self.table.apply_filter();
-    }
-
     /// Sort task instances by topological order (or timestamp fallback)
     pub fn sort_task_instances(&mut self) {
         if let Some(graph) = &self.task_graph {
@@ -112,7 +107,8 @@ impl TaskInstanceModel {
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
                 self.popup.close();
-                self.table.exit_visual_mode();
+                self.table.visual_mode = false;
+                self.table.visual_anchor = None;
             }
         }
         Some(messages)
@@ -227,7 +223,7 @@ impl Model for TaskInstanceModel {
 }
 impl Widget for &mut TaskInstanceModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let rects = if self.table.is_filter_active() {
+        let rects = if self.table.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)

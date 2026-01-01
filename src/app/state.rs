@@ -204,8 +204,8 @@ impl App {
                     .iter()
                     .map(|d| d.dag_id.clone())
                     .collect();
-                self.dags.table.set_primary_values("dag_id", dag_ids);
-                self.dags.filter_dags();
+                self.dags.table.filter.set_primary_values("dag_id", dag_ids);
+                self.dags.table.apply_filter();
             }
             Panel::DAGRun => {
                 if let Some(dag_id) = &self.dagruns.dag_id {
@@ -220,8 +220,9 @@ impl App {
                         .collect();
                     self.dagruns
                         .table
+                        .filter
                         .set_primary_values("dag_run_id", dag_run_ids);
-                    self.dagruns.filter_dag_runs();
+                    self.dagruns.table.apply_filter();
                 } else {
                     self.dagruns.table.all.clear();
                 }
@@ -244,8 +245,9 @@ impl App {
                         .collect();
                     self.task_instances
                         .table
+                        .filter
                         .set_primary_values("task_id", task_ids);
-                    self.task_instances.filter_task_instances();
+                    self.task_instances.table.apply_filter();
                 } else {
                     self.task_instances.table.all.clear();
                 }
@@ -270,7 +272,7 @@ impl App {
                     .iter()
                     .map(|c| c.name.clone())
                     .collect();
-                self.configs.table.set_primary_values("name", config_names);
+                self.configs.table.filter.set_primary_values("name", config_names);
             }
         }
     }

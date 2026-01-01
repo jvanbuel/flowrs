@@ -247,7 +247,8 @@ impl DagRunModel {
                     matches!(custom_popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
                 self.popup.close();
                 if exit_visual {
-                    self.table.exit_visual_mode();
+                    self.table.visual_mode = false;
+                    self.table.visual_anchor = None;
                 }
             }
         }
@@ -392,7 +393,7 @@ impl Model for DagRunModel {
 
 impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        let rects = if self.table.is_filter_active() {
+        let rects = if self.table.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)

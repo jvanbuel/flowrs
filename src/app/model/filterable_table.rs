@@ -75,16 +75,6 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         }
     }
 
-    /// Returns whether the filter is active
-    pub fn is_filter_active(&self) -> bool {
-        self.filter.is_active()
-    }
-
-    /// Sets the primary field values for autocomplete
-    pub fn set_primary_values(&mut self, field_name: &str, values: Vec<String>) {
-        self.filter.set_primary_values(field_name, values);
-    }
-
     /// Returns the currently selected item
     pub fn current(&self) -> Option<&T> {
         self.filtered
@@ -99,44 +89,6 @@ impl<T: Filterable + Clone> FilterableTable<T> {
             .state
             .selected()
             .and_then(|i| self.filtered.items.get_mut(i))
-    }
-
-    /// Moves selection to the next item (with wrapping)
-    pub fn next(&mut self) {
-        self.filtered.next();
-    }
-
-    /// Moves selection to the previous item (with wrapping)
-    pub fn previous(&mut self) {
-        self.filtered.previous();
-    }
-
-    /// Moves selection to the first item
-    pub fn select_first(&mut self) {
-        self.filtered.state.select_first();
-    }
-
-    /// Moves selection to the last item
-    pub fn select_last(&mut self) {
-        if !self.filtered.items.is_empty() {
-            self.filtered
-                .state
-                .select(Some(self.filtered.items.len() - 1));
-        }
-    }
-
-    /// Enters visual mode at the current cursor position
-    pub fn enter_visual_mode(&mut self) {
-        if let Some(cursor) = self.filtered.state.selected() {
-            self.visual_mode = true;
-            self.visual_anchor = Some(cursor);
-        }
-    }
-
-    /// Exits visual mode
-    pub fn exit_visual_mode(&mut self) {
-        self.visual_mode = false;
-        self.visual_anchor = None;
     }
 
     /// Returns the inclusive range of selected indices, if in visual mode
@@ -181,16 +133,6 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         }
     }
 
-    /// Returns whether there are any items in the filtered list
-    pub fn is_empty(&self) -> bool {
-        self.filtered.items.is_empty()
-    }
-
-    /// Returns the number of filtered items
-    pub fn len(&self) -> usize {
-        self.filtered.items.len()
-    }
-
     /// Handle common navigation keys (j/k/G/gg pattern)
     pub fn handle_navigation(
         &mut self,
@@ -199,21 +141,25 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     ) -> KeyResult {
         match key_code {
             KeyCode::Down | KeyCode::Char('j') => {
-                self.next();
+                self.filtered.next();
                 KeyResult::Consumed
             }
             KeyCode::Up | KeyCode::Char('k') => {
-                self.previous();
+                self.filtered.previous();
                 KeyResult::Consumed
             }
             KeyCode::Char('G') => {
-                self.select_last();
+                if !self.filtered.items.is_empty() {
+                    self.filtered
+                        .state
+                        .select(Some(self.filtered.items.len() - 1));
+                }
                 KeyResult::Consumed
             }
             KeyCode::Char('g') => {
                 if let Some(last_key) = event_buffer.pop() {
                     if last_key == KeyCode::Char('g') {
-                        self.select_first();
+                        self.filtered.state.select_first();
                     } else {
                         event_buffer.push(last_key);
                         event_buffer.push(key_code);
@@ -231,15 +177,18 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     pub fn handle_visual_mode_key(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('V') => {
-                self.enter_visual_mode();
+                if let Some(cursor) = self.filtered.state.selected() {
+                    self.visual_mode = true;
+                    self.visual_anchor = Some(cursor);
+                }
                 KeyResult::Consumed
             }
             KeyCode::Esc => {
                 if self.visual_mode {
-                    self.exit_visual_mode();
+                    self.visual_mode = false;
+                    self.visual_anchor = None;
                     KeyResult::Consumed
                 } else {
-                    // Esc not in visual mode - pass through for panel navigation
                     KeyResult::PassThrough
                 }
             }
@@ -279,8 +228,8 @@ mod tests {
     #[test]
     fn test_new_table_is_empty() {
         let table: FilterableTable<TestItem> = FilterableTable::new();
-        assert!(table.is_empty());
-        assert_eq!(table.len(), 0);
+        assert!(table.filtered.items.is_empty());
+        assert_eq!(table.filtered.items.len(), 0);
         assert!(table.current().is_none());
     }
 
@@ -298,8 +247,8 @@ mod tests {
             },
         ];
         table.set_items(items);
-        assert_eq!(table.len(), 2);
-        assert!(!table.is_empty());
+        assert_eq!(table.filtered.items.len(), 2);
+        assert!(!table.filtered.items.is_empty());
     }
 
     #[test]
@@ -324,19 +273,19 @@ mod tests {
         assert!(table.current().is_none());
 
         // Move next, should select first
-        table.next();
+        table.filtered.next();
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
 
         // Move next
-        table.next();
+        table.filtered.next();
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("2"));
 
         // Select last
-        table.select_last();
+        table.filtered.state.select(Some(table.filtered.items.len() - 1));
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("3"));
 
         // Select first
-        table.select_first();
+        table.filtered.state.select_first();
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
     }
 
@@ -359,18 +308,19 @@ mod tests {
         ]);
 
         // Select first item
-        table.next();
+        table.filtered.next();
         assert!(table.visual_selection().is_none());
 
         // Enter visual mode
-        table.enter_visual_mode();
+        table.visual_mode = true;
+        table.visual_anchor = table.filtered.state.selected();
         assert!(table.visual_mode);
         assert_eq!(table.visual_anchor, Some(0));
         assert_eq!(table.visual_selection_count(), 1);
 
         // Move down to expand selection
-        table.next();
-        table.next();
+        table.filtered.next();
+        table.filtered.next();
         assert_eq!(table.visual_selection_count(), 3);
 
         // Get selected IDs
@@ -378,7 +328,8 @@ mod tests {
         assert_eq!(ids, vec!["1", "2", "3"]);
 
         // Exit visual mode
-        table.exit_visual_mode();
+        table.visual_mode = false;
+        table.visual_anchor = None;
         assert!(!table.visual_mode);
         assert!(table.visual_selection().is_none());
     }
@@ -401,7 +352,7 @@ mod tests {
         assert!(table.selected_ids(|item| item.id.clone()).is_empty());
 
         // Select first item
-        table.next();
+        table.filtered.next();
         let ids = table.selected_ids(|item| item.id.clone());
         assert_eq!(ids, vec!["1"]);
     }
@@ -475,7 +426,7 @@ mod tests {
         ]);
 
         // Select first item
-        table.next();
+        table.filtered.next();
         assert!(!table.visual_mode);
 
         // V key enters visual mode

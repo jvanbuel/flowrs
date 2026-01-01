@@ -30,7 +30,7 @@ impl ConfigModel {
         let mut table = FilterableTable::new();
         table.set_items(configs.to_vec());
         let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
-        table.set_primary_values("name", config_names);
+        table.filter.set_primary_values("name", config_names);
 
         Self {
             table,
@@ -45,11 +45,6 @@ impl ConfigModel {
             model.popup.show_error(errors);
         }
         model
-    }
-
-    /// Apply filter to configs
-    pub fn filter_configs(&mut self) {
-        self.table.apply_filter();
     }
 
     /// Handle model-specific keys
@@ -103,7 +98,7 @@ impl Model for ConfigModel {
 
 impl Widget for &mut ConfigModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.table.is_filter_active() {
+        let rects = if self.table.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)

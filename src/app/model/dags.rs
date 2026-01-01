@@ -53,11 +53,6 @@ impl DagModel {
         Self::default()
     }
 
-    /// Apply filter to the DAGs
-    pub fn filter_dags(&mut self) {
-        self.table.apply_filter();
-    }
-
     /// Get the currently selected DAG (mutable)
     pub fn current(&mut self) -> Option<&mut Dag> {
         self.table.current_mut()
@@ -190,7 +185,7 @@ impl Model for DagModel {
 
 impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.table.is_filter_active() {
+        let rects = if self.table.filter.is_active() {
             let rects = Layout::default()
                 .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
                 .margin(0)
