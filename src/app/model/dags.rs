@@ -16,8 +16,7 @@ use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
-    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE,
-    TABLE_HEADER_STYLE, TEXT_PRIMARY,
+    BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
 };
 
 use super::popup::dags::DagPopUp;
@@ -185,20 +184,8 @@ impl Model for DagModel {
 
 impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.table.filter.is_active() {
-            let rects = Layout::default()
-                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
-                .margin(0)
-                .split(area);
+        let content_area = self.table.render_with_filter(area, buf);
 
-            self.table.filter.render_widget(rects[1], buf);
-            rects
-        } else {
-            Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .margin(0)
-                .split(area)
-        };
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
@@ -256,11 +243,7 @@ impl Widget for &mut DagModel {
                             },
                         )),
                     ])
-                    .style(if (idx % 2) == 0 {
-                        DEFAULT_STYLE
-                    } else {
-                        ALT_ROW_STYLE
-                    })
+                    .style(self.table.row_style(idx))
                 });
         let t = Table::new(
             rows,
@@ -280,18 +263,15 @@ impl Widget for &mut DagModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if let Some(filter_text) = self.table.filter.filter_display() {
-                block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {filter_text} "),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                )))
+            if let Some(title) = self.table.status_title() {
+                block.title_bottom(title)
             } else {
                 block
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
 
-        StatefulWidget::render(t, rects[0], buf, &mut self.table.filtered.state);
+        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
         // Render any active popup (error, commands, or custom)
         (&self.popup).render(area, buf);

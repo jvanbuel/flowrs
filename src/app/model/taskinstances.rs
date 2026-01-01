@@ -4,9 +4,8 @@ use super::popup::taskinstances::commands::TASK_COMMAND_POP_UP;
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
+use ratatui::layout::{Constraint, Rect};
+use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::format_description;
 
@@ -15,10 +14,7 @@ use crate::airflow::model::common::TaskInstance;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::theme::{
-    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE,
-    TABLE_HEADER_STYLE,
-};
+use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
 use crate::ui::TIME_FORMAT;
 
 use super::popup::taskinstances::clear::ClearTaskInstancePopup;
@@ -223,26 +219,12 @@ impl Model for TaskInstanceModel {
 }
 impl Widget for &mut TaskInstanceModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let rects = if self.table.filter.is_active() {
-            let rects = Layout::default()
-                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
-                .margin(0)
-                .split(area);
-
-            self.table.filter.render_widget(rects[1], buffer);
-            rects
-        } else {
-            Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .margin(0)
-                .split(area)
-        };
+        let content_area = self.table.render_with_filter(area, buffer);
 
         let headers = ["Task ID", "Execution Date", "Duration", "State", "Tries"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
-        let visual_selection = self.table.visual_selection();
         let rows = self
             .table
             .filtered
@@ -284,15 +266,7 @@ impl Widget for &mut TaskInstanceModel {
                     }),
                     Line::from(format!("{:?}", item.try_number)),
                 ])
-                .style(
-                    if visual_selection.as_ref().is_some_and(|r| r.contains(&idx)) {
-                        MARKED_STYLE
-                    } else if (idx % 2) == 0 {
-                        DEFAULT_STYLE
-                    } else {
-                        ALT_ROW_STYLE
-                    },
-                )
+                .style(self.table.row_style(idx))
             });
         let t = Table::new(
             rows,
@@ -311,37 +285,15 @@ impl Widget for &mut TaskInstanceModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            match (self.table.visual_mode, self.table.filter.filter_display()) {
-                (true, Some(filter_text)) => block.title_bottom(Line::from(vec![
-                    Span::raw(" -- VISUAL ("),
-                    Span::styled(
-                        format!("{}", self.table.visual_selection_count()),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw(" selected) -- | "),
-                    Span::styled(
-                        format!("Filter: {filter_text} "),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                ])),
-                (true, None) => block.title_bottom(Line::from(vec![
-                    Span::raw(" -- VISUAL ("),
-                    Span::styled(
-                        format!("{}", self.table.visual_selection_count()),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw(" selected) -- "),
-                ])),
-                (false, Some(filter_text)) => block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {filter_text} "),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                ))),
-                (false, None) => block,
+            if let Some(title) = self.table.status_title() {
+                block.title_bottom(title)
+            } else {
+                block
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
 
-        StatefulWidget::render(t, rects[0], buffer, &mut self.table.filtered.state);
+        StatefulWidget::render(t, content_area, buffer, &mut self.table.filtered.state);
 
         // Render any active popup (error, commands, or custom)
         (&self.popup).render(area, buffer);

@@ -1,8 +1,7 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::Color;
-use ratatui::style::{Modifier, Style};
+use ratatui::layout::{Constraint, Rect};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
@@ -19,8 +18,7 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
-    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE,
-    SURFACE_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE,
+    BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE,
 };
 use crate::ui::TIME_FORMAT;
 
@@ -393,20 +391,7 @@ impl Model for DagRunModel {
 
 impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        let rects = if self.table.filter.is_active() {
-            let rects = Layout::default()
-                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
-                .margin(0)
-                .split(area);
-
-            self.table.filter.render_widget(rects[1], buf);
-            rects
-        } else {
-            Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .margin(0)
-                .split(area)
-        };
+        let content_area = self.table.render_with_filter(area, buf);
 
         let headers = [
             "State",
@@ -431,14 +416,13 @@ impl Widget for &mut DagRunModel {
 
         // Calculate the width available for the Duration column
         // Total width - borders(2) - state(6) - dag_run_id(variable) - logical_date(20) - type(11) - time(10)
-        let table_inner_width = rects[0].width.saturating_sub(2); // Subtract borders
+        let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
         let fixed_columns_width = 6 + 20 + 11 + 10 + 10; // State + Logical Date + Type + Time + spacing
         let dag_run_id_width = 30; // Fixed width for dag_run_id
         let gauge_width = table_inner_width
             .saturating_sub(fixed_columns_width + dag_run_id_width)
             .max(10) as usize;
 
-        let visual_selection = self.table.visual_selection();
         let rows = self
             .table
             .filtered
@@ -488,15 +472,7 @@ impl Widget for &mut DagRunModel {
                     duration_cell,
                     time_cell,
                 ])
-                .style(
-                    if visual_selection.as_ref().is_some_and(|r| r.contains(&idx)) {
-                        MARKED_STYLE
-                    } else if (idx % 2) == 0 {
-                        DEFAULT_STYLE
-                    } else {
-                        ALT_ROW_STYLE
-                    },
-                )
+                .style(self.table.row_style(idx))
             });
         let t = Table::new(
             rows,
@@ -516,36 +492,14 @@ impl Widget for &mut DagRunModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            match (self.table.visual_mode, self.table.filter.filter_display()) {
-                (true, Some(filter_text)) => block.title_bottom(Line::from(vec![
-                    Span::raw(" -- VISUAL ("),
-                    Span::styled(
-                        format!("{}", self.table.visual_selection_count()),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw(" selected) -- | "),
-                    Span::styled(
-                        format!("Filter: {filter_text} "),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                ])),
-                (true, None) => block.title_bottom(Line::from(vec![
-                    Span::raw(" -- VISUAL ("),
-                    Span::styled(
-                        format!("{}", self.table.visual_selection_count()),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw(" selected) -- "),
-                ])),
-                (false, Some(filter_text)) => block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {filter_text} "),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                ))),
-                (false, None) => block,
+            if let Some(title) = self.table.status_title() {
+                block.title_bottom(title)
+            } else {
+                block
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
-        StatefulWidget::render(t, rects[0], buf, &mut self.table.filtered.state);
+        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
         if let Some(cached_lines) = &self.dag_code.cached_lines {
             let area = popup_area(area, 60, 90);
