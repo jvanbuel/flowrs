@@ -38,7 +38,7 @@ pub struct TaskInstanceList {
 // From trait implementations for v1 models
 impl From<v1::model::taskinstance::TaskInstanceResponse> for TaskInstance {
     fn from(value: v1::model::taskinstance::TaskInstanceResponse) -> Self {
-        TaskInstance {
+        Self {
             task_id: value.task_id,
             dag_id: value.dag_id,
             dag_run_id: value.dag_run_id,
@@ -66,7 +66,7 @@ impl From<v1::model::taskinstance::TaskInstanceResponse> for TaskInstance {
 
 impl From<v1::model::taskinstance::TaskInstanceCollectionResponse> for TaskInstanceList {
     fn from(value: v1::model::taskinstance::TaskInstanceCollectionResponse) -> Self {
-        TaskInstanceList {
+        Self {
             task_instances: value
                 .task_instances
                 .into_iter()
@@ -80,7 +80,7 @@ impl From<v1::model::taskinstance::TaskInstanceCollectionResponse> for TaskInsta
 // From trait implementations for v2 models
 impl From<v2::model::taskinstance::TaskInstance> for TaskInstance {
     fn from(value: v2::model::taskinstance::TaskInstance) -> Self {
-        TaskInstance {
+        Self {
             task_id: value.task_id,
             dag_id: value.dag_id,
             dag_run_id: value.dag_run_id,
@@ -108,7 +108,7 @@ impl From<v2::model::taskinstance::TaskInstance> for TaskInstance {
 
 impl From<v2::model::taskinstance::TaskInstanceList> for TaskInstanceList {
     fn from(value: v2::model::taskinstance::TaskInstanceList) -> Self {
-        TaskInstanceList {
+        Self {
             task_instances: value
                 .task_instances
                 .into_iter()

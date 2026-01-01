@@ -30,13 +30,13 @@ impl ConfigPaths {
         let read_path = if xdg_exists {
             xdg_path.clone()
         } else if legacy_exists {
-            legacy_path.clone()
+            legacy_path
         } else {
             // Neither exists - default to XDG for new configs
             xdg_path.clone()
         };
 
-        ConfigPaths {
+        Self {
             read_path,
             write_path: xdg_path,
             has_legacy_conflict: xdg_exists && legacy_exists,

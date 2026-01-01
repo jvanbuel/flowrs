@@ -34,7 +34,7 @@ pub struct App {
     pub focused: bool,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Panel {
     Config,
     Dag,
@@ -66,11 +66,11 @@ impl App {
             Some(WarningPopup::new(warnings))
         };
 
-        App {
+        Self {
             config,
             environment_state: EnvironmentStateContainer::new(),
             dags: DagModel::new(),
-            configs: ConfigModel::new_with_errors(servers, errors),
+            configs: ConfigModel::new_with_errors(&servers, errors),
             dagruns: DagRunModel::new(),
             task_instances: TaskInstanceModel::new(),
             logs: LogModel::new(),
@@ -88,7 +88,7 @@ impl App {
         }
     }
 
-    pub fn next_panel(&mut self) {
+    pub const fn next_panel(&mut self) {
         match self.active_panel {
             Panel::Config => self.active_panel = Panel::Dag,
             Panel::Dag => self.active_panel = Panel::DAGRun,
@@ -98,7 +98,7 @@ impl App {
         }
     }
 
-    pub fn previous_panel(&mut self) {
+    pub const fn previous_panel(&mut self) {
         match self.active_panel {
             Panel::Config => (),
             Panel::Dag => self.active_panel = Panel::Config,
@@ -196,11 +196,24 @@ impl App {
             Panel::Dag => {
                 self.dags.all = self.environment_state.get_active_dags();
                 self.dags.dag_stats = self.environment_state.get_active_dag_stats();
+                // Set primary values for autocomplete (dag_id is the primary field)
+                let dag_ids: Vec<String> = self.dags.all.iter().map(|d| d.dag_id.clone()).collect();
+                self.dags.filter.set_primary_values("dag_id", dag_ids);
                 self.dags.filter_dags();
             }
             Panel::DAGRun => {
                 if let Some(dag_id) = &self.dagruns.dag_id {
                     self.dagruns.all = self.environment_state.get_active_dag_runs(dag_id);
+                    // Set primary values for autocomplete (dag_run_id is the primary field)
+                    let dag_run_ids: Vec<String> = self
+                        .dagruns
+                        .all
+                        .iter()
+                        .map(|dr| dr.dag_run_id.clone())
+                        .collect();
+                    self.dagruns
+                        .filter
+                        .set_primary_values("dag_run_id", dag_run_ids);
                     self.dagruns.filter_dag_runs();
                 } else {
                     self.dagruns.all.clear();
@@ -214,6 +227,16 @@ impl App {
                         .environment_state
                         .get_active_task_instances(dag_id, dag_run_id);
                     self.task_instances.sort_task_instances();
+                    // Set primary values for autocomplete (task_id is the primary field)
+                    let task_ids: Vec<String> = self
+                        .task_instances
+                        .all
+                        .iter()
+                        .map(|ti| ti.task_id.clone())
+                        .collect();
+                    self.task_instances
+                        .filter
+                        .set_primary_values("task_id", task_ids);
                     self.task_instances.filter_task_instances();
                 } else {
                     self.task_instances.all.clear();
@@ -231,7 +254,10 @@ impl App {
                 }
             }
             Panel::Config => {
-                // Config panel doesn't need syncing
+                // Set primary values for config filter (name is the primary field)
+                let config_names: Vec<String> =
+                    self.configs.all.iter().map(|c| c.name.clone()).collect();
+                self.configs.filter.set_primary_values("name", config_names);
             }
         }
     }
