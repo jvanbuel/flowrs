@@ -4,7 +4,6 @@ use log::debug;
 
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::dagruns::mark::MarkState;
-use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
 
 /// Handle updating the list of DAG runs for a specific DAG.
@@ -27,7 +26,7 @@ pub async fn handle_update_dag_runs(
             app.sync_panel_data();
         }
         Err(e) => {
-            app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+            app.dagruns.popup.show_error(vec![e.to_string()]);
         }
     }
 }
@@ -44,7 +43,7 @@ pub async fn handle_clear_dag_run(
     if let Err(e) = dag_run {
         debug!("Error clearing dag_run: {e}");
         let mut app = app.lock().unwrap();
-        app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+        app.dagruns.popup.show_error(vec![e.to_string()]);
     }
 }
 
@@ -68,7 +67,7 @@ pub async fn handle_mark_dag_run(
     if let Err(e) = dag_run {
         debug!("Error marking dag_run: {e}");
         let mut app = app.lock().unwrap();
-        app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+        app.dagruns.popup.show_error(vec![e.to_string()]);
     }
 }
 
@@ -80,9 +79,15 @@ pub async fn handle_trigger_dag_run(
 ) {
     debug!("Triggering dag_run: {dag_id}");
     let dag_run = client.trigger_dag_run(dag_id, None).await;
-    if let Err(e) = dag_run {
-        debug!("Error triggering dag_run: {e}");
-        let mut app = app.lock().unwrap();
-        app.dagruns.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+    match dag_run {
+        Ok(()) => {
+            // Refresh the dag runs list to show the newly triggered run
+            handle_update_dag_runs(app, client, dag_id).await;
+        }
+        Err(e) => {
+            debug!("Error triggering dag_run: {e}");
+            let mut app = app.lock().unwrap();
+            app.dagruns.popup.show_error(vec![e.to_string()]);
+        }
     }
 }

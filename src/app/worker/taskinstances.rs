@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use log::debug;
 
 use crate::airflow::traits::AirflowClient;
-use crate::app::model::popup::error::ErrorPopup;
 use crate::app::model::popup::taskinstances::mark::MarkState;
 use crate::app::state::App;
 
@@ -29,7 +28,7 @@ pub async fn handle_update_task_instances(
         }
         Err(e) => {
             log::error!("Error getting task instances: {e:?}");
-            app.task_instances.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+            app.task_instances.popup.show_error(vec![e.to_string()]);
         }
     }
 }
@@ -49,7 +48,7 @@ pub async fn handle_clear_task_instance(
     if let Err(e) = task_instance {
         debug!("Error clearing task_instance: {e}");
         let mut app = app.lock().unwrap();
-        app.task_instances.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+        app.task_instances.popup.show_error(vec![e.to_string()]);
     }
 }
 
@@ -75,6 +74,6 @@ pub async fn handle_mark_task_instance(
     if let Err(e) = task_instance {
         debug!("Error marking task_instance: {e}");
         let mut app = app.lock().unwrap();
-        app.task_instances.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+        app.task_instances.popup.show_error(vec![e.to_string()]);
     }
 }

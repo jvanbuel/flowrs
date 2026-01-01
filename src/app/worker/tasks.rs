@@ -22,7 +22,7 @@ pub async fn handle_update_tasks(
             let mut app = app.lock().unwrap();
             app.task_instances.task_graph = Some(graph);
             app.task_instances.sort_task_instances();
-            app.task_instances.filter_task_instances();
+            app.task_instances.table.apply_filter();
         }
         Err(e) => {
             // Graceful degradation: log warning but don't show error popup

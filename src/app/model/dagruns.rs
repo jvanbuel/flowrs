@@ -1,14 +1,12 @@
 use crossterm::event::KeyCode;
 use log::debug;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::Color;
-use ratatui::style::{Modifier, Style};
+use ratatui::layout::{Constraint, Rect};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
     ScrollbarState, StatefulWidget, Table, Widget, Wrap,
 };
-use std::ops::RangeInclusive;
 use syntect::easy::HighlightLines;
 use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxSet;
@@ -20,38 +18,41 @@ use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
-    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, MARKED_STYLE, SELECTED_ROW_STYLE,
-    SURFACE_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE,
+    BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE,
 };
 use crate::ui::TIME_FORMAT;
 
-use super::popup::commands_help::CommandPopUp;
 use super::popup::dagruns::commands::DAGRUN_COMMAND_POP_UP;
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
-use super::popup::error::ErrorPopup;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
-use super::{
-    filter::{filter_items, FilterStateMachine, Filterable},
-    Model, StatefulTable,
-};
+use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
-#[derive(Default)]
+/// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
 pub struct DagRunModel {
     pub dag_id: Option<String>,
     pub dag_code: DagCodeWidget,
-    pub all: Vec<DagRun>,
-    pub filtered: StatefulTable<DagRun>,
-    pub filter: FilterStateMachine,
-    pub visual_mode: bool,
-    pub visual_anchor: Option<usize>,
-    pub popup: Option<DagRunPopUp>,
-    pub commands: Option<&'static CommandPopUp<'static>>,
-    pub error_popup: Option<ErrorPopup>,
+    /// Filterable table containing all DAG runs and filtered view
+    pub table: FilterableTable<DagRun>,
+    /// Unified popup state (error, commands, or custom for this model)
+    pub popup: Popup<DagRunPopUp>,
     ticks: u32,
-    event_buffer: Vec<FlowrsEvent>,
+    event_buffer: Vec<KeyCode>,
+}
+
+impl Default for DagRunModel {
+    fn default() -> Self {
+        Self {
+            dag_id: None,
+            dag_code: DagCodeWidget::default(),
+            table: FilterableTable::new(),
+            popup: Popup::None,
+            ticks: 0,
+            event_buffer: Vec::new(),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -158,74 +159,176 @@ impl DagRunModel {
         ])
     }
 
-    pub fn filter_dag_runs(&mut self) {
-        let conditions = self.filter.active_conditions();
-        let mut filtered = filter_items(&self.all, &conditions);
+    /// Sort filtered DAG runs by `logical_date` descending
+    /// Call this after `apply_filter()` to ensure proper ordering
+    pub fn sort_dag_runs(&mut self) {
         // Sort by logical_date (execution date) descending, with fallback to start_date
         // This ensures queued runs (which have no start_date yet) appear in chronological order
-        filtered.sort_by(|a, b| {
+        self.table.filtered.items.sort_by(|a, b| {
             b.logical_date
                 .or(b.start_date)
                 .cmp(&a.logical_date.or(a.start_date))
         });
-        self.filtered.items = filtered;
     }
 
+    /// Get the currently selected DAG run
     pub fn current(&self) -> Option<&DagRun> {
-        self.filtered
-            .state
-            .selected()
-            .map(|i| &self.filtered.items[i])
+        self.table.current()
     }
 
-    /// Returns the inclusive range of selected indices, if in visual mode
-    fn visual_selection(&self) -> Option<RangeInclusive<usize>> {
-        if !self.visual_mode {
-            return None;
-        }
-        let anchor = self.visual_anchor?;
-        let cursor = self.filtered.state.selected()?;
-        let (start, end) = if anchor <= cursor {
-            (anchor, cursor)
-        } else {
-            (cursor, anchor)
-        };
-        Some(start..=end)
-    }
-
-    /// Returns count of selected items (for bottom border display)
-    fn visual_selection_count(&self) -> usize {
-        self.visual_selection()
-            .map_or(0, |r| r.end() - r.start() + 1)
-    }
-
-    /// Returns selected DAG run IDs for passing to mark popup
+    /// Returns selected DAG run IDs for passing to mark/clear popups
     fn selected_dag_run_ids(&self) -> Vec<String> {
-        match self.visual_selection() {
-            Some(range) => range
-                .filter_map(|i| self.filtered.items.get(i))
-                .map(|item| item.dag_run_id.clone())
-                .collect(),
-            None => {
-                // Normal mode: just current item
-                self.filtered
-                    .state
-                    .selected()
-                    .and_then(|i| self.filtered.items.get(i))
-                    .map(|item| vec![item.dag_run_id.clone()])
-                    .unwrap_or_default()
-            }
-        }
+        self.table.selected_ids(|item| item.dag_run_id.clone())
     }
 
+    /// Mark a DAG run with a new status (optimistic update)
     pub fn mark_dag_run(&mut self, dag_run_id: &str, status: &str) {
         if let Some(dag_run) = self
+            .table
             .filtered
             .items
             .iter_mut()
             .find(|dr| dr.dag_run_id == dag_run_id)
         {
             dag_run.state = status.to_string();
+        }
+    }
+}
+
+impl DagRunModel {
+    /// Handle dag code viewer navigation
+    fn handle_dag_code_viewer(&mut self, key_code: KeyCode) -> KeyResult {
+        if self.dag_code.cached_lines.is_none() {
+            return KeyResult::Ignored;
+        }
+        match key_code {
+            KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
+                self.dag_code.clear();
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.dag_code.vertical_scroll = self.dag_code.vertical_scroll.saturating_add(1);
+                self.dag_code.vertical_scroll_state = self
+                    .dag_code
+                    .vertical_scroll_state
+                    .position(self.dag_code.vertical_scroll);
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.dag_code.vertical_scroll = self.dag_code.vertical_scroll.saturating_sub(1);
+                self.dag_code.vertical_scroll_state = self
+                    .dag_code
+                    .vertical_scroll_state
+                    .position(self.dag_code.vertical_scroll);
+            }
+            _ => {}
+        }
+        KeyResult::Consumed
+    }
+
+    /// Handle model-specific popups (returns messages from popup)
+    fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
+        let custom_popup = self.popup.custom_mut()?;
+        let (key_event, messages) = match custom_popup {
+            DagRunPopUp::Clear(p) => p.update(event),
+            DagRunPopUp::Mark(p) => p.update(event),
+            DagRunPopUp::Trigger(p) => p.update(event),
+        };
+        debug!("Popup messages: {messages:?}");
+
+        if let Some(FlowrsEvent::Key(key_event)) = &key_event {
+            if matches!(
+                key_event.code,
+                KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
+            ) {
+                let exit_visual =
+                    matches!(custom_popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
+                self.popup.close();
+                if exit_visual {
+                    self.table.visual_mode = false;
+                    self.table.visual_anchor = None;
+                }
+            }
+        }
+        Some(messages)
+    }
+
+    /// Handle model-specific keys
+    fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
+        match key_code {
+            KeyCode::Char('t') => {
+                if let Some(dag_id) = &self.dag_id {
+                    self.popup
+                        .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
+                            dag_id.clone(),
+                        )));
+                }
+                KeyResult::Consumed
+            }
+            KeyCode::Char('m') => {
+                let dag_run_ids = self.selected_dag_run_ids();
+                if let Some(dag_id) = &self.dag_id {
+                    if !dag_run_ids.is_empty() {
+                        self.popup
+                            .show_custom(DagRunPopUp::Mark(MarkDagRunPopup::new(
+                                dag_run_ids,
+                                dag_id.clone(),
+                            )));
+                    }
+                }
+                KeyResult::Consumed
+            }
+            KeyCode::Char('?') => {
+                self.popup.show_commands(&DAGRUN_COMMAND_POP_UP);
+                KeyResult::Consumed
+            }
+            KeyCode::Char('v') => {
+                if let Some(dag_id) = &self.dag_id {
+                    KeyResult::ConsumedWith(vec![WorkerMessage::GetDagCode {
+                        dag_id: dag_id.clone(),
+                    }])
+                } else {
+                    KeyResult::Consumed
+                }
+            }
+            KeyCode::Char('c') => {
+                let dag_run_ids = self.selected_dag_run_ids();
+                if let Some(dag_id) = &self.dag_id {
+                    if !dag_run_ids.is_empty() {
+                        self.popup
+                            .show_custom(DagRunPopUp::Clear(ClearDagRunPopup::new(
+                                dag_run_ids,
+                                dag_id.clone(),
+                            )));
+                    }
+                }
+                KeyResult::Consumed
+            }
+            KeyCode::Enter => {
+                if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                    KeyResult::PassWith(vec![
+                        WorkerMessage::UpdateTasks {
+                            dag_id: dag_id.clone(),
+                        },
+                        WorkerMessage::UpdateTaskInstances {
+                            dag_id: dag_id.clone(),
+                            dag_run_id: dag_run.dag_run_id.clone(),
+                            clear: true,
+                        },
+                    ])
+                } else {
+                    KeyResult::Consumed
+                }
+            }
+            KeyCode::Char('o') => {
+                if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                    KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::DagRun {
+                        dag_id: dag_id.clone(),
+                        dag_run_id: dag_run.dag_run_id.clone(),
+                    })])
+                } else {
+                    KeyResult::Consumed
+                }
+            }
+            _ => KeyResult::PassThrough,
         }
     }
 }
@@ -246,244 +349,47 @@ impl Model for DagRunModel {
                 } else {
                     Vec::default()
                 };
-                return (Some(FlowrsEvent::Tick), worker_messages);
+                (Some(FlowrsEvent::Tick), worker_messages)
             }
             FlowrsEvent::Key(key_event) => {
-                // Handle filter state machine
-                if self.filter.is_active()
-                    && self.filter.update(key_event, &DagRun::filterable_fields())
-                {
-                    self.filter_dag_runs();
+                // Filter needs special handling - apply filter then sort
+                if matches!(
+                    self.table.handle_filter_key(key_event),
+                    KeyResult::Consumed | KeyResult::ConsumedWith(_)
+                ) {
+                    self.sort_dag_runs();
                     return (None, vec![]);
                 }
 
-                if let Some(_error_popup) = &mut self.error_popup {
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc => {
-                            self.error_popup = None;
-                        }
-                        _ => (),
-                    }
-                    return (None, vec![]);
-                } else if let Some(_commands) = &mut self.commands {
-                    match key_event.code {
-                        KeyCode::Char('q' | '?') | KeyCode::Esc => {
-                            self.commands = None;
-                            return (None, vec![]);
-                        }
-                        _ => (),
-                    }
-                } else if let Some(popup) = &mut self.popup {
-                    // TODO: refactor this, should be all the same
-                    match popup {
-                        DagRunPopUp::Clear(popup) => {
-                            let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {messages:?}");
-                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
-                                match key_event.code {
-                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
-                                        self.popup = None;
-                                        self.visual_mode = false;
-                                        self.visual_anchor = None;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            return (None, messages);
-                        }
-                        DagRunPopUp::Mark(popup) => {
-                            let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {messages:?}");
-                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
-                                match key_event.code {
-                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
-                                        self.popup = None;
-                                        self.visual_mode = false;
-                                        self.visual_anchor = None;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            return (None, messages);
-                        }
-                        DagRunPopUp::Trigger(popup) => {
-                            let (key_event, messages) = popup.update(event);
-                            debug!("Popup messages: {messages:?}");
-                            if let Some(FlowrsEvent::Key(key_event)) = &key_event {
-                                match key_event.code {
-                                    KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q') => {
-                                        self.popup = None;
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            return (None, messages);
-                        }
-                    }
-                } else if self.dag_code.cached_lines.is_some() {
-                    match key_event.code {
-                        KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
-                            self.dag_code.clear();
-                            return (None, vec![]);
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            self.dag_code.vertical_scroll =
-                                self.dag_code.vertical_scroll.saturating_add(1);
-                            self.dag_code.vertical_scroll_state = self
-                                .dag_code
-                                .vertical_scroll_state
-                                .position(self.dag_code.vertical_scroll);
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            self.dag_code.vertical_scroll =
-                                self.dag_code.vertical_scroll.saturating_sub(1);
-                            self.dag_code.vertical_scroll_state = self
-                                .dag_code
-                                .vertical_scroll_state
-                                .position(self.dag_code.vertical_scroll);
-                        }
-                        _ => {}
-                    }
-                } else {
-                    match key_event.code {
-                        KeyCode::Esc => {
-                            if self.visual_mode {
-                                self.visual_mode = false;
-                                self.visual_anchor = None;
-                                return (None, vec![]);
-                            }
-                            return (Some(FlowrsEvent::Key(*key_event)), vec![]);
-                        }
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            self.filtered.next();
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            self.filtered.previous();
-                        }
-                        KeyCode::Char('G') => {
-                            if !self.filtered.items.is_empty() {
-                                self.filtered
-                                    .state
-                                    .select(Some(self.filtered.items.len() - 1));
-                            }
-                        }
-                        KeyCode::Char('g') => {
-                            if let Some(FlowrsEvent::Key(key_event)) = self.event_buffer.pop() {
-                                if key_event.code == KeyCode::Char('g') {
-                                    self.filtered.state.select_first();
-                                } else {
-                                    self.event_buffer.push(FlowrsEvent::Key(key_event));
-                                }
-                            } else {
-                                self.event_buffer.push(FlowrsEvent::Key(*key_event));
-                            }
-                        }
-                        KeyCode::Char('V') => {
-                            if let Some(cursor) = self.filtered.state.selected() {
-                                self.visual_mode = true;
-                                self.visual_anchor = Some(cursor);
-                            }
-                        }
-                        KeyCode::Char('t') => {
-                            self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                                self.dag_id
-                                    .clone()
-                                    .expect("DAG ID should be set when viewing DAG runs"),
-                            )));
-                        }
-                        KeyCode::Char('m') => {
-                            let dag_run_ids = self.selected_dag_run_ids();
-                            if let Some(dag_id) = &self.dag_id {
-                                if !dag_run_ids.is_empty() {
-                                    self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
-                                        dag_run_ids,
-                                        dag_id.clone(),
-                                    )));
-                                }
-                            }
-                        }
-                        KeyCode::Char('?') => {
-                            self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
-                        }
-                        KeyCode::Char('/') => {
-                            self.filter.activate();
-                            self.filter_dag_runs();
-                        }
-                        KeyCode::Char('v') => {
-                            if let Some(dag_id) = &self.dag_id {
-                                return (
-                                    None,
-                                    vec![WorkerMessage::GetDagCode {
-                                        dag_id: dag_id.clone(),
-                                    }],
-                                );
-                            }
-                        }
-                        KeyCode::Char('c') => {
-                            let dag_run_ids = self.selected_dag_run_ids();
-                            if let Some(dag_id) = &self.dag_id {
-                                if !dag_run_ids.is_empty() {
-                                    self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
-                                        dag_run_ids,
-                                        dag_id.clone(),
-                                    )));
-                                }
-                            }
-                        }
-                        KeyCode::Enter => {
-                            if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
-                                return (
-                                    Some(FlowrsEvent::Key(*key_event)),
-                                    vec![
-                                        WorkerMessage::UpdateTasks {
-                                            dag_id: dag_id.clone(),
-                                        },
-                                        WorkerMessage::UpdateTaskInstances {
-                                            dag_id: dag_id.clone(),
-                                            dag_run_id: dag_run.dag_run_id.clone(),
-                                            clear: true,
-                                        },
-                                    ],
-                                );
-                            }
-                        }
-                        KeyCode::Char('o') => {
-                            if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
-                                return (
-                                    Some(FlowrsEvent::Key(*key_event)),
-                                    vec![WorkerMessage::OpenItem(OpenItem::DagRun {
-                                        dag_id: dag_id.clone(),
-                                        dag_run_id: dag_run.dag_run_id.clone(),
-                                    })],
-                                );
-                            }
-                        }
-                        _ => {}
-                    }
+                // Popup handling (has its own update method)
+                if let Some(messages) = self.handle_popup(event) {
+                    return (None, messages);
                 }
+
+                // Chain the remaining handlers
+                let result = self
+                    .popup
+                    .handle_dismiss(key_event.code)
+                    .or_else(|| self.handle_dag_code_viewer(key_event.code))
+                    .or_else(|| self.table.handle_visual_mode_key(key_event.code))
+                    .or_else(|| {
+                        self.table
+                            .handle_navigation(key_event.code, &mut self.event_buffer)
+                    })
+                    .or_else(|| self.handle_keys(key_event.code));
+
+                result.into_result(event)
             }
-            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {}
+            FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
+                (Some(event.clone()), vec![])
+            }
         }
-        (Some(event.clone()), vec![])
     }
 }
 
 impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        let rects = if self.filter.is_active() {
-            let rects = Layout::default()
-                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
-                .margin(0)
-                .split(area);
-
-            self.filter.render_widget(rects[1], buf);
-            rects
-        } else {
-            Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .margin(0)
-                .split(area)
-        };
+        let content_area = self.table.render_with_filter(area, buf);
 
         let headers = [
             "State",
@@ -498,6 +404,7 @@ impl Widget for &mut DagRunModel {
 
         // Calculate max duration for normalization
         let max_duration = self
+            .table
             .filtered
             .items
             .iter()
@@ -507,66 +414,64 @@ impl Widget for &mut DagRunModel {
 
         // Calculate the width available for the Duration column
         // Total width - borders(2) - state(6) - dag_run_id(variable) - logical_date(20) - type(11) - time(10)
-        let table_inner_width = rects[0].width.saturating_sub(2); // Subtract borders
+        let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
         let fixed_columns_width = 6 + 20 + 11 + 10 + 10; // State + Logical Date + Type + Time + spacing
         let dag_run_id_width = 30; // Fixed width for dag_run_id
         let gauge_width = table_inner_width
             .saturating_sub(fixed_columns_width + dag_run_id_width)
             .max(10) as usize;
 
-        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
-            let state_color = match item.state.as_str() {
-                "success" => AirflowStateColor::Success.into(),
-                "running" => AirflowStateColor::Running.into(),
-                "failed" => AirflowStateColor::Failed.into(),
-                "queued" => AirflowStateColor::Queued.into(),
-                _ => AirflowStateColor::None.into(),
-            };
-
-            let (duration_cell, time_cell) =
-                if let Some(duration) = DagRunModel::calculate_duration(item) {
-                    (
-                        DagRunModel::create_duration_gauge(
-                            duration,
-                            max_duration,
-                            state_color,
-                            gauge_width,
-                        ),
-                        Line::from(DagRunModel::format_duration(duration)),
-                    )
-                } else {
-                    (Line::from("-"), Line::from("-"))
+        let rows = self
+            .table
+            .filtered
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                let state_color = match item.state.as_str() {
+                    "success" => AirflowStateColor::Success.into(),
+                    "running" => AirflowStateColor::Running.into(),
+                    "failed" => AirflowStateColor::Failed.into(),
+                    "queued" => AirflowStateColor::Queued.into(),
+                    _ => AirflowStateColor::None.into(),
                 };
 
-            Row::new(vec![
-                Line::from(Span::styled("■", Style::default().fg(state_color))),
-                Line::from(Span::styled(
-                    item.dag_run_id.as_str(),
-                    Style::default().add_modifier(Modifier::BOLD),
-                )),
-                Line::from(if let Some(date) = item.logical_date {
-                    date.format(
-                        &format_description::parse(TIME_FORMAT)
-                            .expect("TIME_FORMAT constant should be a valid time format"),
-                    )
-                    .expect("Date formatting with TIME_FORMAT should succeed")
-                } else {
-                    "None".to_string()
-                }),
-                Line::from(item.run_type.as_str()),
-                duration_cell,
-                time_cell,
-            ])
-            .style(
-                if self.visual_selection().is_some_and(|r| r.contains(&idx)) {
-                    MARKED_STYLE
-                } else if (idx % 2) == 0 {
-                    DEFAULT_STYLE
-                } else {
-                    ALT_ROW_STYLE
-                },
-            )
-        });
+                let (duration_cell, time_cell) =
+                    if let Some(duration) = DagRunModel::calculate_duration(item) {
+                        (
+                            DagRunModel::create_duration_gauge(
+                                duration,
+                                max_duration,
+                                state_color,
+                                gauge_width,
+                            ),
+                            Line::from(DagRunModel::format_duration(duration)),
+                        )
+                    } else {
+                        (Line::from("-"), Line::from("-"))
+                    };
+
+                Row::new(vec![
+                    Line::from(Span::styled("■", Style::default().fg(state_color))),
+                    Line::from(Span::styled(
+                        item.dag_run_id.as_str(),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    )),
+                    Line::from(if let Some(date) = item.logical_date {
+                        date.format(
+                            &format_description::parse(TIME_FORMAT)
+                                .expect("TIME_FORMAT constant should be a valid time format"),
+                        )
+                        .expect("Date formatting with TIME_FORMAT should succeed")
+                    } else {
+                        "None".to_string()
+                    }),
+                    Line::from(item.run_type.as_str()),
+                    duration_cell,
+                    time_cell,
+                ])
+                .style(self.table.row_style(idx))
+            });
         let t = Table::new(
             rows,
             &[
@@ -585,36 +490,14 @@ impl Widget for &mut DagRunModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            match (self.visual_mode, self.filter.filter_display()) {
-                (true, Some(filter_text)) => block.title_bottom(Line::from(vec![
-                    Span::raw(" -- VISUAL ("),
-                    Span::styled(
-                        format!("{}", self.visual_selection_count()),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw(" selected) -- | "),
-                    Span::styled(
-                        format!("Filter: {filter_text} "),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                ])),
-                (true, None) => block.title_bottom(Line::from(vec![
-                    Span::raw(" -- VISUAL ("),
-                    Span::styled(
-                        format!("{}", self.visual_selection_count()),
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    ),
-                    Span::raw(" selected) -- "),
-                ])),
-                (false, Some(filter_text)) => block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {filter_text} "),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                ))),
-                (false, None) => block,
+            if let Some(title) = self.table.status_title() {
+                block.title_bottom(title)
+            } else {
+                block
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
-        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
         if let Some(cached_lines) = &self.dag_code.cached_lines {
             let area = popup_area(area, 60, 90);
@@ -644,25 +527,15 @@ impl Widget for &mut DagRunModel {
             scrollbar.render(area, buf, &mut self.dag_code.vertical_scroll_state);
         }
 
-        match &mut self.popup {
-            Some(DagRunPopUp::Clear(popup)) => {
-                popup.render(area, buf);
-            }
-            Some(DagRunPopUp::Mark(popup)) => {
-                popup.render(area, buf);
-            }
-            Some(DagRunPopUp::Trigger(popup)) => {
-                popup.render(area, buf);
-            }
-            _ => (),
-        }
+        // Render any active popup (error, commands, or custom)
+        (&self.popup).render(area, buf);
 
-        if let Some(commands) = &self.commands {
-            commands.render(area, buf);
-        }
-
-        if let Some(error_popup) = &self.error_popup {
-            error_popup.render(area, buf);
+        // Render custom popups that need special handling
+        match self.popup.custom_mut() {
+            Some(DagRunPopUp::Clear(popup)) => popup.render(area, buf),
+            Some(DagRunPopUp::Mark(popup)) => popup.render(area, buf),
+            Some(DagRunPopUp::Trigger(popup)) => popup.render(area, buf),
+            None => {}
         }
     }
 }
@@ -694,6 +567,7 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::model::filter::Filterable;
     use crossterm::event::{KeyEvent, KeyModifiers};
     use time::macros::datetime;
 
@@ -739,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_dag_runs_sorts_by_logical_date() {
+    fn test_sort_dag_runs_by_logical_date() {
         // Create test DAG runs with different states and dates
         let mut model = DagRunModel::new();
 
@@ -780,20 +654,21 @@ mod tests {
         };
 
         // Add runs in random order to test sorting
-        model.all = vec![oldest_run, newest_run, queued_run];
+        model.table.all = vec![oldest_run, newest_run, queued_run];
 
-        // Apply filter (which also sorts)
-        model.filter_dag_runs();
+        // Apply filter then sort
+        model.table.apply_filter();
+        model.sort_dag_runs();
 
         // Verify runs are sorted by logical_date descending (newest first)
-        assert_eq!(model.filtered.items.len(), 3);
-        assert_eq!(model.filtered.items[0].dag_run_id, "run_3"); // Newest
-        assert_eq!(model.filtered.items[1].dag_run_id, "run_2"); // Queued (middle)
-        assert_eq!(model.filtered.items[2].dag_run_id, "run_1"); // Oldest
+        assert_eq!(model.table.filtered.items.len(), 3);
+        assert_eq!(model.table.filtered.items[0].dag_run_id, "run_3"); // Newest
+        assert_eq!(model.table.filtered.items[1].dag_run_id, "run_2"); // Queued (middle)
+        assert_eq!(model.table.filtered.items[2].dag_run_id, "run_1"); // Oldest
     }
 
     #[test]
-    fn test_filter_dag_runs_fallback_to_start_date() {
+    fn test_sort_dag_runs_fallback_to_start_date() {
         let mut model = DagRunModel::new();
 
         // Run with only start_date (logical_date is None)
@@ -818,17 +693,18 @@ mod tests {
             ..Default::default()
         };
 
-        model.all = vec![run_with_both, run_with_start];
-        model.filter_dag_runs();
+        model.table.all = vec![run_with_both, run_with_start];
+        model.table.apply_filter();
+        model.sort_dag_runs();
 
         // run_with_start should be first (newer start_date used as fallback)
-        assert_eq!(model.filtered.items.len(), 2);
-        assert_eq!(model.filtered.items[0].dag_run_id, "run_1");
-        assert_eq!(model.filtered.items[1].dag_run_id, "run_2");
+        assert_eq!(model.table.filtered.items.len(), 2);
+        assert_eq!(model.table.filtered.items[0].dag_run_id, "run_1");
+        assert_eq!(model.table.filtered.items[1].dag_run_id, "run_2");
     }
 
     #[test]
-    fn test_filter_dag_runs_with_prefix() {
+    fn test_filter_and_sort_dag_runs_with_prefix() {
         let mut model = DagRunModel::new();
 
         let run_manual = DagRun {
@@ -849,20 +725,21 @@ mod tests {
             ..Default::default()
         };
 
-        model.all = vec![run_manual, run_scheduled];
+        model.table.all = vec![run_manual, run_scheduled];
 
         // Filter by typing "manual" (activate filter and type)
-        model.filter.activate();
+        model.table.filter.activate();
         for c in "manual".chars() {
-            model.filter.update(
+            model.table.filter.update(
                 &KeyEvent::new(crossterm::event::KeyCode::Char(c), KeyModifiers::empty()),
                 &DagRun::filterable_fields(),
             );
         }
-        model.filter_dag_runs();
+        model.table.apply_filter();
+        model.sort_dag_runs();
 
         // Should only show the manual run
-        assert_eq!(model.filtered.items.len(), 1);
-        assert_eq!(model.filtered.items[0].dag_run_id, "manual_run_1");
+        assert_eq!(model.table.filtered.items.len(), 1);
+        assert_eq!(model.table.filtered.items[0].dag_run_id, "manual_run_1");
     }
 }

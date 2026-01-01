@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
 use super::model::popup::dagruns::mark::MarkState;
-use super::model::popup::error::ErrorPopup;
 use super::model::popup::taskinstances::mark::MarkState as TaskMarkState;
 use super::state::App;
 use anyhow::Result;
@@ -153,9 +152,9 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
 
     let Some(client) = client else {
         let mut app = app.lock().unwrap();
-        app.dags.error_popup = Some(ErrorPopup::from_strings(vec![
-            "No active environment selected".into(),
-        ]));
+        app.dags
+            .popup
+            .show_error(vec!["No active environment selected".into()]);
         app.loading = false;
         return Ok(());
     };

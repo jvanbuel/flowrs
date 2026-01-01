@@ -3,7 +3,6 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 
 use crate::app::environment_state::EnvironmentData;
-use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
 
 /// Handle configuration selection.
@@ -13,14 +12,14 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
         .lock()
         .map_err(|_| anyhow::anyhow!("Failed to acquire app lock"))?;
 
-    let Some(selected_config) = app.configs.filtered.items.get(idx).cloned() else {
+    let Some(selected_config) = app.configs.table.filtered.items.get(idx).cloned() else {
         log::error!(
             "Config index {idx} out of bounds (total: {})",
-            app.configs.filtered.items.len()
+            app.configs.table.filtered.items.len()
         );
-        app.configs.error_popup = Some(ErrorPopup::from_strings(vec![format!(
-            "Configuration index {idx} not found"
-        )]));
+        app.configs
+            .popup
+            .show_error(vec![format!("Configuration index {idx} not found")]);
         app.loading = false;
         return Ok(());
     };
@@ -36,9 +35,9 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
             }
             Err(e) => {
                 log::error!("Failed to create client for '{env_name}': {e}");
-                app.configs.error_popup = Some(ErrorPopup::from_strings(vec![format!(
-                    "Failed to connect to '{env_name}': {e}"
-                )]));
+                app.configs
+                    .popup
+                    .show_error(vec![format!("Failed to connect to '{env_name}': {e}")]);
                 app.loading = false;
                 return Ok(());
             }

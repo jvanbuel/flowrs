@@ -123,8 +123,10 @@ where
                             if *clear {
                                 app.dagruns.dag_id = Some(dag_id.clone());
                                 // Sync cached data immediately
-                                app.dagruns.all = app.environment_state.get_active_dag_runs(dag_id);
-                                app.dagruns.filter_dag_runs();
+                                app.dagruns.table.all =
+                                    app.environment_state.get_active_dag_runs(dag_id);
+                                app.dagruns.table.apply_filter();
+                                app.dagruns.sort_dag_runs();
                             }
                         }
                         WorkerMessage::UpdateTaskInstances {
@@ -136,10 +138,10 @@ where
                                 app.task_instances.dag_id = Some(dag_id.clone());
                                 app.task_instances.dag_run_id = Some(dag_run_id.clone());
                                 // Sync cached data immediately
-                                app.task_instances.all = app
+                                app.task_instances.table.all = app
                                     .environment_state
                                     .get_active_task_instances(dag_id, dag_run_id);
-                                app.task_instances.filter_task_instances();
+                                app.task_instances.table.apply_filter();
                             }
                         }
                         WorkerMessage::UpdateTaskLogs {

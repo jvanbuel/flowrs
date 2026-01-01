@@ -1,73 +1,77 @@
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, KeyEvent};
 use log::debug;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
+use ratatui::layout::{Constraint, Rect};
+use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::airflow::config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::{OpenItem, WorkerMessage};
-use crate::ui::theme::{
-    ACCENT, ALT_ROW_STYLE, BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE,
-};
+use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
 
-use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
-use super::popup::error::ErrorPopup;
-use super::{
-    filter::{filter_items, FilterStateMachine, Filterable},
-    Model, StatefulTable,
-};
+use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
-    pub all: Vec<AirflowConfig>,
-    pub filtered: StatefulTable<AirflowConfig>,
-    pub filter: FilterStateMachine,
-    pub commands: Option<&'static CommandPopUp<'static>>,
-    pub error_popup: Option<ErrorPopup>,
+    /// Filterable table containing all configs and filtered view
+    pub table: FilterableTable<AirflowConfig>,
+    /// Unified popup state (error, commands, or none for this model)
+    pub popup: Popup,
+    event_buffer: Vec<KeyCode>,
 }
 
 impl ConfigModel {
-    fn create_filter(configs: &[AirflowConfig]) -> FilterStateMachine {
-        let mut filter = FilterStateMachine::default();
-        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
-        filter.set_primary_values("name", config_names);
-        filter
-    }
-
     pub fn new(configs: &[AirflowConfig]) -> Self {
+        let mut table = FilterableTable::new();
+        table.set_items(configs.to_vec());
+        let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
+        table.filter.set_primary_values("name", config_names);
+
         Self {
-            all: configs.to_vec(),
-            filtered: StatefulTable::new(configs.to_vec()),
-            filter: Self::create_filter(configs),
-            commands: None,
-            error_popup: None,
+            table,
+            popup: Popup::None,
+            event_buffer: Vec::new(),
         }
     }
 
     pub fn new_with_errors(configs: &[AirflowConfig], errors: Vec<String>) -> Self {
-        let error_popup = if errors.is_empty() {
-            None
-        } else {
-            Some(ErrorPopup::from_strings(errors))
-        };
-
-        Self {
-            all: configs.to_vec(),
-            filtered: StatefulTable::new(configs.to_vec()),
-            filter: Self::create_filter(configs),
-            commands: None,
-            error_popup,
+        let mut model = Self::new(configs);
+        if !errors.is_empty() {
+            model.popup.show_error(errors);
         }
+        model
     }
 
-    pub fn filter_configs(&mut self) {
-        let conditions = self.filter.active_conditions();
-        let filtered = filter_items(&self.all, &conditions);
-        self.filtered.items = filtered;
+    /// Handle model-specific keys
+    fn handle_keys(&mut self, key_event: &KeyEvent) -> KeyResult {
+        match key_event.code {
+            KeyCode::Char('o') => {
+                if let Some(idx) = self.table.filtered.state.selected() {
+                    if let Some(item) = self.table.filtered.items.get(idx) {
+                        return KeyResult::PassWith(vec![WorkerMessage::OpenItem(
+                            OpenItem::Config(item.endpoint.clone()),
+                        )]);
+                    }
+                }
+                KeyResult::PassThrough
+            }
+            KeyCode::Char('?') => {
+                self.popup.show_commands(&CONFIG_COMMAND_POP_UP);
+                KeyResult::Consumed
+            }
+            KeyCode::Enter => {
+                if let Some(idx) = self.table.filtered.state.selected() {
+                    if let Some(item) = self.table.filtered.items.get(idx) {
+                        debug!("Selected config: {}", item.name);
+                        return KeyResult::PassWith(vec![WorkerMessage::ConfigSelected(idx)]);
+                    }
+                }
+                KeyResult::PassThrough
+            }
+            _ => KeyResult::PassThrough,
+        }
     }
 }
 
@@ -76,72 +80,17 @@ impl Model for ConfigModel {
         match event {
             FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),
             FlowrsEvent::Key(key_event) => {
-                // Handle filter state machine
-                if self.filter.is_active()
-                    && self
-                        .filter
-                        .update(key_event, &AirflowConfig::filterable_fields())
-                {
-                    self.filter_configs();
-                    return (None, vec![]);
-                }
+                let result = self
+                    .table
+                    .handle_filter_key(key_event)
+                    .or_else(|| self.popup.handle_dismiss(key_event.code))
+                    .or_else(|| {
+                        self.table
+                            .handle_navigation(key_event.code, &mut self.event_buffer)
+                    })
+                    .or_else(|| self.handle_keys(key_event));
 
-                if self.error_popup.is_some() {
-                    match key_event.code {
-                        KeyCode::Char('q') | KeyCode::Esc => {
-                            self.error_popup = None;
-                        }
-                        _ => (),
-                    }
-                } else if let Some(_commands) = &mut self.commands {
-                    match key_event.code {
-                        KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter => {
-                            self.commands = None;
-                        }
-                        _ => (),
-                    }
-                } else {
-                    match key_event.code {
-                        KeyCode::Down | KeyCode::Char('j') => {
-                            self.filtered.next();
-                        }
-                        KeyCode::Up | KeyCode::Char('k') => {
-                            self.filtered.previous();
-                        }
-                        KeyCode::Char('/') => {
-                            self.filter.activate();
-                            self.filter_configs();
-                        }
-                        KeyCode::Char('o') => {
-                            let selected_config =
-                                self.filtered.state.selected().unwrap_or_default();
-                            let endpoint = self.filtered.items[selected_config].endpoint.clone();
-                            return (
-                                Some(event.clone()),
-                                vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))],
-                            );
-                        }
-                        KeyCode::Char('?') => {
-                            self.commands = Some(&*CONFIG_COMMAND_POP_UP);
-                        }
-                        KeyCode::Enter => {
-                            let selected_config =
-                                self.filtered.state.selected().unwrap_or_default();
-                            debug!(
-                                "Selected config: {}",
-                                self.filtered.items[selected_config].name
-                            );
-
-                            return (
-                                Some(event.clone()),
-                                vec![WorkerMessage::ConfigSelected(selected_config)],
-                            );
-                        }
-                        _ => (),
-                    }
-                    return (Some(event.clone()), vec![]);
-                }
-                (None, vec![])
+                result.into_result(event)
             }
             FlowrsEvent::Mouse | FlowrsEvent::FocusGained | FlowrsEvent::FocusLost => {
                 (Some(event.clone()), vec![])
@@ -152,44 +101,34 @@ impl Model for ConfigModel {
 
 impl Widget for &mut ConfigModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let rects = if self.filter.is_active() {
-            let rects = Layout::default()
-                .constraints([Constraint::Fill(90), Constraint::Max(3)].as_ref())
-                .margin(0)
-                .split(area);
+        let content_area = self.table.render_with_filter(area, buf);
 
-            self.filter.render_widget(rects[1], buf);
-            rects
-        } else {
-            Layout::default()
-                .constraints([Constraint::Percentage(100)].as_ref())
-                .margin(0)
-                .split(area)
-        };
         let headers = ["Name", "Endpoint", "Managed", "Version"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
-        let rows = self.filtered.items.iter().enumerate().map(|(idx, item)| {
-            Row::new(vec![
-                Line::from(item.name.as_str()),
-                Line::from(item.endpoint.as_str()),
-                Line::from(
-                    item.managed
-                        .as_ref()
-                        .map_or_else(|| "None".to_string(), ToString::to_string),
-                ),
-                Line::from(match item.version {
-                    crate::airflow::config::AirflowVersion::V2 => "v2",
-                    crate::airflow::config::AirflowVersion::V3 => "v3",
-                }),
-            ])
-            .style(if (idx % 2) == 0 {
-                DEFAULT_STYLE
-            } else {
-                ALT_ROW_STYLE
-            })
-        });
+        let rows = self
+            .table
+            .filtered
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                Row::new(vec![
+                    Line::from(item.name.as_str()),
+                    Line::from(item.endpoint.as_str()),
+                    Line::from(
+                        item.managed
+                            .as_ref()
+                            .map_or_else(|| "None".to_string(), ToString::to_string),
+                    ),
+                    Line::from(match item.version {
+                        crate::airflow::config::AirflowVersion::V2 => "v2",
+                        crate::airflow::config::AirflowVersion::V3 => "v3",
+                    }),
+                ])
+                .style(self.table.row_style(idx))
+            });
 
         let t = Table::new(
             rows,
@@ -207,24 +146,16 @@ impl Widget for &mut ConfigModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
                 .title(" Press <?> to see available commands ");
-            if let Some(filter_text) = self.filter.filter_display() {
-                block.title_bottom(Line::from(Span::styled(
-                    format!(" Filter: {filter_text} "),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                )))
+            if let Some(title) = self.table.status_title() {
+                block.title_bottom(title)
             } else {
                 block
             }
         })
         .row_highlight_style(SELECTED_ROW_STYLE);
-        StatefulWidget::render(t, rects[0], buf, &mut self.filtered.state);
+        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
-        if let Some(commands) = &self.commands {
-            commands.render(area, buf);
-        }
-
-        if let Some(error_popup) = &self.error_popup {
-            error_popup.render(area, buf);
-        }
+        // Render any active popup (error or commands)
+        (&self.popup).render(area, buf);
     }
 }

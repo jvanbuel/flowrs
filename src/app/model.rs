@@ -6,9 +6,63 @@ pub mod config;
 pub mod dagruns;
 pub mod dags;
 pub mod filter;
+pub mod filterable_table;
 pub mod logs;
 pub mod popup;
 pub mod taskinstances;
+
+pub use filterable_table::FilterableTable;
+pub use popup::Popup;
+
+/// Result of handling a key event in the chain of responsibility pattern.
+///
+/// Handlers return this to indicate whether they consumed the event and
+/// what messages/events should be produced.
+#[derive(Debug)]
+pub enum KeyResult {
+    /// Event was consumed, no further processing needed
+    Consumed,
+    /// Event was consumed and produced worker messages
+    ConsumedWith(Vec<WorkerMessage>),
+    /// Event was consumed but should pass through (for panel navigation)
+    PassThrough,
+    /// Event was consumed, pass through with messages
+    PassWith(Vec<WorkerMessage>),
+    /// Event was not handled by this handler, try next in chain
+    Ignored,
+}
+
+impl KeyResult {
+    /// Chain handlers: if this result is Ignored, try the next handler
+    #[must_use]
+    pub fn or_else<F: FnOnce() -> KeyResult>(self, f: F) -> KeyResult {
+        match self {
+            KeyResult::Ignored => f(),
+            other => other,
+        }
+    }
+
+    /// Convert to the `update()` return type
+    #[allow(clippy::match_same_arms)] // PassThrough and Ignored are semantically different
+    pub fn into_result(self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+        match self {
+            KeyResult::Consumed => (None, vec![]),
+            KeyResult::ConsumedWith(msgs) => (None, msgs),
+            KeyResult::PassThrough => (Some(event.clone()), vec![]),
+            KeyResult::PassWith(msgs) => (Some(event.clone()), msgs),
+            KeyResult::Ignored => (Some(event.clone()), vec![]),
+        }
+    }
+
+    /// Create from a simple bool (true = consumed, false = ignored)
+    pub fn from_consumed(consumed: bool) -> Self {
+        if consumed {
+            KeyResult::Consumed
+        } else {
+            KeyResult::Ignored
+        }
+    }
+}
 
 pub trait Model {
     fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
