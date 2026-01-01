@@ -52,11 +52,6 @@ impl DagModel {
         Self::default()
     }
 
-    /// Get the currently selected DAG (mutable)
-    pub fn current(&mut self) -> Option<&mut Dag> {
-        self.table.current_mut()
-    }
-
     /// Find a DAG by its ID
     pub fn get_dag_by_id(&self, dag_id: &str) -> Option<&Dag> {
         self.table.all.iter().find(|dag| dag.dag_id == dag_id)
@@ -86,7 +81,7 @@ impl DagModel {
     fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('p') => {
-                if let Some(dag) = self.current() {
+                if let Some(dag) = self.table.current_mut() {
                     let current_state = dag.is_paused;
                     dag.is_paused = !current_state;
                     KeyResult::ConsumedWith(vec![WorkerMessage::ToggleDag {
@@ -104,10 +99,10 @@ impl DagModel {
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
-                if let Some(selected_dag) = self.current().map(|dag| dag.dag_id.clone()) {
-                    debug!("Selected dag: {selected_dag}");
+                if let Some(dag) = self.table.current() {
+                    debug!("Selected dag: {}", dag.dag_id);
                     KeyResult::PassWith(vec![WorkerMessage::UpdateDagRuns {
-                        dag_id: selected_dag,
+                        dag_id: dag.dag_id.clone(),
                         clear: true,
                     }])
                 } else {
@@ -117,7 +112,7 @@ impl DagModel {
                 }
             }
             KeyCode::Char('o') => {
-                if let Some(dag) = self.current() {
+                if let Some(dag) = self.table.current() {
                     debug!("Selected dag: {}", dag.dag_id);
                     KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::Dag {
                         dag_id: dag.dag_id.clone(),
@@ -129,9 +124,11 @@ impl DagModel {
                 }
             }
             KeyCode::Char('t') => {
-                if let Some(dag_id) = self.current().map(|dag| dag.dag_id.clone()) {
+                if let Some(dag) = self.table.current() {
                     self.popup
-                        .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(dag_id)));
+                        .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(
+                            dag.dag_id.clone(),
+                        )));
                 } else {
                     self.popup
                         .show_error(vec!["No DAG selected to trigger".to_string()]);

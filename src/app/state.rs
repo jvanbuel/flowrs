@@ -223,6 +223,7 @@ impl App {
                         .filter
                         .set_primary_values("dag_run_id", dag_run_ids);
                     self.dagruns.table.apply_filter();
+                    self.dagruns.sort_dag_runs();
                 } else {
                     self.dagruns.table.all.clear();
                 }

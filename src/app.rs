@@ -125,7 +125,8 @@ where
                                 // Sync cached data immediately
                                 app.dagruns.table.all =
                                     app.environment_state.get_active_dag_runs(dag_id);
-                                app.dagruns.filter_dag_runs();
+                                app.dagruns.table.apply_filter();
+                                app.dagruns.sort_dag_runs();
                             }
                         }
                         WorkerMessage::UpdateTaskInstances {

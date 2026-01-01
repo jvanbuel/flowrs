@@ -62,12 +62,6 @@ impl TaskInstanceModel {
         }
     }
 
-    /// Get the currently selected task instance (mutable)
-    #[allow(dead_code)]
-    pub fn current(&mut self) -> Option<&mut TaskInstance> {
-        self.table.current_mut()
-    }
-
     /// Mark a task instance with a new status (optimistic update)
     pub fn mark_task_instance(&mut self, task_id: &str, status: &str) {
         if let Some(task_instance) = self
@@ -140,7 +134,7 @@ impl TaskInstanceModel {
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
-                if let Some(task_instance) = self.current() {
+                if let Some(task_instance) = self.table.current() {
                     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
                     let task_try = task_instance.try_number as u16;
                     KeyResult::PassWith(vec![WorkerMessage::UpdateTaskLogs {
@@ -155,7 +149,7 @@ impl TaskInstanceModel {
                 }
             }
             KeyCode::Char('o') => {
-                if let Some(task_instance) = self.current() {
+                if let Some(task_instance) = self.table.current() {
                     KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::TaskInstance {
                         dag_id: task_instance.dag_id.clone(),
                         dag_run_id: task_instance.dag_run_id.clone(),

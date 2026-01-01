@@ -27,7 +27,7 @@ use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
-use super::{filter::filter_items, FilterableTable, KeyResult, Model, Popup};
+use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
@@ -159,18 +159,16 @@ impl DagRunModel {
         ])
     }
 
-    /// Apply filter to DAG runs with special sorting by `logical_date`
-    pub fn filter_dag_runs(&mut self) {
-        let conditions = self.table.filter.active_conditions();
-        let mut filtered = filter_items(&self.table.all, &conditions);
+    /// Sort filtered DAG runs by `logical_date` descending
+    /// Call this after `apply_filter()` to ensure proper ordering
+    pub fn sort_dag_runs(&mut self) {
         // Sort by logical_date (execution date) descending, with fallback to start_date
         // This ensures queued runs (which have no start_date yet) appear in chronological order
-        filtered.sort_by(|a, b| {
+        self.table.filtered.items.sort_by(|a, b| {
             b.logical_date
                 .or(b.start_date)
                 .cmp(&a.logical_date.or(a.start_date))
         });
-        self.table.filtered.items = filtered;
     }
 
     /// Get the currently selected DAG run
@@ -354,12 +352,12 @@ impl Model for DagRunModel {
                 (Some(FlowrsEvent::Tick), worker_messages)
             }
             FlowrsEvent::Key(key_event) => {
-                // Filter needs special handling (calls filter_dag_runs after)
+                // Filter needs special handling - apply filter then sort
                 if matches!(
                     self.table.handle_filter_key(key_event),
                     KeyResult::Consumed | KeyResult::ConsumedWith(_)
                 ) {
-                    self.filter_dag_runs();
+                    self.sort_dag_runs();
                     return (None, vec![]);
                 }
 
@@ -615,7 +613,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_dag_runs_sorts_by_logical_date() {
+    fn test_sort_dag_runs_by_logical_date() {
         // Create test DAG runs with different states and dates
         let mut model = DagRunModel::new();
 
@@ -658,8 +656,9 @@ mod tests {
         // Add runs in random order to test sorting
         model.table.all = vec![oldest_run, newest_run, queued_run];
 
-        // Apply filter (which also sorts)
-        model.filter_dag_runs();
+        // Apply filter then sort
+        model.table.apply_filter();
+        model.sort_dag_runs();
 
         // Verify runs are sorted by logical_date descending (newest first)
         assert_eq!(model.table.filtered.items.len(), 3);
@@ -669,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_dag_runs_fallback_to_start_date() {
+    fn test_sort_dag_runs_fallback_to_start_date() {
         let mut model = DagRunModel::new();
 
         // Run with only start_date (logical_date is None)
@@ -695,7 +694,8 @@ mod tests {
         };
 
         model.table.all = vec![run_with_both, run_with_start];
-        model.filter_dag_runs();
+        model.table.apply_filter();
+        model.sort_dag_runs();
 
         // run_with_start should be first (newer start_date used as fallback)
         assert_eq!(model.table.filtered.items.len(), 2);
@@ -704,7 +704,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_dag_runs_with_prefix() {
+    fn test_filter_and_sort_dag_runs_with_prefix() {
         let mut model = DagRunModel::new();
 
         let run_manual = DagRun {
@@ -735,7 +735,8 @@ mod tests {
                 &DagRun::filterable_fields(),
             );
         }
-        model.filter_dag_runs();
+        model.table.apply_filter();
+        model.sort_dag_runs();
 
         // Should only show the manual run
         assert_eq!(model.table.filtered.items.len(), 1);
