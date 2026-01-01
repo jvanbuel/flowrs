@@ -48,21 +48,27 @@ impl ConfigModel {
     fn handle_keys(&mut self, key_event: &KeyEvent) -> KeyResult {
         match key_event.code {
             KeyCode::Char('o') => {
-                let selected_config = self.table.filtered.state.selected().unwrap_or_default();
-                let endpoint = self.table.filtered.items[selected_config].endpoint.clone();
-                KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::Config(endpoint))])
+                if let Some(idx) = self.table.filtered.state.selected() {
+                    if let Some(item) = self.table.filtered.items.get(idx) {
+                        return KeyResult::PassWith(vec![WorkerMessage::OpenItem(
+                            OpenItem::Config(item.endpoint.clone()),
+                        )]);
+                    }
+                }
+                KeyResult::PassThrough
             }
             KeyCode::Char('?') => {
                 self.popup.show_commands(&CONFIG_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
-                let selected_config = self.table.filtered.state.selected().unwrap_or_default();
-                debug!(
-                    "Selected config: {}",
-                    self.table.filtered.items[selected_config].name
-                );
-                KeyResult::PassWith(vec![WorkerMessage::ConfigSelected(selected_config)])
+                if let Some(idx) = self.table.filtered.state.selected() {
+                    if let Some(item) = self.table.filtered.items.get(idx) {
+                        debug!("Selected config: {}", item.name);
+                        return KeyResult::PassWith(vec![WorkerMessage::ConfigSelected(idx)]);
+                    }
+                }
+                KeyResult::PassThrough
             }
             _ => KeyResult::PassThrough,
         }
