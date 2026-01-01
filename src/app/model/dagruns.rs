@@ -161,7 +161,7 @@ impl DagRunModel {
         ])
     }
 
-    /// Apply filter to DAG runs with special sorting by logical_date
+    /// Apply filter to DAG runs with special sorting by `logical_date`
     pub fn filter_dag_runs(&mut self) {
         let conditions = self.table.filter.active_conditions();
         let mut filtered = filter_items(&self.table.all, &conditions);
@@ -258,22 +258,23 @@ impl DagRunModel {
     fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('t') => {
-                self.popup
-                    .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                        self.dag_id
-                            .clone()
-                            .expect("DAG ID should be set when viewing DAG runs"),
-                    )));
+                if let Some(dag_id) = &self.dag_id {
+                    self.popup
+                        .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
+                            dag_id.clone(),
+                        )));
+                }
                 KeyResult::Consumed
             }
             KeyCode::Char('m') => {
                 let dag_run_ids = self.selected_dag_run_ids();
                 if let Some(dag_id) = &self.dag_id {
                     if !dag_run_ids.is_empty() {
-                        self.popup.show_custom(DagRunPopUp::Mark(MarkDagRunPopup::new(
-                            dag_run_ids,
-                            dag_id.clone(),
-                        )));
+                        self.popup
+                            .show_custom(DagRunPopUp::Mark(MarkDagRunPopup::new(
+                                dag_run_ids,
+                                dag_id.clone(),
+                            )));
                     }
                 }
                 KeyResult::Consumed
@@ -295,10 +296,11 @@ impl DagRunModel {
                 let dag_run_ids = self.selected_dag_run_ids();
                 if let Some(dag_id) = &self.dag_id {
                     if !dag_run_ids.is_empty() {
-                        self.popup.show_custom(DagRunPopUp::Clear(ClearDagRunPopup::new(
-                            dag_run_ids,
-                            dag_id.clone(),
-                        )));
+                        self.popup
+                            .show_custom(DagRunPopUp::Clear(ClearDagRunPopup::new(
+                                dag_run_ids,
+                                dag_id.clone(),
+                            )));
                     }
                 }
                 KeyResult::Consumed
@@ -373,7 +375,10 @@ impl Model for DagRunModel {
                     .handle_dismiss(key_event.code)
                     .or_else(|| self.handle_dag_code_viewer(key_event.code))
                     .or_else(|| self.table.handle_visual_mode_key(key_event.code))
-                    .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
+                    .or_else(|| {
+                        self.table
+                            .handle_navigation(key_event.code, &mut self.event_buffer)
+                    })
                     .or_else(|| self.handle_keys(key_event.code));
 
                 result.into_result(event)
@@ -433,59 +438,65 @@ impl Widget for &mut DagRunModel {
             .max(10) as usize;
 
         let visual_selection = self.table.visual_selection();
-        let rows = self.table.filtered.items.iter().enumerate().map(|(idx, item)| {
-            let state_color = match item.state.as_str() {
-                "success" => AirflowStateColor::Success.into(),
-                "running" => AirflowStateColor::Running.into(),
-                "failed" => AirflowStateColor::Failed.into(),
-                "queued" => AirflowStateColor::Queued.into(),
-                _ => AirflowStateColor::None.into(),
-            };
-
-            let (duration_cell, time_cell) =
-                if let Some(duration) = DagRunModel::calculate_duration(item) {
-                    (
-                        DagRunModel::create_duration_gauge(
-                            duration,
-                            max_duration,
-                            state_color,
-                            gauge_width,
-                        ),
-                        Line::from(DagRunModel::format_duration(duration)),
-                    )
-                } else {
-                    (Line::from("-"), Line::from("-"))
+        let rows = self
+            .table
+            .filtered
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                let state_color = match item.state.as_str() {
+                    "success" => AirflowStateColor::Success.into(),
+                    "running" => AirflowStateColor::Running.into(),
+                    "failed" => AirflowStateColor::Failed.into(),
+                    "queued" => AirflowStateColor::Queued.into(),
+                    _ => AirflowStateColor::None.into(),
                 };
 
-            Row::new(vec![
-                Line::from(Span::styled("■", Style::default().fg(state_color))),
-                Line::from(Span::styled(
-                    item.dag_run_id.as_str(),
-                    Style::default().add_modifier(Modifier::BOLD),
-                )),
-                Line::from(if let Some(date) = item.logical_date {
-                    date.format(
-                        &format_description::parse(TIME_FORMAT)
-                            .expect("TIME_FORMAT constant should be a valid time format"),
-                    )
-                    .expect("Date formatting with TIME_FORMAT should succeed")
-                } else {
-                    "None".to_string()
-                }),
-                Line::from(item.run_type.as_str()),
-                duration_cell,
-                time_cell,
-            ])
-            .style(
-                if visual_selection.as_ref().is_some_and(|r| r.contains(&idx)) {
-                    MARKED_STYLE
-                } else if (idx % 2) == 0 {
-                    DEFAULT_STYLE
-                } else {
-                    ALT_ROW_STYLE
-                },
-            )
-        });
+                let (duration_cell, time_cell) =
+                    if let Some(duration) = DagRunModel::calculate_duration(item) {
+                        (
+                            DagRunModel::create_duration_gauge(
+                                duration,
+                                max_duration,
+                                state_color,
+                                gauge_width,
+                            ),
+                            Line::from(DagRunModel::format_duration(duration)),
+                        )
+                    } else {
+                        (Line::from("-"), Line::from("-"))
+                    };
+
+                Row::new(vec![
+                    Line::from(Span::styled("■", Style::default().fg(state_color))),
+                    Line::from(Span::styled(
+                        item.dag_run_id.as_str(),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    )),
+                    Line::from(if let Some(date) = item.logical_date {
+                        date.format(
+                            &format_description::parse(TIME_FORMAT)
+                                .expect("TIME_FORMAT constant should be a valid time format"),
+                        )
+                        .expect("Date formatting with TIME_FORMAT should succeed")
+                    } else {
+                        "None".to_string()
+                    }),
+                    Line::from(item.run_type.as_str()),
+                    duration_cell,
+                    time_cell,
+                ])
+                .style(
+                    if visual_selection.as_ref().is_some_and(|r| r.contains(&idx)) {
+                        MARKED_STYLE
+                    } else if (idx % 2) == 0 {
+                        DEFAULT_STYLE
+                    } else {
+                        ALT_ROW_STYLE
+                    },
+                )
+            });
         let t = Table::new(
             rows,
             &[

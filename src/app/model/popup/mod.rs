@@ -45,7 +45,6 @@ impl<T> Popup<T> {
     /// Handle common popup dismissal keys (error and commands popups)
     pub fn handle_dismiss(&mut self, key_code: KeyCode) -> KeyResult {
         match self {
-            Popup::None => KeyResult::Ignored,
             Popup::Error(_) => {
                 if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
                     *self = Popup::None;
@@ -61,7 +60,8 @@ impl<T> Popup<T> {
                 }
                 KeyResult::Consumed
             }
-            Popup::Custom(_) => KeyResult::Ignored, // Custom popups need custom handling
+            // None and Custom popups are not handled here (Custom needs custom handling)
+            Popup::None | Popup::Custom(_) => KeyResult::Ignored,
         }
     }
 
@@ -97,10 +97,10 @@ impl<T> Popup<T> {
 impl<T> Widget for &Popup<T> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         match self {
-            Popup::None => {}
             Popup::Error(e) => e.render(area, buf),
             Popup::Commands(c) => c.render(area, buf),
-            Popup::Custom(_) => {} // Custom popups rendered separately by the model
+            // None and Custom popups don't render here (Custom is rendered separately by the model)
+            Popup::None | Popup::Custom(_) => {}
         }
     }
 }

@@ -34,6 +34,7 @@ pub enum KeyResult {
 
 impl KeyResult {
     /// Chain handlers: if this result is Ignored, try the next handler
+    #[must_use]
     pub fn or_else<F: FnOnce() -> KeyResult>(self, f: F) -> KeyResult {
         match self {
             KeyResult::Ignored => f(),
@@ -41,7 +42,8 @@ impl KeyResult {
         }
     }
 
-    /// Convert to the update() return type
+    /// Convert to the `update()` return type
+    #[allow(clippy::match_same_arms)] // PassThrough and Ignored are semantically different
     pub fn into_result(self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match self {
             KeyResult::Consumed => (None, vec![]),

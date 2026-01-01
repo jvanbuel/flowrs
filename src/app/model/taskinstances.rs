@@ -125,10 +125,9 @@ impl TaskInstanceModel {
                 let task_ids = self.selected_task_ids();
                 if !task_ids.is_empty() {
                     if let (Some(dag_id), Some(dag_run_id)) = (&self.dag_id, &self.dag_run_id) {
-                        self.popup
-                            .show_custom(TaskInstancePopUp::Mark(MarkTaskInstancePopup::new(
-                                task_ids, dag_id, dag_run_id,
-                            )));
+                        self.popup.show_custom(TaskInstancePopUp::Mark(
+                            MarkTaskInstancePopup::new(task_ids, dag_id, dag_run_id),
+                        ));
                     }
                 }
                 KeyResult::Consumed
@@ -137,10 +136,9 @@ impl TaskInstanceModel {
                 let task_ids = self.selected_task_ids();
                 if let (Some(dag_id), Some(dag_run_id)) = (&self.dag_id, &self.dag_run_id) {
                     if !task_ids.is_empty() {
-                        self.popup
-                            .show_custom(TaskInstancePopUp::Clear(ClearTaskInstancePopup::new(
-                                dag_run_id, dag_id, task_ids,
-                            )));
+                        self.popup.show_custom(TaskInstancePopUp::Clear(
+                            ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
+                        ));
                     }
                 }
                 KeyResult::Consumed
@@ -213,7 +211,10 @@ impl Model for TaskInstanceModel {
                     .handle_filter_key(key_event)
                     .or_else(|| self.popup.handle_dismiss(key_event.code))
                     .or_else(|| self.table.handle_visual_mode_key(key_event.code))
-                    .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
+                    .or_else(|| {
+                        self.table
+                            .handle_navigation(key_event.code, &mut self.event_buffer)
+                    })
                     .or_else(|| self.handle_keys(key_event.code));
 
                 result.into_result(event)
@@ -246,49 +247,57 @@ impl Widget for &mut TaskInstanceModel {
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
         let visual_selection = self.table.visual_selection();
-        let rows = self.table.filtered.items.iter().enumerate().map(|(idx, item)| {
-            Row::new(vec![
-                Line::from(item.task_id.as_str()),
-                Line::from(if let Some(date) = item.logical_date {
-                    date.format(
-                        &format_description::parse(TIME_FORMAT)
-                            .expect("TIME_FORMAT constant should be a valid time format"),
-                    )
-                    .expect("Date formatting with TIME_FORMAT should succeed")
-                } else {
-                    "None".to_string()
-                }),
-                Line::from(
-                    item.duration
-                        .map_or_else(|| "None".to_string(), |i| format!("{i}")),
-                ),
-                Line::from(if let Some(state) = &item.state {
-                    match state.as_str() {
-                        "success" => state_to_colored_square(AirflowStateColor::Success),
-                        "running" => state_to_colored_square(AirflowStateColor::Running),
-                        "failed" => state_to_colored_square(AirflowStateColor::Failed),
-                        "queued" => state_to_colored_square(AirflowStateColor::Queued),
-                        "up_for_retry" => state_to_colored_square(AirflowStateColor::UpForRetry),
-                        "upstream_failed" => {
-                            state_to_colored_square(AirflowStateColor::UpstreamFailed)
+        let rows = self
+            .table
+            .filtered
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                Row::new(vec![
+                    Line::from(item.task_id.as_str()),
+                    Line::from(if let Some(date) = item.logical_date {
+                        date.format(
+                            &format_description::parse(TIME_FORMAT)
+                                .expect("TIME_FORMAT constant should be a valid time format"),
+                        )
+                        .expect("Date formatting with TIME_FORMAT should succeed")
+                    } else {
+                        "None".to_string()
+                    }),
+                    Line::from(
+                        item.duration
+                            .map_or_else(|| "None".to_string(), |i| format!("{i}")),
+                    ),
+                    Line::from(if let Some(state) = &item.state {
+                        match state.as_str() {
+                            "success" => state_to_colored_square(AirflowStateColor::Success),
+                            "running" => state_to_colored_square(AirflowStateColor::Running),
+                            "failed" => state_to_colored_square(AirflowStateColor::Failed),
+                            "queued" => state_to_colored_square(AirflowStateColor::Queued),
+                            "up_for_retry" => {
+                                state_to_colored_square(AirflowStateColor::UpForRetry)
+                            }
+                            "upstream_failed" => {
+                                state_to_colored_square(AirflowStateColor::UpstreamFailed)
+                            }
+                            _ => state_to_colored_square(AirflowStateColor::None),
                         }
-                        _ => state_to_colored_square(AirflowStateColor::None),
-                    }
-                } else {
-                    state_to_colored_square(AirflowStateColor::None)
-                }),
-                Line::from(format!("{:?}", item.try_number)),
-            ])
-            .style(
-                if visual_selection.as_ref().is_some_and(|r| r.contains(&idx)) {
-                    MARKED_STYLE
-                } else if (idx % 2) == 0 {
-                    DEFAULT_STYLE
-                } else {
-                    ALT_ROW_STYLE
-                },
-            )
-        });
+                    } else {
+                        state_to_colored_square(AirflowStateColor::None)
+                    }),
+                    Line::from(format!("{:?}", item.try_number)),
+                ])
+                .style(
+                    if visual_selection.as_ref().is_some_and(|r| r.contains(&idx)) {
+                        MARKED_STYLE
+                    } else if (idx % 2) == 0 {
+                        DEFAULT_STYLE
+                    } else {
+                        ALT_ROW_STYLE
+                    },
+                )
+            });
         let t = Table::new(
             rows,
             &[

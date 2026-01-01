@@ -123,7 +123,8 @@ where
                             if *clear {
                                 app.dagruns.dag_id = Some(dag_id.clone());
                                 // Sync cached data immediately
-                                app.dagruns.table.all = app.environment_state.get_active_dag_runs(dag_id);
+                                app.dagruns.table.all =
+                                    app.environment_state.get_active_dag_runs(dag_id);
                                 app.dagruns.filter_dag_runs();
                             }
                         }

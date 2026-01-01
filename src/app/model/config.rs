@@ -86,7 +86,10 @@ impl Model for ConfigModel {
                     .table
                     .handle_filter_key(key_event)
                     .or_else(|| self.popup.handle_dismiss(key_event.code))
-                    .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
+                    .or_else(|| {
+                        self.table
+                            .handle_navigation(key_event.code, &mut self.event_buffer)
+                    })
                     .or_else(|| self.handle_keys(key_event));
 
                 result.into_result(event)

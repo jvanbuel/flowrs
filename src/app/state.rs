@@ -197,7 +197,13 @@ impl App {
                 self.dags.table.all = self.environment_state.get_active_dags();
                 self.dags.dag_stats = self.environment_state.get_active_dag_stats();
                 // Set primary values for autocomplete (dag_id is the primary field)
-                let dag_ids: Vec<String> = self.dags.table.all.iter().map(|d| d.dag_id.clone()).collect();
+                let dag_ids: Vec<String> = self
+                    .dags
+                    .table
+                    .all
+                    .iter()
+                    .map(|d| d.dag_id.clone())
+                    .collect();
                 self.dags.table.set_primary_values("dag_id", dag_ids);
                 self.dags.filter_dags();
             }
@@ -257,8 +263,13 @@ impl App {
             }
             Panel::Config => {
                 // Set primary values for config filter (name is the primary field)
-                let config_names: Vec<String> =
-                    self.configs.table.all.iter().map(|c| c.name.clone()).collect();
+                let config_names: Vec<String> = self
+                    .configs
+                    .table
+                    .all
+                    .iter()
+                    .map(|c| c.name.clone())
+                    .collect();
                 self.configs.table.set_primary_values("name", config_names);
             }
         }

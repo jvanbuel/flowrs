@@ -1,4 +1,4 @@
-//! Generic filterable table widget for use across Dags, DagRuns, and TaskInstances.
+//! Generic filterable table widget for use across Dags, `DagRuns`, and `TaskInstances`.
 //!
 //! This module provides a reusable `FilterableTable<T>` that encapsulates:
 //! - All items from the API
@@ -192,7 +192,11 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     }
 
     /// Handle common navigation keys (j/k/G/gg pattern)
-    pub fn handle_navigation(&mut self, key_code: KeyCode, event_buffer: &mut Vec<KeyCode>) -> KeyResult {
+    pub fn handle_navigation(
+        &mut self,
+        key_code: KeyCode,
+        event_buffer: &mut Vec<KeyCode>,
+    ) -> KeyResult {
         match key_code {
             KeyCode::Down | KeyCode::Char('j') => {
                 self.next();
