@@ -1,3 +1,4 @@
+use crossterm::event::KeyCode;
 use ratatui::widgets::TableState;
 
 use super::{events::custom::FlowrsEvent, worker::WorkerMessage};
@@ -12,6 +13,28 @@ pub mod popup;
 pub mod taskinstances;
 
 pub use filterable_table::FilterableTable;
+
+/// Dismiss an error popup if visible. Returns Consumed if popup was shown, Ignored otherwise.
+pub fn dismiss_error_popup<T>(popup: &mut Option<T>, key_code: KeyCode) -> KeyResult {
+    if popup.is_none() {
+        return KeyResult::Ignored;
+    }
+    if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
+        *popup = None;
+    }
+    KeyResult::Consumed
+}
+
+/// Dismiss a commands popup if visible. Returns Consumed if popup was shown, Ignored otherwise.
+pub fn dismiss_commands_popup<T>(popup: &mut Option<T>, key_code: KeyCode) -> KeyResult {
+    if popup.is_none() {
+        return KeyResult::Ignored;
+    }
+    if matches!(key_code, KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter) {
+        *popup = None;
+    }
+    KeyResult::Consumed
+}
 
 /// Result of handling a key event in the chain of responsibility pattern.
 ///

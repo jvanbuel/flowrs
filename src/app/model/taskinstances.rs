@@ -26,7 +26,7 @@ use crate::ui::TIME_FORMAT;
 use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
-use super::{FilterableTable, KeyResult, Model};
+use super::{dismiss_commands_popup, dismiss_error_popup, FilterableTable, KeyResult, Model};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
@@ -102,28 +102,6 @@ impl TaskInstanceModel {
 }
 
 impl TaskInstanceModel {
-    /// Handle error popup dismissal
-    fn handle_error_popup(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.error_popup.is_none() {
-            return KeyResult::Ignored;
-        }
-        if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
-            self.error_popup = None;
-        }
-        KeyResult::Consumed
-    }
-
-    /// Handle commands popup dismissal
-    fn handle_commands_popup(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.commands.is_none() {
-            return KeyResult::Ignored;
-        }
-        if matches!(key_code, KeyCode::Char('q' | '?') | KeyCode::Esc) {
-            self.commands = None;
-        }
-        KeyResult::Consumed
-    }
-
     /// Handle model-specific popups (returns messages from popup)
     fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
         let popup = self.popup.as_mut()?;
@@ -236,8 +214,8 @@ impl Model for TaskInstanceModel {
                 let result = self
                     .table
                     .handle_filter_key(key_event)
-                    .or_else(|| self.handle_error_popup(key_event.code))
-                    .or_else(|| self.handle_commands_popup(key_event.code))
+                    .or_else(|| dismiss_error_popup(&mut self.error_popup, key_event.code))
+                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
                     .or_else(|| self.table.handle_visual_mode_key(key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
                     .or_else(|| self.handle_keys(key_event.code));

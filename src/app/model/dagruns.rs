@@ -31,7 +31,7 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::error::ErrorPopup;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
-use super::{filter::filter_items, FilterableTable, KeyResult, Model};
+use super::{dismiss_commands_popup, dismiss_error_popup, filter::filter_items, FilterableTable, KeyResult, Model};
 use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
@@ -205,28 +205,6 @@ impl DagRunModel {
 }
 
 impl DagRunModel {
-    /// Handle error popup dismissal
-    fn handle_error_popup(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.error_popup.is_none() {
-            return KeyResult::Ignored;
-        }
-        if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
-            self.error_popup = None;
-        }
-        KeyResult::Consumed
-    }
-
-    /// Handle commands popup dismissal
-    fn handle_commands_popup(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.commands.is_none() {
-            return KeyResult::Ignored;
-        }
-        if matches!(key_code, KeyCode::Char('q' | '?') | KeyCode::Esc) {
-            self.commands = None;
-        }
-        KeyResult::Consumed
-    }
-
     /// Handle dag code viewer navigation
     fn handle_dag_code_viewer(&mut self, key_code: KeyCode) -> KeyResult {
         if self.dag_code.cached_lines.is_none() {
@@ -393,9 +371,8 @@ impl Model for DagRunModel {
                 }
 
                 // Chain the remaining handlers
-                let result = self
-                    .handle_error_popup(key_event.code)
-                    .or_else(|| self.handle_commands_popup(key_event.code))
+                let result = dismiss_error_popup(&mut self.error_popup, key_event.code)
+                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
                     .or_else(|| self.handle_dag_code_viewer(key_event.code))
                     .or_else(|| self.table.handle_visual_mode_key(key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))

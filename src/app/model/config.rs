@@ -16,7 +16,7 @@ use crate::ui::theme::{
 use super::popup::commands_help::CommandPopUp;
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;
 use super::popup::error::ErrorPopup;
-use super::{FilterableTable, KeyResult, Model};
+use super::{dismiss_commands_popup, dismiss_error_popup, FilterableTable, KeyResult, Model};
 use crate::ui::common::create_headers;
 
 pub struct ConfigModel {
@@ -67,28 +67,6 @@ impl ConfigModel {
         self.table.apply_filter();
     }
 
-    /// Handle error popup dismissal
-    fn handle_error_popup(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.error_popup.is_none() {
-            return KeyResult::Ignored;
-        }
-        if matches!(key_code, KeyCode::Char('q') | KeyCode::Esc) {
-            self.error_popup = None;
-        }
-        KeyResult::Consumed
-    }
-
-    /// Handle commands popup dismissal
-    fn handle_commands_popup(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.commands.is_none() {
-            return KeyResult::Ignored;
-        }
-        if matches!(key_code, KeyCode::Char('q' | '?') | KeyCode::Esc | KeyCode::Enter) {
-            self.commands = None;
-        }
-        KeyResult::Consumed
-    }
-
     /// Handle model-specific keys
     fn handle_keys(&mut self, key_event: &KeyEvent) -> KeyResult {
         match key_event.code {
@@ -122,8 +100,8 @@ impl Model for ConfigModel {
                 let result = self
                     .table
                     .handle_filter_key(key_event)
-                    .or_else(|| self.handle_error_popup(key_event.code))
-                    .or_else(|| self.handle_commands_popup(key_event.code))
+                    .or_else(|| dismiss_error_popup(&mut self.error_popup, key_event.code))
+                    .or_else(|| dismiss_commands_popup(&mut self.commands, key_event.code))
                     .or_else(|| self.table.handle_navigation(key_event.code, &mut self.event_buffer))
                     .or_else(|| self.handle_keys(key_event));
 
