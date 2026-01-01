@@ -175,84 +175,77 @@ impl Model for TaskInstanceModel {
                         }
                     }
                 } else {
-                    match key_event.code {
-                        KeyCode::Char('V') => {
-                            self.table.enter_visual_mode();
-                        }
-                        KeyCode::Esc => {
-                            if self.table.visual_mode {
-                                self.table.exit_visual_mode();
-                                return (None, vec![]);
-                            }
-                            return (Some(FlowrsEvent::Key(*key_event)), vec![]);
-                        }
-                        _ => {
-                            // Handle navigation with the table
-                            if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
-                                return (None, vec![]);
-                            }
+                    // Handle visual mode keys (V, Esc)
+                    match self.table.handle_visual_mode_key(key_event.code) {
+                        Some(true) => return (None, vec![]),
+                        Some(false) => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // Esc not in visual mode
+                        None => {}
+                    }
 
-                            match key_event.code {
-                                KeyCode::Char('m') => {
-                                    let task_ids = self.selected_task_ids();
-                                    if !task_ids.is_empty() {
-                                        if let (Some(dag_id), Some(dag_run_id)) =
-                                            (&self.dag_id, &self.dag_run_id)
-                                        {
-                                            self.popup = Some(TaskInstancePopUp::Mark(
-                                                MarkTaskInstancePopup::new(task_ids, dag_id, dag_run_id),
-                                            ));
-                                        }
-                                    }
+                    // Handle navigation with the table
+                    if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
+                        return (None, vec![]);
+                    }
+
+                    match key_event.code {
+                        KeyCode::Char('m') => {
+                            let task_ids = self.selected_task_ids();
+                            if !task_ids.is_empty() {
+                                if let (Some(dag_id), Some(dag_run_id)) =
+                                    (&self.dag_id, &self.dag_run_id)
+                                {
+                                    self.popup = Some(TaskInstancePopUp::Mark(
+                                        MarkTaskInstancePopup::new(task_ids, dag_id, dag_run_id),
+                                    ));
                                 }
-                                KeyCode::Char('c') => {
-                                    let task_ids = self.selected_task_ids();
-                                    if let (Some(dag_id), Some(dag_run_id)) =
-                                        (&self.dag_id, &self.dag_run_id)
-                                    {
-                                        if !task_ids.is_empty() {
-                                            self.popup = Some(TaskInstancePopUp::Clear(
-                                                ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
-                                            ));
-                                        }
-                                    }
-                                }
-                                KeyCode::Char('?') => {
-                                    self.commands = Some(&*TASK_COMMAND_POP_UP);
-                                }
-                                KeyCode::Enter => {
-                                    if let Some(task_instance) = self.current() {
-                                        return (
-                                            Some(FlowrsEvent::Key(*key_event)),
-                                            vec![WorkerMessage::UpdateTaskLogs {
-                                                dag_id: task_instance.dag_id.clone(),
-                                                dag_run_id: task_instance.dag_run_id.clone(),
-                                                task_id: task_instance.task_id.clone(),
-                                                #[allow(
-                                                    clippy::cast_sign_loss,
-                                                    clippy::cast_possible_truncation
-                                                )]
-                                                task_try: task_instance.try_number as u16,
-                                                clear: true,
-                                            }],
-                                        );
-                                    }
-                                }
-                                KeyCode::Char('o') => {
-                                    if let Some(task_instance) = self.current() {
-                                        return (
-                                            Some(FlowrsEvent::Key(*key_event)),
-                                            vec![WorkerMessage::OpenItem(OpenItem::TaskInstance {
-                                                dag_id: task_instance.dag_id.clone(),
-                                                dag_run_id: task_instance.dag_run_id.clone(),
-                                                task_id: task_instance.task_id.clone(),
-                                            })],
-                                        );
-                                    }
-                                }
-                                _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                             }
                         }
+                        KeyCode::Char('c') => {
+                            let task_ids = self.selected_task_ids();
+                            if let (Some(dag_id), Some(dag_run_id)) =
+                                (&self.dag_id, &self.dag_run_id)
+                            {
+                                if !task_ids.is_empty() {
+                                    self.popup = Some(TaskInstancePopUp::Clear(
+                                        ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
+                                    ));
+                                }
+                            }
+                        }
+                        KeyCode::Char('?') => {
+                            self.commands = Some(&*TASK_COMMAND_POP_UP);
+                        }
+                        KeyCode::Enter => {
+                            if let Some(task_instance) = self.current() {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::UpdateTaskLogs {
+                                        dag_id: task_instance.dag_id.clone(),
+                                        dag_run_id: task_instance.dag_run_id.clone(),
+                                        task_id: task_instance.task_id.clone(),
+                                        #[allow(
+                                            clippy::cast_sign_loss,
+                                            clippy::cast_possible_truncation
+                                        )]
+                                        task_try: task_instance.try_number as u16,
+                                        clear: true,
+                                    }],
+                                );
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            if let Some(task_instance) = self.current() {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::OpenItem(OpenItem::TaskInstance {
+                                        dag_id: task_instance.dag_id.clone(),
+                                        dag_run_id: task_instance.dag_run_id.clone(),
+                                        task_id: task_instance.task_id.clone(),
+                                    })],
+                                );
+                            }
+                        }
+                        _ => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // if no match, return the event
                     }
                 }
                 (None, vec![])

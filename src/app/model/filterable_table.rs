@@ -223,6 +223,29 @@ impl<T: Filterable + Clone> FilterableTable<T> {
             _ => false,
         }
     }
+
+    /// Handle visual mode keys (V to enter, Esc to exit)
+    /// Returns:
+    /// - `Some(true)` if the key was consumed (visual mode toggled)
+    /// - `Some(false)` if Esc was pressed but not in visual mode (caller should handle)
+    /// - `None` if the key is not a visual mode key
+    pub fn handle_visual_mode_key(&mut self, key_code: KeyCode) -> Option<bool> {
+        match key_code {
+            KeyCode::Char('V') => {
+                self.enter_visual_mode();
+                Some(true)
+            }
+            KeyCode::Esc => {
+                if self.visual_mode {
+                    self.exit_visual_mode();
+                    Some(true)
+                } else {
+                    Some(false) // Esc pressed but not in visual mode
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -423,5 +446,39 @@ mod tests {
 
         // Unknown key
         assert!(!table.handle_navigation(KeyCode::Char('x'), &mut buffer));
+    }
+
+    #[test]
+    fn test_handle_visual_mode_key() {
+        let mut table: FilterableTable<TestItem> = FilterableTable::new();
+        table.set_items(vec![
+            TestItem {
+                id: "1".to_string(),
+                status: "running".to_string(),
+            },
+            TestItem {
+                id: "2".to_string(),
+                status: "success".to_string(),
+            },
+        ]);
+
+        // Select first item
+        table.next();
+        assert!(!table.visual_mode);
+
+        // V key enters visual mode
+        assert_eq!(table.handle_visual_mode_key(KeyCode::Char('V')), Some(true));
+        assert!(table.visual_mode);
+
+        // Esc key exits visual mode when in visual mode
+        assert_eq!(table.handle_visual_mode_key(KeyCode::Esc), Some(true));
+        assert!(!table.visual_mode);
+
+        // Esc key returns Some(false) when not in visual mode
+        assert_eq!(table.handle_visual_mode_key(KeyCode::Esc), Some(false));
+        assert!(!table.visual_mode);
+
+        // Unknown key returns None
+        assert_eq!(table.handle_visual_mode_key(KeyCode::Char('x')), None);
     }
 }

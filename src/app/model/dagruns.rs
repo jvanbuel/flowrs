@@ -315,97 +315,90 @@ impl Model for DagRunModel {
                         _ => {}
                     }
                 } else {
-                    match key_event.code {
-                        KeyCode::Esc => {
-                            if self.table.visual_mode {
-                                self.table.exit_visual_mode();
-                                return (None, vec![]);
-                            }
-                            return (Some(FlowrsEvent::Key(*key_event)), vec![]);
-                        }
-                        KeyCode::Char('V') => {
-                            self.table.enter_visual_mode();
-                        }
-                        _ => {
-                            // Handle navigation with the table
-                            if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
-                                return (None, vec![]);
-                            }
+                    // Handle visual mode keys (V, Esc)
+                    match self.table.handle_visual_mode_key(key_event.code) {
+                        Some(true) => return (None, vec![]),
+                        Some(false) => return (Some(FlowrsEvent::Key(*key_event)), vec![]), // Esc not in visual mode
+                        None => {}
+                    }
 
-                            match key_event.code {
-                                KeyCode::Char('t') => {
-                                    self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                                        self.dag_id
-                                            .clone()
-                                            .expect("DAG ID should be set when viewing DAG runs"),
+                    // Handle navigation with the table
+                    if self.table.handle_navigation(key_event.code, &mut self.event_buffer) {
+                        return (None, vec![]);
+                    }
+
+                    match key_event.code {
+                        KeyCode::Char('t') => {
+                            self.popup = Some(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
+                                self.dag_id
+                                    .clone()
+                                    .expect("DAG ID should be set when viewing DAG runs"),
+                            )));
+                        }
+                        KeyCode::Char('m') => {
+                            let dag_run_ids = self.selected_dag_run_ids();
+                            if let Some(dag_id) = &self.dag_id {
+                                if !dag_run_ids.is_empty() {
+                                    self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
+                                        dag_run_ids,
+                                        dag_id.clone(),
                                     )));
                                 }
-                                KeyCode::Char('m') => {
-                                    let dag_run_ids = self.selected_dag_run_ids();
-                                    if let Some(dag_id) = &self.dag_id {
-                                        if !dag_run_ids.is_empty() {
-                                            self.popup = Some(DagRunPopUp::Mark(MarkDagRunPopup::new(
-                                                dag_run_ids,
-                                                dag_id.clone(),
-                                            )));
-                                        }
-                                    }
-                                }
-                                KeyCode::Char('?') => {
-                                    self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
-                                }
-                                KeyCode::Char('v') => {
-                                    if let Some(dag_id) = &self.dag_id {
-                                        return (
-                                            None,
-                                            vec![WorkerMessage::GetDagCode {
-                                                dag_id: dag_id.clone(),
-                                            }],
-                                        );
-                                    }
-                                }
-                                KeyCode::Char('c') => {
-                                    let dag_run_ids = self.selected_dag_run_ids();
-                                    if let Some(dag_id) = &self.dag_id {
-                                        if !dag_run_ids.is_empty() {
-                                            self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
-                                                dag_run_ids,
-                                                dag_id.clone(),
-                                            )));
-                                        }
-                                    }
-                                }
-                                KeyCode::Enter => {
-                                    if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
-                                        return (
-                                            Some(FlowrsEvent::Key(*key_event)),
-                                            vec![
-                                                WorkerMessage::UpdateTasks {
-                                                    dag_id: dag_id.clone(),
-                                                },
-                                                WorkerMessage::UpdateTaskInstances {
-                                                    dag_id: dag_id.clone(),
-                                                    dag_run_id: dag_run.dag_run_id.clone(),
-                                                    clear: true,
-                                                },
-                                            ],
-                                        );
-                                    }
-                                }
-                                KeyCode::Char('o') => {
-                                    if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
-                                        return (
-                                            Some(FlowrsEvent::Key(*key_event)),
-                                            vec![WorkerMessage::OpenItem(OpenItem::DagRun {
-                                                dag_id: dag_id.clone(),
-                                                dag_run_id: dag_run.dag_run_id.clone(),
-                                            })],
-                                        );
-                                    }
-                                }
-                                _ => {}
                             }
                         }
+                        KeyCode::Char('?') => {
+                            self.commands = Some(&*DAGRUN_COMMAND_POP_UP);
+                        }
+                        KeyCode::Char('v') => {
+                            if let Some(dag_id) = &self.dag_id {
+                                return (
+                                    None,
+                                    vec![WorkerMessage::GetDagCode {
+                                        dag_id: dag_id.clone(),
+                                    }],
+                                );
+                            }
+                        }
+                        KeyCode::Char('c') => {
+                            let dag_run_ids = self.selected_dag_run_ids();
+                            if let Some(dag_id) = &self.dag_id {
+                                if !dag_run_ids.is_empty() {
+                                    self.popup = Some(DagRunPopUp::Clear(ClearDagRunPopup::new(
+                                        dag_run_ids,
+                                        dag_id.clone(),
+                                    )));
+                                }
+                            }
+                        }
+                        KeyCode::Enter => {
+                            if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![
+                                        WorkerMessage::UpdateTasks {
+                                            dag_id: dag_id.clone(),
+                                        },
+                                        WorkerMessage::UpdateTaskInstances {
+                                            dag_id: dag_id.clone(),
+                                            dag_run_id: dag_run.dag_run_id.clone(),
+                                            clear: true,
+                                        },
+                                    ],
+                                );
+                            }
+                        }
+                        KeyCode::Char('o') => {
+                            if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                                return (
+                                    Some(FlowrsEvent::Key(*key_event)),
+                                    vec![WorkerMessage::OpenItem(OpenItem::DagRun {
+                                        dag_id: dag_id.clone(),
+                                        dag_run_id: dag_run.dag_run_id.clone(),
+                                    })],
+                                );
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
