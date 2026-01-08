@@ -35,11 +35,33 @@ pub struct LogModel {
     ticks: u32,
     vertical_scroll: usize,
     vertical_scroll_state: ScrollbarState,
+    event_buffer: Vec<KeyCode>,
 }
 
 impl LogModel {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Returns the total number of lines in the current log content
+    fn current_line_count(&self) -> usize {
+        let Some(log) = self.all.get(self.current % self.all.len().max(1)) else {
+            return 0;
+        };
+
+        let fragments = parse_content(&log.content);
+        if fragments.is_empty() {
+            // v2 format: content is already a clean string
+            log.content.lines().count()
+        } else {
+            // v1 format: parse Python tuples
+            let mut count = 0;
+            for (_, log_fragment) in fragments {
+                let replaced_log = log_fragment.replace("\\n", "\n");
+                count += replaced_log.lines().count();
+            }
+            count
+        }
     }
 }
 
@@ -116,6 +138,28 @@ impl Model for LogModel {
                                     task_try: (self.current + 1) as u16,
                                 })],
                             );
+                        }
+                    }
+                    KeyCode::Char('G') => {
+                        // Go to bottom of log
+                        let line_count = self.current_line_count();
+                        self.vertical_scroll = line_count.saturating_sub(1);
+                        self.vertical_scroll_state =
+                            self.vertical_scroll_state.position(self.vertical_scroll);
+                    }
+                    KeyCode::Char('g') => {
+                        // gg: go to top of log
+                        if let Some(last_key) = self.event_buffer.pop() {
+                            if last_key == KeyCode::Char('g') {
+                                self.vertical_scroll = 0;
+                                self.vertical_scroll_state =
+                                    self.vertical_scroll_state.position(self.vertical_scroll);
+                            } else {
+                                self.event_buffer.push(last_key);
+                                self.event_buffer.push(KeyCode::Char('g'));
+                            }
+                        } else {
+                            self.event_buffer.push(KeyCode::Char('g'));
                         }
                     }
 
