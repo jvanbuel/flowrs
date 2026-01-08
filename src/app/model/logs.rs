@@ -35,7 +35,7 @@ pub struct LogModel {
     ticks: u32,
     vertical_scroll: usize,
     vertical_scroll_state: ScrollbarState,
-    event_buffer: Vec<KeyCode>,
+    pending_g: bool,
 }
 
 impl LogModel {
@@ -48,20 +48,31 @@ impl LogModel {
         let Some(log) = self.all.get(self.current % self.all.len().max(1)) else {
             return 0;
         };
+        parse_log_lines(&log.content).len()
+    }
+}
 
-        let fragments = parse_content(&log.content);
-        if fragments.is_empty() {
-            // v2 format: content is already a clean string
-            log.content.lines().count()
-        } else {
-            // v1 format: parse Python tuples
-            let mut count = 0;
-            for (_, log_fragment) in fragments {
-                let replaced_log = log_fragment.replace("\\n", "\n");
-                count += replaced_log.lines().count();
-            }
-            count
-        }
+/// Parses log content and returns a vector of individual lines.
+///
+/// Handles both v1 format (Python tuples with escaped newlines) and v2 format (clean strings).
+fn parse_log_lines(content: &str) -> Vec<String> {
+    let fragments = parse_content(content);
+
+    if fragments.is_empty() {
+        // v2 format: content is already a clean string
+        content.lines().map(str::to_string).collect()
+    } else {
+        // v1 format: parse Python tuples and expand escaped newlines
+        fragments
+            .into_iter()
+            .flat_map(|(_, log_fragment)| {
+                log_fragment
+                    .replace("\\n", "\n")
+                    .lines()
+                    .map(str::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .collect()
     }
 }
 
@@ -100,9 +111,9 @@ impl Model for LogModel {
                     }
                     return (None, vec![]);
                 }
-                // Clear event buffer on any key that is not 'g' to ensure gg requires consecutive presses
+                // Clear pending 'g' on any key that is not 'g' to ensure gg requires consecutive presses
                 if key.code != KeyCode::Char('g') {
-                    self.event_buffer.clear();
+                    self.pending_g = false;
                 }
                 match key.code {
                     KeyCode::Char('l') | KeyCode::Right => {
@@ -153,14 +164,15 @@ impl Model for LogModel {
                     }
                     KeyCode::Char('g') => {
                         // gg: go to top of log
-                        if self.event_buffer.pop().is_some() {
+                        if self.pending_g {
                             // Second consecutive 'g' - go to top
                             self.vertical_scroll = 0;
                             self.vertical_scroll_state =
                                 self.vertical_scroll_state.position(self.vertical_scroll);
+                            self.pending_g = false;
                         } else {
-                            // First 'g' - buffer it for potential gg
-                            self.event_buffer.push(KeyCode::Char('g'));
+                            // First 'g' - mark as pending for potential gg
+                            self.pending_g = true;
                         }
                     }
 
@@ -214,27 +226,8 @@ impl Widget for &mut LogModel {
 
         if let Some(log) = self.all.get(self.current % self.all.len()) {
             let mut content = Text::default();
-            let fragments = parse_content(&log.content);
-
-            // If fragments is empty, content is likely v2 format (already a clean string)
-            // Otherwise, it's v1 format with Python tuples that need parsing
-            if fragments.is_empty() {
-                // v2 format: content is already a clean string, just split by lines
-                for line in log.content.lines() {
-                    content.push_line(Line::raw(line));
-                }
-            } else {
-                // v1 format: parse Python tuples
-                for (_, log_fragment) in fragments {
-                    let replaced_log = log_fragment.replace("\\n", "\n");
-                    let lines: Vec<String> = replaced_log
-                        .lines()
-                        .map(std::string::ToString::to_string)
-                        .collect();
-                    for line in lines {
-                        content.push_line(Line::raw(line));
-                    }
-                }
+            for line in parse_log_lines(&log.content) {
+                content.push_line(Line::raw(line));
             }
 
             #[allow(clippy::cast_possible_truncation)]
