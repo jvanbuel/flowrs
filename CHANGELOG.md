@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1](https://github.com/jvanbuel/flowrs/compare/v0.8.0...v0.8.1) - 2026-01-08
+
+### Added
+
+- add gg and G keybindings to logs panel
+
+### Fixed
+
+- clear event buffer on non-g keys for gg keybinding
+
+### Other
+
+- move V1 log parsing to client conversion layer
+- improve logs panel code structure
+- simplify gg keybinding logic
+- *(deps)* bump lru from 0.16.2 to 0.16.3
+- *(deps)* bump tokio from 1.48.0 to 1.49.0
+- *(deps)* bump clap from 4.5.53 to 4.5.54 ([#514](https://github.com/jvanbuel/flowrs/pull/514))
+- update gifs
+
 ## [0.7.8](https://github.com/jvanbuel/flowrs/compare/v0.7.7...v0.7.8) - 2025-12-31
 
 ### Fixed
