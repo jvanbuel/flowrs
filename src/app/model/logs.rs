@@ -9,7 +9,6 @@ use ratatui::{
         StatefulWidget, Tabs, Widget, Wrap,
     },
 };
-use regex::Regex;
 
 use crate::{
     airflow::model::common::Log,
@@ -48,31 +47,7 @@ impl LogModel {
         let Some(log) = self.all.get(self.current % self.all.len().max(1)) else {
             return 0;
         };
-        parse_log_lines(&log.content).len()
-    }
-}
-
-/// Parses log content and returns a vector of individual lines.
-///
-/// Handles both v1 format (Python tuples with escaped newlines) and v2 format (clean strings).
-fn parse_log_lines(content: &str) -> Vec<String> {
-    let fragments = parse_content(content);
-
-    if fragments.is_empty() {
-        // v2 format: content is already a clean string
-        content.lines().map(str::to_string).collect()
-    } else {
-        // v1 format: parse Python tuples and expand escaped newlines
-        fragments
-            .into_iter()
-            .flat_map(|(_, log_fragment)| {
-                log_fragment
-                    .replace("\\n", "\n")
-                    .lines()
-                    .map(str::to_string)
-                    .collect::<Vec<_>>()
-            })
-            .collect()
+        log.content.lines().count()
     }
 }
 
@@ -226,7 +201,7 @@ impl Widget for &mut LogModel {
 
         if let Some(log) = self.all.get(self.current % self.all.len()) {
             let mut content = Text::default();
-            for line in parse_log_lines(&log.content) {
+            for line in log.content.lines() {
                 content.push_line(Line::raw(line));
             }
 
@@ -257,85 +232,5 @@ impl Widget for &mut LogModel {
         if let Some(error_popup) = &self.error_popup {
             error_popup.render(area, buffer);
         }
-    }
-}
-
-// Log content is a list of tuples of form ('element1', 'element2'), i.e. serialized python tuples
-// The second element can be single or double quoted depending on content
-fn parse_content(content: &str) -> Vec<(String, String)> {
-    // Regex to match tuples with either quote style for second element:
-    // ('element1', 'element2') OR ('element1', "element2")
-    let re =
-        Regex::new(r#"\(\s*'((?:\\.|[^'])*)'\s*,\s*(?:"((?:\\.|[^"])*)"|'((?:\\.|[^'])*)')\s*\)"#)
-            .expect("Log parsing regex pattern should be valid");
-
-    // Use regex to extract tuples
-    re.captures_iter(content)
-        .map(|cap| {
-            let first = cap[1].to_string();
-            // Second element can be in group 2 (double quotes) or group 3 (single quotes)
-            let second = cap
-                .get(2)
-                .or_else(|| cap.get(3))
-                .map(|m| m.as_str().to_string())
-                .unwrap_or_default();
-            (first, second)
-        })
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_content_single_quotes() {
-        let content = "[('host1', 'log content here')]";
-        let result = parse_content(content);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].0, "host1");
-        assert_eq!(result[0].1, "log content here");
-    }
-
-    #[test]
-    fn test_parse_content_double_quotes_second_element() {
-        let content = r#"[('cec849a302e3', "*** Found local files:\n***   * /opt/airflow/logs/")]"#;
-        let result = parse_content(content);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].0, "cec849a302e3");
-        assert_eq!(
-            result[0].1,
-            r"*** Found local files:\n***   * /opt/airflow/logs/"
-        );
-    }
-
-    #[test]
-    fn test_parse_content_with_escaped_quotes() {
-        let content = r"[('host', 'line with \' escaped quote')]";
-        let result = parse_content(content);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].0, "host");
-        assert_eq!(result[0].1, r"line with \' escaped quote");
-    }
-
-    #[test]
-    fn test_parse_content_multiple_tuples() {
-        let content = r#"[('host1', 'log1'), ('host2', "log2 with special chars")]"#;
-        let result = parse_content(content);
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0], ("host1".to_string(), "log1".to_string()));
-        assert_eq!(
-            result[1],
-            ("host2".to_string(), "log2 with special chars".to_string())
-        );
-    }
-
-    #[test]
-    fn test_parse_content_real_airflow_log() {
-        let content = r#"[('cec849a302e3', "*** Found local files:\\n***   * /opt/airflow/logs/dag_id=dataset_consumes_1/run_id=dataset_triggered__2025-10-12T01:24:15.313731+00:00/task_id=consuming_1/attempt=1.log\\n[2025-10-12T01:24:16.754+0000] {local_task_job_runner.py:123} INFO - ::group::Pre task execution logs")]"#;
-        let result = parse_content(content);
-        assert_eq!(result.len(), 1);
-        assert_eq!(result[0].0, "cec849a302e3");
-        assert!(result[0].1.starts_with("*** Found local files:"));
     }
 }
