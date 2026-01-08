@@ -153,16 +153,13 @@ impl Model for LogModel {
                     }
                     KeyCode::Char('g') => {
                         // gg: go to top of log
-                        if let Some(last_key) = self.event_buffer.pop() {
-                            if last_key == KeyCode::Char('g') {
-                                self.vertical_scroll = 0;
-                                self.vertical_scroll_state =
-                                    self.vertical_scroll_state.position(self.vertical_scroll);
-                            } else {
-                                self.event_buffer.push(last_key);
-                                self.event_buffer.push(KeyCode::Char('g'));
-                            }
+                        if self.event_buffer.pop().is_some() {
+                            // Second consecutive 'g' - go to top
+                            self.vertical_scroll = 0;
+                            self.vertical_scroll_state =
+                                self.vertical_scroll_state.position(self.vertical_scroll);
                         } else {
+                            // First 'g' - buffer it for potential gg
                             self.event_buffer.push(KeyCode::Char('g'));
                         }
                     }
