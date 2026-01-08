@@ -100,6 +100,10 @@ impl Model for LogModel {
                     }
                     return (None, vec![]);
                 }
+                // Clear event buffer on any key that is not 'g' to ensure gg requires consecutive presses
+                if key.code != KeyCode::Char('g') {
+                    self.event_buffer.clear();
+                }
                 match key.code {
                     KeyCode::Char('l') | KeyCode::Right => {
                         if !self.all.is_empty() && self.current < self.all.len() - 1 {
