@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2](https://github.com/jvanbuel/flowrs/compare/v0.8.1...v0.8.2) - 2026-01-23
+
+### Fixed
+
+- *(duration)* prevent negative durations from propagating to UI
+- *(taskinstances)* show updating duration for running tasks
+
+### Other
+
+- *(readme)* add project badges
+- *(deps)* bump chrono from 0.4.42 to 0.4.43
+- *(deps)* bump time from 0.3.44 to 0.3.45
+- *(deps)* bump inquire from 0.9.1 to 0.9.2
+- *(deps)* bump aws-sdk-mwaa from 1.97.0 to 1.98.0
+- *(deps)* bump toml from 0.9.10+spec-1.1.0 to 0.9.11+spec-1.1.0
+- *(deps)* bump ansi-to-tui from 8.0.0 to 8.0.1
+
 ## [0.8.1](https://github.com/jvanbuel/flowrs/compare/v0.8.0...v0.8.1) - 2026-01-08
 
 ### Added
