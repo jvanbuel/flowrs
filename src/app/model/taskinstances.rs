@@ -10,7 +10,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use time::format_description;
 
 use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::TaskInstance;
+use crate::airflow::model::common::{calculate_duration, format_duration, TaskInstance};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
@@ -238,8 +238,7 @@ impl Widget for &mut TaskInstanceModel {
                         "None".to_string()
                     }),
                     Line::from(
-                        item.duration
-                            .map_or_else(|| "None".to_string(), |i| format!("{i}")),
+                        calculate_duration(item).map_or_else(|| "-".to_string(), format_duration),
                     ),
                     Line::from(if let Some(state) = &item.state {
                         match state.as_str() {

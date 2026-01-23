@@ -3,6 +3,8 @@ use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+use super::duration::TimeBounded;
+
 /// Common `DagRun` model used by the application
 #[allow(clippy::struct_field_names)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -25,6 +27,16 @@ pub struct DagRun {
 pub struct DagRunList {
     pub dag_runs: Vec<DagRun>,
     pub total_entries: i64,
+}
+
+impl TimeBounded for DagRun {
+    fn start_date(&self) -> Option<OffsetDateTime> {
+        self.start_date
+    }
+
+    fn end_date(&self) -> Option<OffsetDateTime> {
+        self.end_date
+    }
 }
 
 // From trait implementations for v1 models
