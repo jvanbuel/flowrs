@@ -9,11 +9,14 @@ pub trait TimeBounded {
 }
 
 /// Calculate duration in seconds for any time-bounded entity.
-/// Returns None if `start_date` is not available.
+/// Returns None if `start_date` is not available or if `end_date` precedes `start_date`.
 /// For running entities (no `end_date`), uses current time.
 pub fn calculate_duration<T: TimeBounded>(item: &T) -> Option<f64> {
     let start = item.start_date()?;
     let end = item.end_date().unwrap_or_else(OffsetDateTime::now_utc);
+    if end < start {
+        return None;
+    }
     Some((end - start).as_seconds_f64())
 }
 
