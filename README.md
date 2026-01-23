@@ -1,5 +1,12 @@
 ![flowrs_logo](./image/README/1683789045509.png)
 
+[![CI](https://github.com/jvanbuel/flowrs/actions/workflows/ci.yml/badge.svg)](https://github.com/jvanbuel/flowrs/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/flowrs-tui.svg)](https://crates.io/crates/flowrs-tui)
+[![Downloads](https://img.shields.io/crates/d/flowrs-tui.svg)](https://crates.io/crates/flowrs-tui)
+[![License](https://img.shields.io/crates/l/flowrs-tui.svg)](https://github.com/jvanbuel/flowrs/blob/main/LICENSE)
+[![MSRV](https://img.shields.io/badge/MSRV-1.87.0-blue)](https://github.com/jvanbuel/flowrs)
+[![Built With Ratatui](https://ratatui.rs/built-with-ratatui/badge.svg)](https://ratatui.rs/)
+
 Flowrs is a TUI application for [Apache Airflow](https://airflow.apache.org/). It allows you to monitor, inspect and manage Airflow DAGs from the comforts of your terminal. It is build with the [ratatui](https://ratatui.rs/) library.
 
 ![flowrs demo](./vhs/flowrs.gif)
