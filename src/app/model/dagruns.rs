@@ -13,7 +13,7 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 use time::format_description;
 
-use crate::airflow::model::common::DagRun;
+use crate::airflow::model::common::{calculate_duration, format_duration, DagRun};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
@@ -79,47 +79,6 @@ impl DagCodeWidget {
 impl DagRunModel {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    /// Calculate duration in seconds for a DAG run.
-    /// Returns None if `start_date` is not available.
-    pub fn calculate_duration(dag_run: &DagRun) -> Option<f64> {
-        let start = dag_run.start_date?;
-        let end = dag_run
-            .end_date
-            .unwrap_or_else(time::OffsetDateTime::now_utc);
-        Some((end - start).as_seconds_f64())
-    }
-
-    /// Format duration as human-readable string (e.g., "2h 30m", "45s", "1d 3h").
-    pub fn format_duration(seconds: f64) -> String {
-        if seconds < 60.0 {
-            format!("{seconds:.0}s")
-        } else if seconds < 3600.0 {
-            let minutes = (seconds / 60.0).floor();
-            let secs = (seconds % 60.0).floor();
-            if secs > 0.0 {
-                format!("{minutes:.0}m {secs:.0}s")
-            } else {
-                format!("{minutes:.0}m")
-            }
-        } else if seconds < 86400.0 {
-            let hours = (seconds / 3600.0).floor();
-            let minutes = ((seconds % 3600.0) / 60.0).floor();
-            if minutes > 0.0 {
-                format!("{hours:.0}h {minutes:.0}m")
-            } else {
-                format!("{hours:.0}h")
-            }
-        } else {
-            let days = (seconds / 86400.0).floor();
-            let hours = ((seconds % 86400.0) / 3600.0).floor();
-            if hours > 0.0 {
-                format!("{days:.0}d {hours:.0}h")
-            } else {
-                format!("{days:.0}d")
-            }
-        }
     }
 
     /// Create a text-based duration gauge line.
@@ -408,7 +367,7 @@ impl Widget for &mut DagRunModel {
             .filtered
             .items
             .iter()
-            .filter_map(DagRunModel::calculate_duration)
+            .filter_map(calculate_duration)
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(1.0);
 
@@ -436,20 +395,19 @@ impl Widget for &mut DagRunModel {
                     _ => AirflowStateColor::None.into(),
                 };
 
-                let (duration_cell, time_cell) =
-                    if let Some(duration) = DagRunModel::calculate_duration(item) {
-                        (
-                            DagRunModel::create_duration_gauge(
-                                duration,
-                                max_duration,
-                                state_color,
-                                gauge_width,
-                            ),
-                            Line::from(DagRunModel::format_duration(duration)),
-                        )
-                    } else {
-                        (Line::from("-"), Line::from("-"))
-                    };
+                let (duration_cell, time_cell) = if let Some(duration) = calculate_duration(item) {
+                    (
+                        DagRunModel::create_duration_gauge(
+                            duration,
+                            max_duration,
+                            state_color,
+                            gauge_width,
+                        ),
+                        Line::from(format_duration(duration)),
+                    )
+                } else {
+                    (Line::from("-"), Line::from("-"))
+                };
 
                 Row::new(vec![
                     Line::from(Span::styled("■", Style::default().fg(state_color))),
@@ -570,21 +528,6 @@ mod tests {
     use crate::app::model::filter::Filterable;
     use crossterm::event::{KeyEvent, KeyModifiers};
     use time::macros::datetime;
-
-    #[test]
-    fn test_format_duration() {
-        // Seconds
-        assert_eq!(DagRunModel::format_duration(30.0), "30s");
-        // Minutes
-        assert_eq!(DagRunModel::format_duration(90.0), "1m 30s");
-        assert_eq!(DagRunModel::format_duration(120.0), "2m");
-        // Hours
-        assert_eq!(DagRunModel::format_duration(5400.0), "1h 30m");
-        assert_eq!(DagRunModel::format_duration(7200.0), "2h");
-        // Days
-        assert_eq!(DagRunModel::format_duration(90000.0), "1d 1h");
-        assert_eq!(DagRunModel::format_duration(172_800.0), "2d");
-    }
 
     #[test]
     fn test_duration_gauge_ratios() {

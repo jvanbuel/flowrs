@@ -3,6 +3,8 @@ use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+use super::duration::TimeBounded;
+
 /// Common `TaskInstance` model used by the application
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TaskInstance {
@@ -33,6 +35,16 @@ pub struct TaskInstance {
 pub struct TaskInstanceList {
     pub task_instances: Vec<TaskInstance>,
     pub total_entries: i64,
+}
+
+impl TimeBounded for TaskInstance {
+    fn start_date(&self) -> Option<OffsetDateTime> {
+        self.start_date
+    }
+
+    fn end_date(&self) -> Option<OffsetDateTime> {
+        self.end_date
+    }
 }
 
 // From trait implementations for v1 models
