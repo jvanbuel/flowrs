@@ -103,7 +103,6 @@ impl DagModel {
                     debug!("Selected dag: {}", dag.dag_id);
                     KeyResult::PassWith(vec![WorkerMessage::UpdateDagRuns {
                         dag_id: dag.dag_id.clone(),
-                        clear: true,
                     }])
                 } else {
                     self.popup

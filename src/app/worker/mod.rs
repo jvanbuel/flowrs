@@ -29,12 +29,10 @@ pub enum WorkerMessage {
     },
     UpdateDagRuns {
         dag_id: String,
-        clear: bool,
     },
     UpdateTaskInstances {
         dag_id: String,
         dag_run_id: String,
-        clear: bool,
     },
     GetDagCode {
         dag_id: String,
@@ -48,7 +46,6 @@ pub enum WorkerMessage {
         dag_run_id: String,
         task_id: String,
         task_try: u16,
-        clear: bool,
     },
     MarkDagRun {
         dag_run_id: String,

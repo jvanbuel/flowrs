@@ -270,7 +270,6 @@ impl DagRunModel {
                         WorkerMessage::UpdateTaskInstances {
                             dag_id: dag_id.clone(),
                             dag_run_id: dag_run.dag_run_id.clone(),
-                            clear: true,
                         },
                     ])
                 } else {
@@ -303,7 +302,6 @@ impl Model for DagRunModel {
                 let worker_messages = if let Some(dag_id) = &self.dag_id {
                     vec![WorkerMessage::UpdateDagRuns {
                         dag_id: dag_id.clone(),
-                        clear: false,
                     }]
                 } else {
                     Vec::default()
