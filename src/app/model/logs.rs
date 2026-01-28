@@ -35,11 +35,30 @@ pub struct LogModel {
     vertical_scroll: usize,
     vertical_scroll_state: ScrollbarState,
     pending_g: bool,
+    /// When true, automatically scroll to bottom when new content arrives (tail mode)
+    pub follow_mode: bool,
 }
 
 impl LogModel {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            follow_mode: true, // Start in follow mode for live tailing
+            ..Default::default()
+        }
+    }
+
+    /// Update the logs and handle auto-scroll if in follow mode
+    pub fn update_logs(&mut self, logs: Vec<Log>) {
+        self.all = logs;
+        if self.follow_mode {
+            self.scroll_to_bottom();
+        }
+    }
+
+    /// Scroll to the bottom of the current log
+    fn scroll_to_bottom(&mut self) {
+        self.vertical_scroll = self.current_line_count().saturating_sub(1);
+        self.vertical_scroll_state = self.vertical_scroll_state.position(self.vertical_scroll);
     }
 
     /// Returns the total number of lines in the current log content
@@ -107,11 +126,18 @@ impl Model for LogModel {
                         self.vertical_scroll = self.vertical_scroll.saturating_add(1);
                         self.vertical_scroll_state =
                             self.vertical_scroll_state.position(self.vertical_scroll);
+                        // Check if we're at the bottom - if so, enable follow mode
+                        let line_count = self.current_line_count();
+                        if self.vertical_scroll >= line_count.saturating_sub(1) {
+                            self.follow_mode = true;
+                        }
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
                         self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
                         self.vertical_scroll_state =
                             self.vertical_scroll_state.position(self.vertical_scroll);
+                        // Disable follow mode when scrolling up
+                        self.follow_mode = false;
                     }
                     KeyCode::Char('o') => {
                         if self.all.get(self.current % self.all.len()).is_some() {
@@ -131,20 +157,26 @@ impl Model for LogModel {
                         }
                     }
                     KeyCode::Char('G') => {
-                        // Go to bottom of log
-                        let line_count = self.current_line_count();
-                        self.vertical_scroll = line_count.saturating_sub(1);
-                        self.vertical_scroll_state =
-                            self.vertical_scroll_state.position(self.vertical_scroll);
+                        // Go to bottom of log and enable follow mode
+                        self.scroll_to_bottom();
+                        self.follow_mode = true;
+                    }
+                    KeyCode::Char('F') => {
+                        // Toggle follow mode
+                        self.follow_mode = !self.follow_mode;
+                        if self.follow_mode {
+                            self.scroll_to_bottom();
+                        }
                     }
                     KeyCode::Char('g') => {
                         // gg: go to top of log
                         if self.pending_g {
-                            // Second consecutive 'g' - go to top
+                            // Second consecutive 'g' - go to top and disable follow mode
                             self.vertical_scroll = 0;
                             self.vertical_scroll_state =
                                 self.vertical_scroll_state.position(self.vertical_scroll);
                             self.pending_g = false;
+                            self.follow_mode = false;
                         } else {
                             // First 'g' - mark as pending for potential gg
                             self.pending_g = true;
@@ -212,6 +244,11 @@ impl Widget for &mut LogModel {
                         .border_type(BorderType::Plain)
                         .borders(Borders::ALL)
                         .title(" Content ")
+                        .title_bottom(if self.follow_mode {
+                            " [F]ollow: ON - auto-scrolling "
+                        } else {
+                            " [F]ollow: OFF - press G to resume "
+                        })
                         .border_style(BORDER_STYLE)
                         .title_style(TITLE_STYLE),
                 )

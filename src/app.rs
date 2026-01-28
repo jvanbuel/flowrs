@@ -148,17 +148,21 @@ where
                             dag_id,
                             dag_run_id,
                             task_id,
+                            task_try,
                             clear,
-                            ..
                         } => {
                             if *clear {
                                 app.logs.dag_id = Some(dag_id.clone());
                                 app.logs.dag_run_id = Some(dag_run_id.clone());
                                 app.logs.task_id = Some(task_id.clone());
+                                app.logs.tries = Some(*task_try);
+                                app.logs.current = 0;
+                                app.logs.follow_mode = true; // Start in follow mode for new logs
                                 // Sync cached data immediately
-                                app.logs.all = app
+                                let logs = app
                                     .environment_state
                                     .get_active_task_logs(dag_id, dag_run_id, task_id);
+                                app.logs.update_logs(logs);
                             }
                         }
                         WorkerMessage::UpdateTasks { dag_id } => {
