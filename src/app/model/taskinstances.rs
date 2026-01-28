@@ -142,7 +142,6 @@ impl TaskInstanceModel {
                         dag_run_id: task_instance.dag_run_id.clone(),
                         task_id: task_instance.task_id.clone(),
                         task_try,
-                        clear: true,
                     }])
                 } else {
                     KeyResult::Consumed
@@ -179,7 +178,6 @@ impl Model for TaskInstanceModel {
                         vec![WorkerMessage::UpdateTaskInstances {
                             dag_id: dag_id.clone(),
                             dag_run_id: dag_run_id.clone(),
-                            clear: false,
                         }],
                     );
                 }

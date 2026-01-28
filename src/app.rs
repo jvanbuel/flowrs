@@ -119,51 +119,43 @@ where
                 {
                     let mut app = app.lock().unwrap();
                     match message {
-                        WorkerMessage::UpdateDagRuns { dag_id, clear } => {
-                            if *clear {
-                                app.dagruns.dag_id = Some(dag_id.clone());
-                                // Sync cached data immediately
-                                app.dagruns.table.all =
-                                    app.environment_state.get_active_dag_runs(dag_id);
-                                app.dagruns.table.apply_filter();
-                                app.dagruns.sort_dag_runs();
-                            }
+                        WorkerMessage::UpdateDagRuns { dag_id } => {
+                            app.dagruns.dag_id = Some(dag_id.clone());
+                            app.dagruns.table.all =
+                                app.environment_state.get_active_dag_runs(dag_id);
+                            app.dagruns.table.apply_filter();
+                            app.dagruns.sort_dag_runs();
                         }
-                        WorkerMessage::UpdateTaskInstances {
-                            dag_id,
-                            dag_run_id,
-                            clear,
-                        } => {
-                            if *clear {
-                                app.task_instances.dag_id = Some(dag_id.clone());
-                                app.task_instances.dag_run_id = Some(dag_run_id.clone());
-                                // Sync cached data immediately
-                                app.task_instances.table.all = app
-                                    .environment_state
-                                    .get_active_task_instances(dag_id, dag_run_id);
-                                app.task_instances.table.apply_filter();
-                            }
+                        WorkerMessage::UpdateTaskInstances { dag_id, dag_run_id } => {
+                            app.task_instances.dag_id = Some(dag_id.clone());
+                            app.task_instances.dag_run_id = Some(dag_run_id.clone());
+                            app.task_instances.table.all = app
+                                .environment_state
+                                .get_active_task_instances(dag_id, dag_run_id);
+                            app.task_instances.table.apply_filter();
                         }
                         WorkerMessage::UpdateTaskLogs {
                             dag_id,
                             dag_run_id,
                             task_id,
                             task_try,
-                            clear,
                         } => {
-                            if *clear {
-                                app.logs.dag_id = Some(dag_id.clone());
-                                app.logs.dag_run_id = Some(dag_run_id.clone());
-                                app.logs.task_id = Some(task_id.clone());
-                                app.logs.tries = Some(*task_try);
+                            // Reset view state only when navigating to different logs
+                            let is_new_context = app.logs.dag_id.as_ref() != Some(dag_id)
+                                || app.logs.dag_run_id.as_ref() != Some(dag_run_id)
+                                || app.logs.task_id.as_ref() != Some(task_id);
+                            app.logs.dag_id = Some(dag_id.clone());
+                            app.logs.dag_run_id = Some(dag_run_id.clone());
+                            app.logs.task_id = Some(task_id.clone());
+                            app.logs.tries = Some(*task_try);
+                            if is_new_context {
                                 app.logs.current = 0;
-                                app.logs.follow_mode = true; // Start in follow mode for new logs
-                                // Sync cached data immediately
-                                let logs = app
-                                    .environment_state
-                                    .get_active_task_logs(dag_id, dag_run_id, task_id);
-                                app.logs.update_logs(logs);
+                                app.logs.follow_mode = true;
                             }
+                            let logs = app
+                                .environment_state
+                                .get_active_task_logs(dag_id, dag_run_id, task_id);
+                            app.logs.update_logs(logs);
                         }
                         WorkerMessage::UpdateTasks { dag_id } => {
                             // Clear task graph when switching DAGs

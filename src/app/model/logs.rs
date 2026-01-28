@@ -89,7 +89,6 @@ impl Model for LogModel {
                             dag_run_id: dag_run_id.clone(),
                             task_id: task_id.clone(),
                             task_try: *tries,
-                            clear: false,
                         }],
                     );
                 }
