@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4](https://github.com/jvanbuel/flowrs/compare/v0.8.3...v0.8.4) - 2026-01-29
+
+### Fixed
+
+- list paginated DAGs
+
 ## [0.8.3](https://github.com/jvanbuel/flowrs/compare/v0.8.2...v0.8.3) - 2026-01-26
 
 ### Other
