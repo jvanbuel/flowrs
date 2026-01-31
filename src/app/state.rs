@@ -257,9 +257,10 @@ impl App {
                 if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
                     (&self.logs.dag_id, &self.logs.dag_run_id, &self.logs.task_id)
                 {
-                    self.logs.all = self
-                        .environment_state
-                        .get_active_task_logs(dag_id, dag_run_id, task_id);
+                    self.logs.update_logs(
+                        self.environment_state
+                            .get_active_task_logs(dag_id, dag_run_id, task_id),
+                    );
                 } else {
                     self.logs.all.clear();
                 }
