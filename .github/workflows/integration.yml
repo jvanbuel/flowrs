@@ -57,7 +57,7 @@ jobs:
       - name: Install FAB provider (v3.x only)
         if: matrix.api_version == 'v2'
         run: |
-          docker exec airflow pip install --user apache-airflow-providers-fab
+          docker exec airflow python -m pip install --user apache-airflow-providers-fab
 
       - name: Initialize Airflow database
         run: |
