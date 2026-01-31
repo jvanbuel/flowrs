@@ -1,3 +1,6 @@
+// Functions are used across different test files but appear unused when compiling each test separately
+#![allow(dead_code)]
+
 use std::env;
 use std::sync::Arc;
 
