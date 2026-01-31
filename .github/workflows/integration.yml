@@ -48,44 +48,19 @@ jobs:
             -e AIRFLOW__CORE__LOAD_EXAMPLES=true \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db \
             -e AIRFLOW__WEBSERVER__SECRET_KEY=test-secret-key \
+            -e AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS=airflow:admin \
             --entrypoint /bin/bash \
             apache/airflow:${{ matrix.airflow_version }} \
             -c "sleep infinity"
 
-      - name: Install FAB provider (v3.x only)
-        if: matrix.api_version == 'v2'
-        run: |
-          docker exec airflow python -m pip install apache-airflow-providers-fab
-
-      - name: Initialize Airflow database (v2.x)
-        if: matrix.api_version == 'v1'
+      - name: Initialize Airflow database
         run: |
           docker exec airflow airflow db migrate
 
-      - name: Initialize Airflow database (v3.x)
-        if: matrix.api_version == 'v2'
-        run: |
-          docker exec \
-            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
-            airflow airflow db migrate
-
-      - name: Create Airflow user (v2.x)
+      - name: Create Airflow user (v2.x only)
         if: matrix.api_version == 'v1'
         run: |
           docker exec airflow airflow users create \
-            --username airflow \
-            --password airflow \
-            --firstname Test \
-            --lastname User \
-            --role Admin \
-            --email test@example.com
-
-      - name: Create Airflow user (v3.x)
-        if: matrix.api_version == 'v2'
-        run: |
-          docker exec \
-            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
-            airflow airflow users create \
             --username airflow \
             --password airflow \
             --firstname Test \
@@ -102,10 +77,7 @@ jobs:
       - name: Start Airflow services (v3.x)
         if: matrix.api_version == 'v2'
         run: |
-          docker exec -d \
-            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
-            -e AIRFLOW__FAB__AUTH_BACKENDS=airflow.providers.fab.auth_manager.api.auth.backend.basic_auth \
-            airflow airflow api-server --port 8080
+          docker exec -d airflow airflow api-server --port 8080
           docker exec -d airflow airflow scheduler
           docker exec -d airflow airflow dag-processor
 
@@ -131,23 +103,30 @@ jobs:
           '
           echo "Airflow API is ready"
 
+      - name: Get Airflow 3.x password
+        if: matrix.api_version == 'v2'
+        id: airflow_password
+        run: |
+          # Wait for password file to be generated
+          sleep 5
+          PASSWORD=$(docker exec airflow cat /home/airflow/simple_auth_manager_passwords.json.generated 2>/dev/null | python3 -c "import sys, json; print(json.load(sys.stdin).get('airflow', ''))" || echo "")
+          if [ -z "$PASSWORD" ]; then
+            echo "Warning: Could not retrieve password, using default"
+            PASSWORD="airflow"
+          fi
+          echo "password=$PASSWORD" >> $GITHUB_OUTPUT
+          echo "Retrieved password for airflow user"
+
       - name: Wait for DAGs to load
         run: |
           echo "Waiting for scheduler to parse DAGs..."
           sleep 45
-          if [ "${{ matrix.api_version }}" = "v1" ]; then
-            echo "Checking DAGs via API v1..."
-            curl -sf -u airflow:airflow http://localhost:8080/api/v1/dags?limit=5 || echo "API call failed"
-          else
-            echo "Checking DAGs via API v2..."
-            curl -sf -u airflow:airflow http://localhost:8080/api/v2/dags?limit=5 || echo "API call failed"
-          fi
 
       - name: Run integration tests
         env:
           TEST_AIRFLOW_URL: http://localhost:8080
           TEST_AIRFLOW_USERNAME: airflow
-          TEST_AIRFLOW_PASSWORD: airflow
+          TEST_AIRFLOW_PASSWORD: ${{ matrix.api_version == 'v2' && steps.airflow_password.outputs.password || 'airflow' }}
           TEST_API_VERSION: ${{ matrix.api_version }}
         run: cargo test --test '*' -- --test-threads=1
 

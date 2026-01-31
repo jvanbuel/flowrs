@@ -1,6 +1,6 @@
 mod common;
 
-use common::{create_test_client, should_run_for_api_version};
+use common::{create_test_client_v3, should_run_for_api_version};
 
 #[tokio::test]
 async fn test_v2_list_dags() {
@@ -9,7 +9,9 @@ async fn test_v2_list_dags() {
         return;
     }
 
-    let client = create_test_client().expect("Failed to create test client");
+    let client = create_test_client_v3()
+        .await
+        .expect("Failed to create test client");
     let result = client.list_dags().await;
 
     assert!(result.is_ok(), "Failed to list DAGs: {:?}", result.err());
@@ -28,7 +30,9 @@ async fn test_v2_dag_has_required_fields() {
         return;
     }
 
-    let client = create_test_client().expect("Failed to create test client");
+    let client = create_test_client_v3()
+        .await
+        .expect("Failed to create test client");
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if let Some(dag) = dag_list.dags.first() {
@@ -43,7 +47,9 @@ async fn test_v2_get_dag_code() {
         return;
     }
 
-    let client = create_test_client().expect("Failed to create test client");
+    let client = create_test_client_v3()
+        .await
+        .expect("Failed to create test client");
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if let Some(dag) = dag_list.dags.first() {
@@ -61,7 +67,9 @@ async fn test_v2_list_dagruns() {
         return;
     }
 
-    let client = create_test_client().expect("Failed to create test client");
+    let client = create_test_client_v3()
+        .await
+        .expect("Failed to create test client");
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if let Some(dag) = dag_list.dags.first() {
@@ -81,7 +89,9 @@ async fn test_v2_dag_stats() {
         return;
     }
 
-    let client = create_test_client().expect("Failed to create test client");
+    let client = create_test_client_v3()
+        .await
+        .expect("Failed to create test client");
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if !dag_list.dags.is_empty() {
@@ -112,7 +122,9 @@ async fn test_v2_list_task_instances() {
         return;
     }
 
-    let client = create_test_client().expect("Failed to create test client");
+    let client = create_test_client_v3()
+        .await
+        .expect("Failed to create test client");
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if let Some(dag) = dag_list.dags.first() {
