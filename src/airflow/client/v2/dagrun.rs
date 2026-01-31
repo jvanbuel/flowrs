@@ -13,7 +13,7 @@ impl DagRunOperations for V2Client {
     async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
         let response: Response = self
             .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))?
-            .query(&[("order_by", "-start_date"), ("limit", "50")])
+            .query(&[("order_by", "-run_after"), ("limit", "50")])
             .send()
             .await?
             .error_for_status()?;
