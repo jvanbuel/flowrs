@@ -20,28 +20,6 @@ jobs:
           - airflow_version: "3.0.1"
             api_version: "v2"
 
-    services:
-      airflow:
-        image: apache/airflow:${{ matrix.airflow_version }}
-        env:
-          AIRFLOW__CORE__LOAD_EXAMPLES: "true"
-          AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////tmp/airflow.db
-          AIRFLOW__WEBSERVER__SECRET_KEY: test-secret-key
-          AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
-          _AIRFLOW_DB_MIGRATE: "true"
-          _AIRFLOW_WWW_USER_CREATE: "true"
-          _AIRFLOW_WWW_USER_USERNAME: airflow
-          _AIRFLOW_WWW_USER_PASSWORD: airflow
-        ports:
-          - 8080:8080
-        options: >-
-          --entrypoint /bin/bash
-          --health-cmd "curl -f http://localhost:8080/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-          --health-start-period 30s
-
     steps:
       - uses: actions/checkout@v4
 
@@ -49,9 +27,21 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Start Airflow
+      - name: Start Airflow container
         run: |
-          docker exec ${{ job.services.airflow.id }} bash -c "
+          docker run -d --name airflow \
+            -p 8080:8080 \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=true \
+            -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db \
+            -e AIRFLOW__WEBSERVER__SECRET_KEY=test-secret-key \
+            -e AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth \
+            --entrypoint /bin/bash \
+            apache/airflow:${{ matrix.airflow_version }} \
+            -c "sleep infinity"
+
+      - name: Start Airflow services
+        run: |
+          docker exec airflow bash -c "
             airflow db migrate &&
             airflow users create --username airflow --password airflow --firstname Test --lastname User --role Admin --email test@example.com &&
             airflow webserver --port 8080 &
@@ -76,3 +66,7 @@ jobs:
           TEST_AIRFLOW_PASSWORD: airflow
           TEST_API_VERSION: ${{ matrix.api_version }}
         run: cargo test --test '*' -- --test-threads=1
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f airflow || true
