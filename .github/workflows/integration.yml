@@ -48,8 +48,6 @@ jobs:
             -e AIRFLOW__CORE__LOAD_EXAMPLES=true \
             -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db \
             -e AIRFLOW__WEBSERVER__SECRET_KEY=test-secret-key \
-            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
-            -e AIRFLOW__FAB__AUTH_BACKENDS=airflow.providers.fab.auth_manager.api.auth.backend.basic_auth \
             --entrypoint /bin/bash \
             apache/airflow:${{ matrix.airflow_version }} \
             -c "sleep infinity"
@@ -59,13 +57,35 @@ jobs:
         run: |
           docker exec airflow python -m pip install apache-airflow-providers-fab
 
-      - name: Initialize Airflow database
+      - name: Initialize Airflow database (v2.x)
+        if: matrix.api_version == 'v1'
         run: |
           docker exec airflow airflow db migrate
 
-      - name: Create Airflow user
+      - name: Initialize Airflow database (v3.x)
+        if: matrix.api_version == 'v2'
+        run: |
+          docker exec \
+            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
+            airflow airflow db migrate
+
+      - name: Create Airflow user (v2.x)
+        if: matrix.api_version == 'v1'
         run: |
           docker exec airflow airflow users create \
+            --username airflow \
+            --password airflow \
+            --firstname Test \
+            --lastname User \
+            --role Admin \
+            --email test@example.com
+
+      - name: Create Airflow user (v3.x)
+        if: matrix.api_version == 'v2'
+        run: |
+          docker exec \
+            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
+            airflow airflow users create \
             --username airflow \
             --password airflow \
             --firstname Test \
@@ -82,7 +102,10 @@ jobs:
       - name: Start Airflow services (v3.x)
         if: matrix.api_version == 'v2'
         run: |
-          docker exec -d airflow airflow api-server --port 8080
+          docker exec -d \
+            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
+            -e AIRFLOW__FAB__AUTH_BACKENDS=airflow.providers.fab.auth_manager.api.auth.backend.basic_auth \
+            airflow airflow api-server --port 8080
           docker exec -d airflow airflow scheduler
           docker exec -d airflow airflow dag-processor
 
