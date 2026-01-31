@@ -17,7 +17,7 @@ jobs:
         include:
           - airflow_version: "2.10.4"
             api_version: "v1"
-          - airflow_version: "3.0.1"
+          - airflow_version: "3.1.6"
             api_version: "v2"
 
     steps:
@@ -27,7 +27,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Start Airflow container
+      - name: Start Airflow 2.x container
+        if: matrix.api_version == 'v1'
         run: |
           docker run -d --name airflow \
             -p 8080:8080 \
@@ -39,17 +40,54 @@ jobs:
             apache/airflow:${{ matrix.airflow_version }} \
             -c "sleep infinity"
 
-      - name: Start Airflow services
+      - name: Start Airflow 3.x container
+        if: matrix.api_version == 'v2'
         run: |
-          docker exec airflow bash -c "
-            airflow db migrate &&
-            airflow users create --username airflow --password airflow --firstname Test --lastname User --role Admin --email test@example.com &&
-            airflow webserver --port 8080 &
-            airflow scheduler &
-            sleep 30
-          "
+          docker run -d --name airflow \
+            -p 8080:8080 \
+            -e AIRFLOW__CORE__LOAD_EXAMPLES=true \
+            -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////tmp/airflow.db \
+            -e AIRFLOW__WEBSERVER__SECRET_KEY=test-secret-key \
+            -e AIRFLOW__CORE__AUTH_MANAGER=airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager \
+            -e AIRFLOW__FAB__AUTH_BACKENDS=airflow.providers.fab.auth_manager.api.auth.backend.basic_auth \
+            --entrypoint /bin/bash \
+            apache/airflow:${{ matrix.airflow_version }} \
+            -c "sleep infinity"
 
-      - name: Wait for Airflow API
+      - name: Install FAB provider (v3.x only)
+        if: matrix.api_version == 'v2'
+        run: |
+          docker exec airflow pip install apache-airflow-providers-fab
+
+      - name: Initialize Airflow database
+        run: |
+          docker exec airflow airflow db migrate
+
+      - name: Create Airflow user
+        run: |
+          docker exec airflow airflow users create \
+            --username airflow \
+            --password airflow \
+            --firstname Test \
+            --lastname User \
+            --role Admin \
+            --email test@example.com
+
+      - name: Start Airflow services (v2.x)
+        if: matrix.api_version == 'v1'
+        run: |
+          docker exec -d airflow airflow webserver --port 8080
+          docker exec -d airflow airflow scheduler
+
+      - name: Start Airflow services (v3.x)
+        if: matrix.api_version == 'v2'
+        run: |
+          docker exec -d airflow airflow api-server --port 8080
+          docker exec -d airflow airflow scheduler
+          docker exec -d airflow airflow dag-processor
+
+      - name: Wait for Airflow API (v2.x)
+        if: matrix.api_version == 'v1'
         run: |
           timeout 120 bash -c '
             until curl -sf -u airflow:airflow http://localhost:8080/api/v1/health; do
@@ -58,6 +96,29 @@ jobs:
             done
           '
           echo "Airflow API is ready"
+
+      - name: Wait for Airflow API (v3.x)
+        if: matrix.api_version == 'v2'
+        run: |
+          timeout 120 bash -c '
+            until curl -sf http://localhost:8080/api/v2/version; do
+              echo "Waiting for Airflow API..."
+              sleep 5
+            done
+          '
+          echo "Airflow API is ready"
+
+      - name: Wait for DAGs to load
+        run: |
+          echo "Waiting for scheduler to parse DAGs..."
+          sleep 45
+          if [ "${{ matrix.api_version }}" = "v1" ]; then
+            echo "Checking DAGs via API v1..."
+            curl -sf -u airflow:airflow http://localhost:8080/api/v1/dags?limit=5 || echo "API call failed"
+          else
+            echo "Checking DAGs via API v2..."
+            curl -sf -u airflow:airflow http://localhost:8080/api/v2/dags?limit=5 || echo "API call failed"
+          fi
 
       - name: Run integration tests
         env:
