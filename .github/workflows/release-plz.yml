@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   release-plz-release:
@@ -32,6 +33,7 @@ jobs:
   release-plz-pr:
     name: Release-plz PR
     runs-on: ubuntu-latest
+    needs: release-plz-release
     concurrency:
       group: release-plz-${{ github.ref }}
       cancel-in-progress: false
