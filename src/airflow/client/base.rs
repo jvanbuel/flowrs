@@ -81,11 +81,21 @@ impl BaseClient {
                 Ok(self.client.request(method, url).bearer_auth(token))
             }
             AirflowAuth::Mwaa(auth) => {
+                use crate::airflow::managed_services::mwaa::MwaaTokenType;
                 info!("🔑 MWAA Auth: {}", auth.environment_name);
-                Ok(self
-                    .client
-                    .request(method, url)
-                    .header("Cookie", format!("session={}", auth.session_cookie)))
+                match &auth.token {
+                    MwaaTokenType::SessionCookie(cookie) => {
+                        // Airflow 2.x: Use session cookie
+                        Ok(self
+                            .client
+                            .request(method, url)
+                            .header("Cookie", format!("session={cookie}")))
+                    }
+                    MwaaTokenType::JwtToken(token) => {
+                        // Airflow 3.x: Use Bearer authentication
+                        Ok(self.client.request(method, url).bearer_auth(token))
+                    }
+                }
             }
             AirflowAuth::Astronomer(auth) => {
                 info!("🔑 Astronomer Auth");

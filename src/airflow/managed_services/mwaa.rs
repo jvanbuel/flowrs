@@ -83,9 +83,21 @@ impl MwaaClient {
         })
     }
 
-    /// Exchanges a web login token for a session cookie
-    pub async fn get_session_cookie(&self, web_token: &MwaaWebToken) -> Result<String> {
-        let login_url = format!("https://{}/aws_mwaa/login", web_token.hostname);
+    /// Exchanges a web login token for an authentication token.
+    /// For Airflow 2.x: Uses `/aws_mwaa/login` and returns a session cookie.
+    /// For Airflow 3.x: Uses `/pluginsv2/aws_mwaa/login` and returns a JWT token.
+    pub async fn get_auth_token(
+        &self,
+        web_token: &MwaaWebToken,
+        version: &AirflowVersion,
+    ) -> Result<MwaaTokenType> {
+        // Different endpoints and cookie names based on Airflow version
+        let (login_path, cookie_name) = match version {
+            AirflowVersion::V2 => ("aws_mwaa/login", "session"),
+            AirflowVersion::V3 => ("pluginsv2/aws_mwaa/login", "_token"),
+        };
+
+        let login_url = format!("https://{}/{}", web_token.hostname, login_path);
 
         let form_data = LoginForm {
             token: &web_token.token,
@@ -108,21 +120,26 @@ impl MwaaClient {
             anyhow::bail!("Failed to log in: HTTP {}", response.status());
         }
 
-        // Extract the session cookie from Set-Cookie header
+        // Extract the token from Set-Cookie header
         let cookies = response.headers().get_all("set-cookie");
 
         for cookie_header in cookies {
             let cookie_str = cookie_header.to_str().context("Invalid cookie header")?;
 
-            // Parse the cookie to extract session value
-            if let Some(session_part) = cookie_str.split(';').next() {
-                if let Some(("session", value)) = session_part.split_once('=') {
-                    return Ok(value.to_string());
+            // Parse the cookie to extract token value
+            if let Some(cookie_part) = cookie_str.split(';').next() {
+                if let Some((name, value)) = cookie_part.split_once('=') {
+                    if name == cookie_name {
+                        return Ok(match version {
+                            AirflowVersion::V2 => MwaaTokenType::SessionCookie(value.to_string()),
+                            AirflowVersion::V3 => MwaaTokenType::JwtToken(value.to_string()),
+                        });
+                    }
                 }
             }
         }
 
-        anyhow::bail!("No session cookie found in response")
+        anyhow::bail!("No {cookie_name} cookie found in response")
     }
 }
 
@@ -141,10 +158,19 @@ pub struct MwaaWebToken {
     pub hostname: String,
 }
 
-/// MWAA authentication data including session cookie
+/// MWAA authentication token type
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MwaaTokenType {
+    /// Session cookie for Airflow 2.x (uses Cookie header)
+    SessionCookie(String),
+    /// JWT token for Airflow 3.x (uses Bearer auth)
+    JwtToken(String),
+}
+
+/// MWAA authentication data
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MwaaAuth {
-    pub session_cookie: String,
+    pub token: MwaaTokenType,
     pub environment_name: String,
 }
 
@@ -176,9 +202,9 @@ pub async fn get_mwaa_environment_servers() -> Result<Vec<AirflowConfig>> {
             );
         };
 
-        // Create web token and session for this environment
+        // Create web token and authenticate for this environment
         let web_token = client.create_web_login_token(&env_name).await?;
-        let session_cookie = client.get_session_cookie(&web_token).await?;
+        let auth_token = client.get_auth_token(&web_token, &version).await?;
 
         // Ensure the endpoint has a proper scheme (MWAA webserver URLs may not include https://)
         let endpoint = if env.webserver_url.starts_with("http://")
@@ -193,7 +219,7 @@ pub async fn get_mwaa_environment_servers() -> Result<Vec<AirflowConfig>> {
             name: env.name.clone(),
             endpoint,
             auth: AirflowAuth::Mwaa(MwaaAuth {
-                session_cookie,
+                token: auth_token,
                 environment_name: env.name.clone(),
             }),
             managed: Some(ManagedService::Mwaa),
