@@ -2,7 +2,9 @@ use std::env;
 use std::sync::Arc;
 
 use flowrs_tui::airflow::client::create_client;
-use flowrs_tui::airflow::config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenCmd};
+use flowrs_tui::airflow::config::{
+    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenCmd,
+};
 use flowrs_tui::airflow::traits::AirflowClient;
 
 /// Check if we should run tests for a specific API version.
@@ -35,7 +37,7 @@ async fn get_jwt_token(url: &str, username: &str, password: &str) -> anyhow::Res
     if !response.status().is_success() {
         let status = response.status();
         let body = response.text().await.unwrap_or_default();
-        anyhow::bail!("Failed to get JWT token: {} - {}", status, body);
+        anyhow::bail!("Failed to get JWT token: {status} - {body}");
     }
 
     let token_response: serde_json::Value = response.json().await?;
