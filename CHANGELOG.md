@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.6](https://github.com/jvanbuel/flowrs/compare/v0.8.5...v0.8.6) - 2026-01-31
+
+### Added
+
+- *(tests)* add JWT authentication support for Airflow 3.x tests
+
+### Fixed
+
+- *(tests)* relax dag_stats assertion for empty run history
+- *(ci)* improve password file retrieval for Airflow 3.x
+- *(ci)* pass FAB env vars via docker exec after FAB is installed
+- *(ci)* remove --user flag for virtualenv pip install
+- *(ci)* use python -m pip to avoid PATH issues
+- *(ci)* use pip install --user instead of root
+- *(ci)* run pip install as root in Airflow container
+- *(ci)* update integration tests for Airflow 2.x and 3.x
+- *(ci)* replace service container with manual docker run
+
+### Other
+
+- allow dead_code in test common module
+- fix clippy uninlined_format_args lint
+
 ## [0.8.5](https://github.com/jvanbuel/flowrs/compare/v0.8.4...v0.8.5) - 2026-01-31
 
 ### Other
