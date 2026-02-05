@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.7](https://github.com/jvanbuel/flowrs/compare/v0.8.6...v0.8.7) - 2026-02-05
+
+### Other
+
+- *(deps)* bump time from 0.3.46 to 0.3.47 ([#550](https://github.com/jvanbuel/flowrs/pull/550))
+
 ## [0.8.6](https://github.com/jvanbuel/flowrs/compare/v0.8.5...v0.8.6) - 2026-01-31
 
 ### Added
