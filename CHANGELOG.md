@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.7](https://github.com/jvanbuel/flowrs/compare/v0.8.6...v0.8.7) - 2026-02-09
+
+### Other
+
+- *(deps)* bump anyhow from 1.0.100 to 1.0.101 ([#552](https://github.com/jvanbuel/flowrs/pull/552))
+- *(deps)* bump webbrowser from 1.0.6 to 1.1.0 ([#553](https://github.com/jvanbuel/flowrs/pull/553))
+- *(deps)* bump aws-sdk-mwaa from 1.98.0 to 1.99.0 ([#554](https://github.com/jvanbuel/flowrs/pull/554))
+- *(deps)* bump inquire from 0.9.2 to 0.9.3 ([#555](https://github.com/jvanbuel/flowrs/pull/555))
+- *(deps)* bump regex from 1.12.2 to 1.12.3 ([#556](https://github.com/jvanbuel/flowrs/pull/556))
+- *(deps)* bump time from 0.3.46 to 0.3.47 ([#550](https://github.com/jvanbuel/flowrs/pull/550))
+
 ## [0.8.6](https://github.com/jvanbuel/flowrs/compare/v0.8.5...v0.8.6) - 2026-01-31
 
 ### Added
