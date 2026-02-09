@@ -21,7 +21,7 @@ formula = "flowrs"
 ansi-to-tui = { version = "8.0.1" }
 anyhow = "1.0.100"
 aws-config = { version = "1.8.11" }
-aws-sdk-mwaa = "1.98.0"
+aws-sdk-mwaa = "1.99.0"
 chrono = "0.4.43"
 async-trait = "0.1.89"
 clap = { version = "^4.5", features = ["derive", "env"] }
