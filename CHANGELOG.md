@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.8](https://github.com/jvanbuel/flowrs/compare/v0.8.7...v0.8.8) - 2026-02-13
+
+### Fixed
+
+- task sorting in Airflow v3 ([#557](https://github.com/jvanbuel/flowrs/pull/557))
+
 ## [0.8.7](https://github.com/jvanbuel/flowrs/compare/v0.8.6...v0.8.7) - 2026-02-09
 
 ### Other
