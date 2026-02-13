@@ -132,6 +132,7 @@ where
                             app.task_instances.table.all = app
                                 .environment_state
                                 .get_active_task_instances(dag_id, dag_run_id);
+                            app.task_instances.sort_task_instances();
                             app.task_instances.table.apply_filter();
                         }
                         WorkerMessage::UpdateTaskLogs {
