@@ -177,10 +177,22 @@ impl EnvironmentStateContainer {
             .and_then(|key| self.environments.get(key))
     }
 
-    pub fn get_active_environment_mut(&mut self) -> Option<&mut EnvironmentData> {
-        self.active_environment
-            .as_ref()
-            .and_then(|key| self.environments.get_mut(key))
+    /// Get a specific environment by name (immutable).
+    pub fn get_environment(&self, key: &str) -> Option<&EnvironmentData> {
+        self.environments.get(key)
+    }
+
+    /// Get a specific environment by name (mutable).
+    /// This targets a specific environment regardless of which one is currently
+    /// active, preventing data corruption when the active environment changes
+    /// during async operations.
+    pub fn get_environment_mut(&mut self, key: &str) -> Option<&mut EnvironmentData> {
+        self.environments.get_mut(key)
+    }
+
+    /// Check if the given environment name is the currently active one.
+    pub fn is_active_environment(&self, key: &str) -> bool {
+        self.active_environment.as_deref() == Some(key)
     }
 
     pub fn set_active_environment(&mut self, key: EnvironmentKey) {

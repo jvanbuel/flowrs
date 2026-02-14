@@ -141,10 +141,16 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         return config::handle_config_selected(&app, idx);
     }
 
-    // Get the active client from the environment state
-    let client = {
+    // Get the active client and environment name from the environment state.
+    // We capture the environment name here so that async handlers can write
+    // results back to the correct environment, even if the active environment
+    // changes while the API call is in flight.
+    let (client, env_name) = {
         let app = app.lock().unwrap();
-        app.environment_state.get_active_client()
+        (
+            app.environment_state.get_active_client(),
+            app.environment_state.active_environment.clone(),
+        )
     };
 
     let Some(client) = client else {
@@ -156,13 +162,19 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         return Ok(());
     };
 
+    let Some(env_name) = env_name else {
+        let mut app = app.lock().unwrap();
+        app.loading = false;
+        return Ok(());
+    };
+
     match message {
         WorkerMessage::ConfigSelected(_) => {
             unreachable!("ConfigSelected should be handled before client check");
         }
         // DAG operations
         WorkerMessage::UpdateDagsAndStats => {
-            dags::handle_update_dags_and_stats(&app, &client).await;
+            dags::handle_update_dags_and_stats(&app, &client, &env_name).await;
         }
         WorkerMessage::ToggleDag { dag_id, is_paused } => {
             dags::handle_toggle_dag(&app, &client, &dag_id, is_paused).await;
@@ -172,7 +184,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         }
         // DAG run operations
         WorkerMessage::UpdateDagRuns { dag_id, .. } => {
-            dagruns::handle_update_dag_runs(&app, &client, &dag_id).await;
+            dagruns::handle_update_dag_runs(&app, &client, &dag_id, &env_name).await;
         }
         WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
             dagruns::handle_clear_dag_run(&app, &client, &dag_id, &dag_run_id).await;
@@ -185,13 +197,16 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             dagruns::handle_mark_dag_run(&app, &client, &dag_id, &dag_run_id, status).await;
         }
         WorkerMessage::TriggerDagRun { dag_id } => {
-            dagruns::handle_trigger_dag_run(&app, &client, &dag_id).await;
+            dagruns::handle_trigger_dag_run(&app, &client, &dag_id, &env_name).await;
         }
         // Task instance operations
         WorkerMessage::UpdateTaskInstances {
             dag_id, dag_run_id, ..
         } => {
-            taskinstances::handle_update_task_instances(&app, &client, &dag_id, &dag_run_id).await;
+            taskinstances::handle_update_task_instances(
+                &app, &client, &dag_id, &dag_run_id, &env_name,
+            )
+            .await;
         }
         WorkerMessage::ClearTaskInstance {
             task_id,
@@ -231,8 +246,10 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             task_try,
             ..
         } => {
-            logs::handle_update_task_logs(&app, &client, &dag_id, &dag_run_id, &task_id, task_try)
-                .await;
+            logs::handle_update_task_logs(
+                &app, &client, &dag_id, &dag_run_id, &task_id, task_try, &env_name,
+            )
+            .await;
         }
         // Task operations
         WorkerMessage::UpdateTasks { dag_id } => {

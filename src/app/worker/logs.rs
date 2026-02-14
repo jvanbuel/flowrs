@@ -8,6 +8,9 @@ use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
 
 /// Handle fetching task logs for all attempts of a task instance.
+///
+/// `env_name` identifies which environment initiated this request, ensuring
+/// results are written to the correct environment even if the active one changes.
 pub async fn handle_update_task_logs(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
@@ -15,6 +18,7 @@ pub async fn handle_update_task_logs(
     dag_run_id: &str,
     task_id: &str,
     task_try: u16,
+    env_name: &str,
 ) {
     debug!("Getting logs for task: {task_id}, try number {task_try}");
     let logs =
@@ -36,13 +40,15 @@ pub async fn handle_update_task_logs(
         }
     }
 
-    // Store logs in the environment state
+    // Store logs in the originating environment, not the active one
     if !collected_logs.is_empty() {
-        if let Some(env) = app.environment_state.get_active_environment_mut() {
+        if let Some(env) = app.environment_state.get_environment_mut(env_name) {
             env.add_task_logs(dag_id, dag_run_id, task_id, collected_logs);
         }
     }
 
-    // Sync panel data from environment state to refresh with new API data
-    app.sync_panel_data();
+    // Only sync panel data if this environment is still active
+    if app.environment_state.is_active_environment(env_name) {
+        app.sync_panel_data();
+    }
 }

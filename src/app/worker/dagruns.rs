@@ -7,23 +7,29 @@ use crate::app::model::popup::dagruns::mark::MarkState;
 use crate::app::state::App;
 
 /// Handle updating the list of DAG runs for a specific DAG.
+///
+/// `env_name` identifies which environment initiated this request, ensuring
+/// results are written to the correct environment even if the active one changes.
 pub async fn handle_update_dag_runs(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
     dag_id: &str,
+    env_name: &str,
 ) {
     let dag_runs = client.list_dagruns(dag_id).await;
     let mut app = app.lock().unwrap();
     match dag_runs {
         Ok(dag_runs) => {
-            // Store DAG runs in the environment state
-            if let Some(env) = app.environment_state.get_active_environment_mut() {
+            // Store DAG runs in the originating environment, not the active one
+            if let Some(env) = app.environment_state.get_environment_mut(env_name) {
                 for dag_run in &dag_runs.dag_runs {
                     env.upsert_dag_run(dag_run.clone());
                 }
             }
-            // Sync panel data from environment state to refresh with new API data
-            app.sync_panel_data();
+            // Only sync panel data if this environment is still active
+            if app.environment_state.is_active_environment(env_name) {
+                app.sync_panel_data();
+            }
         }
         Err(e) => {
             app.dagruns.popup.show_error(vec![e.to_string()]);
@@ -76,13 +82,14 @@ pub async fn handle_trigger_dag_run(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
     dag_id: &str,
+    env_name: &str,
 ) {
     debug!("Triggering dag_run: {dag_id}");
     let dag_run = client.trigger_dag_run(dag_id, None).await;
     match dag_run {
         Ok(()) => {
             // Refresh the dag runs list to show the newly triggered run
-            handle_update_dag_runs(app, client, dag_id).await;
+            handle_update_dag_runs(app, client, dag_id, env_name).await;
         }
         Err(e) => {
             debug!("Error triggering dag_run: {e}");
