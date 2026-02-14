@@ -82,13 +82,7 @@ impl EnvironmentData {
     }
 
     /// Replace logs for a specific task instance.
-    pub fn add_task_logs(
-        &mut self,
-        dag_id: &str,
-        dag_run_id: &str,
-        task_id: &str,
-        logs: Vec<Log>,
-    ) {
+    pub fn add_task_logs(&mut self, dag_id: &str, dag_run_id: &str, task_id: &str, logs: Vec<Log>) {
         self.task_logs
             .entry(dag_id.to_string())
             .or_default()
@@ -179,12 +173,7 @@ impl EnvironmentStateContainer {
     }
 
     /// Get logs for a specific task instance in the active environment.
-    pub fn get_active_task_logs(
-        &self,
-        dag_id: &str,
-        dag_run_id: &str,
-        task_id: &str,
-    ) -> Vec<Log> {
+    pub fn get_active_task_logs(&self, dag_id: &str, dag_run_id: &str, task_id: &str) -> Vec<Log> {
         self.get_active_environment()
             .and_then(|env| env.task_logs.get(dag_id))
             .and_then(|runs| runs.get(dag_run_id))
