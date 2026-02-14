@@ -2,6 +2,8 @@ use crate::airflow::client::v1;
 use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
 
+use super::dagrun::DagRunState;
+
 /// Common `DagStats` model used by the application
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DagStatsResponse {
@@ -17,7 +19,7 @@ pub struct DagStatistics {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DagStatistic {
-    pub state: String,
+    pub state: DagRunState,
     pub count: u64,
 }
 
@@ -51,7 +53,7 @@ impl From<v1::model::dagstats::DagStatistics> for DagStatistics {
 impl From<v1::model::dagstats::DagStatistic> for DagStatistic {
     fn from(value: v1::model::dagstats::DagStatistic) -> Self {
         Self {
-            state: value.state,
+            state: DagRunState::from(value.state.as_str()),
             count: value.count,
         }
     }
@@ -87,7 +89,7 @@ impl From<v2::model::dagstats::DagStatistics> for DagStatistics {
 impl From<v2::model::dagstats::DagStatistic> for DagStatistic {
     fn from(value: v2::model::dagstats::DagStatistic) -> Self {
         Self {
-            state: value.state,
+            state: DagRunState::from(value.state.as_str()),
             count: value.count,
         }
     }

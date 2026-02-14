@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::airflow::client::v1;
 use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
@@ -5,6 +7,68 @@ use time::OffsetDateTime;
 
 use super::duration::TimeBounded;
 use super::{DagId, DagRunId, TaskId};
+
+/// State of a task instance as reported by the Airflow API.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TaskInstanceState {
+    Success,
+    Running,
+    Failed,
+    Queued,
+    UpForRetry,
+    UpForReschedule,
+    Skipped,
+    Deferred,
+    Removed,
+    Restarting,
+    UpstreamFailed,
+    Scheduled,
+    /// Catch-all for unknown/future states returned by the API.
+    #[default]
+    #[serde(other)]
+    Unknown,
+}
+
+impl fmt::Display for TaskInstanceState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Success => write!(f, "success"),
+            Self::Running => write!(f, "running"),
+            Self::Failed => write!(f, "failed"),
+            Self::Queued => write!(f, "queued"),
+            Self::UpForRetry => write!(f, "up_for_retry"),
+            Self::UpForReschedule => write!(f, "up_for_reschedule"),
+            Self::Skipped => write!(f, "skipped"),
+            Self::Deferred => write!(f, "deferred"),
+            Self::Removed => write!(f, "removed"),
+            Self::Restarting => write!(f, "restarting"),
+            Self::UpstreamFailed => write!(f, "upstream_failed"),
+            Self::Scheduled => write!(f, "scheduled"),
+            Self::Unknown => write!(f, "unknown"),
+        }
+    }
+}
+
+impl From<&str> for TaskInstanceState {
+    fn from(s: &str) -> Self {
+        match s {
+            "success" => Self::Success,
+            "running" => Self::Running,
+            "failed" => Self::Failed,
+            "queued" => Self::Queued,
+            "up_for_retry" => Self::UpForRetry,
+            "up_for_reschedule" => Self::UpForReschedule,
+            "skipped" => Self::Skipped,
+            "deferred" => Self::Deferred,
+            "removed" => Self::Removed,
+            "restarting" => Self::Restarting,
+            "upstream_failed" => Self::UpstreamFailed,
+            "scheduled" => Self::Scheduled,
+            _ => Self::Unknown,
+        }
+    }
+}
 
 /// Common `TaskInstance` model used by the application
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -16,7 +80,7 @@ pub struct TaskInstance {
     pub start_date: Option<OffsetDateTime>,
     pub end_date: Option<OffsetDateTime>,
     pub duration: Option<f64>,
-    pub state: Option<String>,
+    pub state: Option<TaskInstanceState>,
     pub try_number: u32,
     pub max_tries: i64,
     pub map_index: i64,
@@ -59,7 +123,7 @@ impl From<v1::model::taskinstance::TaskInstanceResponse> for TaskInstance {
             start_date: value.start_date,
             end_date: value.end_date,
             duration: value.duration,
-            state: value.state,
+            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
             try_number: value.try_number,
             max_tries: value.max_tries,
             map_index: value.map_index,
@@ -101,7 +165,7 @@ impl From<v2::model::taskinstance::TaskInstance> for TaskInstance {
             start_date: value.start_date,
             end_date: value.end_date,
             duration: value.duration,
-            state: value.state,
+            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
             try_number: value.try_number,
             max_tries: value.max_tries,
             map_index: value.map_index,

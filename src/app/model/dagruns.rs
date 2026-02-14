@@ -13,7 +13,9 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 use time::format_description;
 
-use crate::airflow::model::common::{calculate_duration, format_duration, DagRun, DagRunId};
+use crate::airflow::model::common::{
+    calculate_duration, format_duration, DagRun, DagRunId, DagRunState,
+};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
@@ -134,7 +136,7 @@ impl DagRunModel {
     }
 
     /// Mark a DAG run with a new status (optimistic update)
-    pub fn mark_dag_run(&mut self, dag_run_id: &DagRunId, status: &str) {
+    pub fn mark_dag_run(&mut self, dag_run_id: &DagRunId, status: DagRunState) {
         if let Some(dag_run) = self
             .table
             .filtered
@@ -142,7 +144,7 @@ impl DagRunModel {
             .iter_mut()
             .find(|dr| dr.dag_run_id == *dag_run_id)
         {
-            dag_run.state = status.to_string();
+            dag_run.state = status;
         }
     }
 }
@@ -385,13 +387,7 @@ impl Widget for &mut DagRunModel {
             .iter()
             .enumerate()
             .map(|(idx, item)| {
-                let state_color = match item.state.as_str() {
-                    "success" => AirflowStateColor::Success.into(),
-                    "running" => AirflowStateColor::Running.into(),
-                    "failed" => AirflowStateColor::Failed.into(),
-                    "queued" => AirflowStateColor::Queued.into(),
-                    _ => AirflowStateColor::None.into(),
-                };
+                let state_color: Color = AirflowStateColor::from(&item.state).into();
 
                 let (duration_cell, time_cell) = if let Some(duration) = calculate_duration(item) {
                     (
@@ -422,7 +418,7 @@ impl Widget for &mut DagRunModel {
                     } else {
                         "None".to_string()
                     }),
-                    Line::from(item.run_type.as_str()),
+                    Line::from(item.run_type.to_string()),
                     duration_cell,
                     time_cell,
                 ])
@@ -523,6 +519,7 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::airflow::model::common::RunType;
     use crate::app::model::filter::Filterable;
     use crossterm::event::{KeyEvent, KeyModifiers};
     use time::macros::datetime;
@@ -565,8 +562,8 @@ mod tests {
             logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
             start_date: Some(datetime!(2024-01-01 10:05:00 UTC)),
             end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-            state: "success".to_string(),
-            run_type: "scheduled".to_string(),
+            state: DagRunState::Success,
+            run_type: RunType::Scheduled,
             ..Default::default()
         };
 
@@ -577,8 +574,8 @@ mod tests {
             logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
             start_date: None, // Queued runs don't have start_date
             end_date: None,
-            state: "queued".to_string(),
-            run_type: "scheduled".to_string(),
+            state: DagRunState::Queued,
+            run_type: RunType::Scheduled,
             ..Default::default()
         };
 
@@ -589,8 +586,8 @@ mod tests {
             logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
             start_date: Some(datetime!(2024-01-03 10:05:00 UTC)),
             end_date: None,
-            state: "running".to_string(),
-            run_type: "scheduled".to_string(),
+            state: DagRunState::Running,
+            run_type: RunType::Scheduled,
             ..Default::default()
         };
 
@@ -618,8 +615,8 @@ mod tests {
             dag_run_id: "run_1".into(),
             logical_date: None,
             start_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
-            state: "running".to_string(),
-            run_type: "manual".to_string(),
+            state: DagRunState::Running,
+            run_type: RunType::Manual,
             ..Default::default()
         };
 
@@ -629,8 +626,8 @@ mod tests {
             dag_run_id: "run_2".into(),
             logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
             start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            state: "success".to_string(),
-            run_type: "scheduled".to_string(),
+            state: DagRunState::Success,
+            run_type: RunType::Scheduled,
             ..Default::default()
         };
 
@@ -652,8 +649,8 @@ mod tests {
             dag_id: "test_dag".into(),
             dag_run_id: "manual_run_1".into(),
             logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
-            state: "success".to_string(),
-            run_type: "manual".to_string(),
+            state: DagRunState::Success,
+            run_type: RunType::Manual,
             ..Default::default()
         };
 
@@ -661,8 +658,8 @@ mod tests {
             dag_id: "test_dag".into(),
             dag_run_id: "scheduled_run_1".into(),
             logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
-            state: "queued".to_string(),
-            run_type: "scheduled".to_string(),
+            state: DagRunState::Queued,
+            run_type: RunType::Scheduled,
             ..Default::default()
         };
 
