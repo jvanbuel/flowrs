@@ -42,13 +42,13 @@ pub async fn handle_update_task_logs(
 
     // Store logs in the originating environment, not the active one
     if !collected_logs.is_empty() {
-        if let Some(env) = app.environment_state.get_environment_mut(env_name) {
+        if let Some(env) = app.environment_state.environments.get_mut(env_name) {
             env.add_task_logs(dag_id, dag_run_id, task_id, collected_logs);
         }
     }
 
     // Only sync panel data if this environment is still active
-    if app.environment_state.is_active_environment(env_name) {
+    if app.environment_state.active_environment.as_deref() == Some(env_name) {
         app.sync_panel(&crate::app::state::Panel::Logs);
     }
 }

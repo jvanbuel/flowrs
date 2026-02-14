@@ -35,7 +35,7 @@ pub async fn handle_update_dags_and_stats(
             match dag_list_result {
                 Ok(dag_list) => {
                     let ids: Vec<String> = dag_list.dags.iter().map(|d| d.dag_id.clone()).collect();
-                    if let Some(env) = app.environment_state.get_environment_mut(env_name) {
+                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         env.replace_dags(dag_list.dags);
                     }
                     ids
@@ -52,7 +52,7 @@ pub async fn handle_update_dags_and_stats(
             match client.get_dag_stats(refs).await {
                 Ok(dag_stats) => {
                     let mut app = app.lock().unwrap();
-                    if let Some(env) = app.environment_state.get_environment_mut(env_name) {
+                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         for dag_stats in dag_stats.dags {
                             env.update_dag_stats(&dag_stats.dag_id, dag_stats.stats);
                         }
@@ -74,7 +74,7 @@ pub async fn handle_update_dags_and_stats(
 
         match dag_list_result {
             Ok(dag_list) => {
-                if let Some(env) = app.environment_state.get_environment_mut(env_name) {
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                     env.replace_dags(dag_list.dags);
                 }
             }
@@ -85,7 +85,7 @@ pub async fn handle_update_dags_and_stats(
 
         match dag_stats_result {
             Ok(dag_stats) => {
-                if let Some(env) = app.environment_state.get_environment_mut(env_name) {
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                     for dag_stats in dag_stats.dags {
                         env.update_dag_stats(&dag_stats.dag_id, dag_stats.stats);
                     }
@@ -100,7 +100,7 @@ pub async fn handle_update_dags_and_stats(
     // Only sync panel data if this environment is still the active one,
     // otherwise we'd overwrite the UI with stale data from a different server
     let mut app = app.lock().unwrap();
-    if app.environment_state.is_active_environment(env_name) {
+    if app.environment_state.active_environment.as_deref() == Some(env_name) {
         app.sync_panel(&crate::app::state::Panel::Dag);
     }
 }

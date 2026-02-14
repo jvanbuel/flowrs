@@ -22,11 +22,11 @@ pub async fn handle_update_task_instances(
     match task_instances {
         Ok(task_instances) => {
             // Replace task instances in the originating environment, not the active one
-            if let Some(env) = app.environment_state.get_environment_mut(env_name) {
+            if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                 env.replace_task_instances(dag_id, dag_run_id, task_instances.task_instances);
             }
             // Only sync panel data if this environment is still active
-            if app.environment_state.is_active_environment(env_name) {
+            if app.environment_state.active_environment.as_deref() == Some(env_name) {
                 app.sync_panel(&crate::app::state::Panel::TaskInstance);
             }
         }
