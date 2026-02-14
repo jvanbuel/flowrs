@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
-use crate::airflow::model::common::{DagId, DagRunId};
+use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::dagruns::mark::MarkState;
 use crate::app::state::App;
@@ -64,7 +64,8 @@ pub async fn handle_mark_dag_run(
     {
         // Update the local state before sending the request; this way, the UI will update immediately
         let mut app = app.lock().unwrap();
-        app.dagruns.mark_dag_run(dag_run_id, &status.to_string());
+        app.dagruns
+            .mark_dag_run(dag_run_id, DagRunState::from(&status));
     }
     let dag_run = client
         .mark_dag_run(dag_id, dag_run_id, &status.to_string())

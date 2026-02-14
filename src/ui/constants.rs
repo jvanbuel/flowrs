@@ -1,5 +1,8 @@
 use ratatui::style::Color;
 
+use crate::airflow::model::common::dagrun::DagRunState;
+use crate::airflow::model::common::taskinstance::TaskInstanceState;
+
 // Re-export from theme for backward compatibility
 pub use super::theme::DEFAULT_STYLE;
 
@@ -49,6 +52,35 @@ impl From<AirflowStateColor> for Color {
             AirflowStateColor::Skipped => theme::STATE_SKIPPED,
             AirflowStateColor::UpstreamFailed => theme::STATE_UPSTREAM_FAILED,
             AirflowStateColor::None => Self::Reset,
+        }
+    }
+}
+
+impl From<&DagRunState> for AirflowStateColor {
+    fn from(state: &DagRunState) -> Self {
+        match state {
+            DagRunState::Success => Self::Success,
+            DagRunState::Running => Self::Running,
+            DagRunState::Failed => Self::Failed,
+            DagRunState::Queued => Self::Queued,
+            DagRunState::UpForRetry => Self::UpForRetry,
+            DagRunState::Unknown => Self::None,
+        }
+    }
+}
+
+impl From<&TaskInstanceState> for AirflowStateColor {
+    fn from(state: &TaskInstanceState) -> Self {
+        match state {
+            TaskInstanceState::Success => Self::Success,
+            TaskInstanceState::Running => Self::Running,
+            TaskInstanceState::Failed => Self::Failed,
+            TaskInstanceState::Queued => Self::Queued,
+            TaskInstanceState::UpForRetry => Self::UpForRetry,
+            TaskInstanceState::UpForReschedule => Self::UpForReschedule,
+            TaskInstanceState::Skipped => Self::Skipped,
+            TaskInstanceState::UpstreamFailed => Self::UpstreamFailed,
+            _ => Self::None,
         }
     }
 }

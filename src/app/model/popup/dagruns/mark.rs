@@ -6,7 +6,7 @@ use ratatui::{
 };
 use strum::Display;
 
-use crate::airflow::model::common::{DagId, DagRunId};
+use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::{
     app::{
         events::custom::FlowrsEvent,
@@ -33,6 +33,16 @@ pub enum MarkState {
     Failed,
     #[strum(to_string = "queued")]
     Queued,
+}
+
+impl From<&MarkState> for DagRunState {
+    fn from(state: &MarkState) -> Self {
+        match state {
+            MarkState::Success => Self::Success,
+            MarkState::Failed => Self::Failed,
+            MarkState::Queued => Self::Queued,
+        }
+    }
 }
 
 impl MarkDagRunPopup {

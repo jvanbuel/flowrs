@@ -9,7 +9,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
-use crate::airflow::model::common::{Dag, DagId, DagStatistic};
+use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dagruns::trigger::TriggerDagRunPopUp;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
@@ -186,62 +186,53 @@ impl Widget for &mut DagModel {
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
-        let rows =
-            self.table
-                .filtered
-                .items
-                .iter()
-                .enumerate()
-                .map(|(idx, item)| {
-                    Row::new(vec![
-                        if item.is_paused {
-                            Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
-                        } else {
-                            Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
+        let rows = self
+            .table
+            .filtered
+            .items
+            .iter()
+            .enumerate()
+            .map(|(idx, item)| {
+                Row::new(vec![
+                    if item.is_paused {
+                        Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
+                    } else {
+                        Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
+                    },
+                    Line::from(Span::styled(
+                        &*item.dag_id,
+                        Style::default().add_modifier(Modifier::BOLD),
+                    )),
+                    Line::from(item.owners.join(", ")),
+                    Line::from(item.timetable_description.as_deref().unwrap_or("None"))
+                        .style(Style::default().fg(Color::LightYellow)),
+                    Line::from(item.next_dagrun_create_after.map_or_else(
+                        || "None".to_string(),
+                        convert_datetimeoffset_to_human_readable_remaining_time,
+                    )),
+                    Line::from(self.dag_stats.get(&item.dag_id).map_or_else(
+                        || vec![Span::styled("None".to_string(), Style::default())],
+                        |stats| {
+                            stats
+                                .iter()
+                                .map(|stat| {
+                                    Span::styled(
+                                        format!("{:>7}", stat.count),
+                                        match (&stat.state, stat.count) {
+                                            (DagRunState::Running | DagRunState::Failed, 0) => {
+                                                Style::default().fg(AirflowStateColor::None.into())
+                                            }
+                                            _ => Style::default()
+                                                .fg(AirflowStateColor::from(&stat.state).into()),
+                                        },
+                                    )
+                                })
+                                .collect::<Vec<Span>>()
                         },
-                        Line::from(Span::styled(
-                            &*item.dag_id,
-                            Style::default().add_modifier(Modifier::BOLD),
-                        )),
-                        Line::from(item.owners.join(", ")),
-                        Line::from(item.timetable_description.as_deref().unwrap_or("None"))
-                            .style(Style::default().fg(Color::LightYellow)),
-                        Line::from(item.next_dagrun_create_after.map_or_else(
-                            || "None".to_string(),
-                            convert_datetimeoffset_to_human_readable_remaining_time,
-                        )),
-                        Line::from(self.dag_stats.get(&item.dag_id).map_or_else(
-                            || vec![Span::styled("None".to_string(), Style::default())],
-                            |stats| {
-                                stats
-                                    .iter()
-                                    .map(|stat| {
-                                        Span::styled(
-                                            format!("{:>7}", stat.count),
-                                            match stat.state.as_str() {
-                                                "success" => Style::default()
-                                                    .fg(AirflowStateColor::Success.into()),
-                                                "running" if stat.count > 0 => Style::default()
-                                                    .fg(AirflowStateColor::Running.into()),
-                                                "failed" if stat.count > 0 => Style::default()
-                                                    .fg(AirflowStateColor::Failed.into()),
-                                                "queued" => Style::default()
-                                                    .fg(AirflowStateColor::Queued.into()),
-                                                "up_for_retry" => Style::default()
-                                                    .fg(AirflowStateColor::UpForRetry.into()),
-                                                "upstream_failed" => Style::default()
-                                                    .fg(AirflowStateColor::UpstreamFailed.into()),
-                                                _ => Style::default()
-                                                    .fg(AirflowStateColor::None.into()),
-                                            },
-                                        )
-                                    })
-                                    .collect::<Vec<Span>>()
-                            },
-                        )),
-                    ])
-                    .style(self.table.row_style(idx))
-                });
+                    )),
+                ])
+                .style(self.table.row_style(idx))
+            });
         let t = Table::new(
             rows,
             &[

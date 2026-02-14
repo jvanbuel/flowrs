@@ -23,8 +23,8 @@ impl_filterable! {
     DagRun,
     primary: dag_run_id => |s: &DagRun| Some(s.dag_run_id.to_string()),
     fields: [
-        state: enum["running", "success", "failed", "queued", "up_for_retry"] => |s: &DagRun| Some(s.state.clone()),
-        run_type: enum["scheduled", "manual", "backfill", "dataset_triggered"] => |s: &DagRun| Some(s.run_type.clone()),
+        state: enum["running", "success", "failed", "queued", "up_for_retry"] => |s: &DagRun| Some(s.state.to_string()),
+        run_type: enum["scheduled", "manual", "backfill", "dataset_triggered"] => |s: &DagRun| Some(s.run_type.to_string()),
     ]
 }
 
@@ -36,7 +36,7 @@ impl_filterable! {
             "running", "success", "failed", "queued",
             "up_for_retry", "up_for_reschedule", "skipped",
             "deferred", "removed", "restarting"
-        ] => |s: &TaskInstance| s.state.clone(),
+        ] => |s: &TaskInstance| s.state.as_ref().map(std::string::ToString::to_string),
         operator => |s: &TaskInstance| s.operator.clone(),
     ]
 }

@@ -6,7 +6,7 @@ use ratatui::{
 };
 use strum::Display;
 
-use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::{
     app::{
         events::custom::FlowrsEvent,
@@ -34,6 +34,16 @@ pub enum MarkState {
     Failed,
     #[strum(to_string = "skipped")]
     Skipped,
+}
+
+impl From<&MarkState> for TaskInstanceState {
+    fn from(state: &MarkState) -> Self {
+        match state {
+            MarkState::Success => Self::Success,
+            MarkState::Failed => Self::Failed,
+            MarkState::Skipped => Self::Skipped,
+        }
+    }
 }
 
 impl MarkTaskInstancePopup {
