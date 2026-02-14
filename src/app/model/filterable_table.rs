@@ -119,9 +119,9 @@ impl<T: Filterable + Clone> FilterableTable<T> {
 
     /// Returns selected item IDs based on a provided key extractor
     /// In visual mode, returns all selected items; otherwise just the current item
-    pub fn selected_ids<F>(&self, key_fn: F) -> Vec<String>
+    pub fn selected_ids<F, R>(&self, key_fn: F) -> Vec<R>
     where
-        F: Fn(&T) -> String,
+        F: Fn(&T) -> R,
     {
         match self.visual_selection() {
             Some(range) => range

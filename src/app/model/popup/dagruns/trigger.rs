@@ -17,13 +17,15 @@ use crate::{
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
 };
 
+use crate::airflow::model::common::DagId;
+
 pub struct TriggerDagRunPopUp {
-    pub dag_id: String,
+    pub dag_id: DagId,
     pub confirm: bool,
 }
 
 impl TriggerDagRunPopUp {
-    pub const fn new(dag_id: String) -> Self {
+    pub const fn new(dag_id: DagId) -> Self {
         Self {
             dag_id,
             confirm: false,

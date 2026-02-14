@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use futures::future::join_all;
 use log::debug;
 
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
@@ -14,9 +15,9 @@ use crate::app::state::App;
 pub async fn handle_update_task_logs(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-    dag_run_id: &str,
-    task_id: &str,
+    dag_id: &DagId,
+    dag_run_id: &DagRunId,
+    task_id: &TaskId,
     task_try: u16,
     env_name: &str,
 ) {

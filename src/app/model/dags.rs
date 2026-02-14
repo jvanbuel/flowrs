@@ -28,7 +28,7 @@ pub struct DagModel {
     /// Filterable table containing all DAGs and filtered view
     pub table: FilterableTable<Dag>,
     /// DAG statistics by `dag_id`
-    pub dag_stats: HashMap<String, Vec<DagStatistic>>,
+    pub dag_stats: HashMap<crate::airflow::model::common::DagId, Vec<DagStatistic>>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagPopUp>,
     ticks: u32,
@@ -200,7 +200,7 @@ impl Widget for &mut DagModel {
                             Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
                         },
                         Line::from(Span::styled(
-                            item.dag_id.as_str(),
+                            &*item.dag_id,
                             Style::default().add_modifier(Modifier::BOLD),
                         )),
                         Line::from(item.owners.join(", ")),

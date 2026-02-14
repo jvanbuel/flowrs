@@ -9,8 +9,8 @@ use super::duration::TimeBounded;
 #[allow(clippy::struct_field_names)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagRun {
-    pub dag_id: String,
-    pub dag_run_id: String,
+    pub dag_id: super::DagId,
+    pub dag_run_id: super::DagRunId,
     pub logical_date: Option<OffsetDateTime>,
     pub data_interval_end: Option<OffsetDateTime>,
     pub data_interval_start: Option<OffsetDateTime>,
@@ -43,8 +43,8 @@ impl TimeBounded for DagRun {
 impl From<v1::model::dagrun::DAGRunResponse> for DagRun {
     fn from(value: v1::model::dagrun::DAGRunResponse) -> Self {
         Self {
-            dag_id: value.dag_id,
-            dag_run_id: value.dag_run_id.unwrap_or_default(),
+            dag_id: value.dag_id.into(),
+            dag_run_id: value.dag_run_id.unwrap_or_default().into(),
             logical_date: value.logical_date,
             data_interval_end: value.data_interval_end,
             data_interval_start: value.data_interval_start,
@@ -76,8 +76,8 @@ impl From<v1::model::dagrun::DAGRunCollectionResponse> for DagRunList {
 impl From<v2::model::dagrun::DagRun> for DagRun {
     fn from(value: v2::model::dagrun::DagRun) -> Self {
         Self {
-            dag_id: value.dag_id,
-            dag_run_id: value.dag_run_id,
+            dag_id: value.dag_id.into(),
+            dag_run_id: value.dag_run_id.into(),
             logical_date: value.logical_date,
             data_interval_end: value.data_interval_end,
             data_interval_start: value.data_interval_start,

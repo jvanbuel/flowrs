@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::taskinstances::mark::MarkState;
 use crate::app::state::App;
@@ -13,8 +14,8 @@ use crate::app::state::App;
 pub async fn handle_update_task_instances(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-    dag_run_id: &str,
+    dag_id: &DagId,
+    dag_run_id: &DagRunId,
     env_name: &str,
 ) {
     let task_instances = client.list_task_instances(dag_id, dag_run_id).await;
@@ -41,9 +42,9 @@ pub async fn handle_update_task_instances(
 pub async fn handle_clear_task_instance(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-    dag_run_id: &str,
-    task_id: &str,
+    dag_id: &DagId,
+    dag_run_id: &DagRunId,
+    task_id: &TaskId,
 ) {
     debug!("Clearing task_instance: {task_id}");
     let task_instance = client
@@ -60,9 +61,9 @@ pub async fn handle_clear_task_instance(
 pub async fn handle_mark_task_instance(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-    dag_run_id: &str,
-    task_id: &str,
+    dag_id: &DagId,
+    dag_run_id: &DagRunId,
+    task_id: &TaskId,
     status: MarkState,
 ) {
     debug!("Marking task_instance: {task_id}");

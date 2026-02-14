@@ -11,7 +11,7 @@ use crate::impl_filterable;
 
 impl_filterable! {
     Dag,
-    primary: dag_id => |s: &Dag| Some(s.dag_id.clone()),
+    primary: dag_id => |s: &Dag| Some(s.dag_id.to_string()),
     fields: [
         is_paused: enum["true", "false"] => |s: &Dag| Some(s.is_paused.to_string()),
         owners => |s: &Dag| Some(s.owners.join(", ")),
@@ -21,7 +21,7 @@ impl_filterable! {
 
 impl_filterable! {
     DagRun,
-    primary: dag_run_id => |s: &DagRun| Some(s.dag_run_id.clone()),
+    primary: dag_run_id => |s: &DagRun| Some(s.dag_run_id.to_string()),
     fields: [
         state: enum["running", "success", "failed", "queued", "up_for_retry"] => |s: &DagRun| Some(s.state.clone()),
         run_type: enum["scheduled", "manual", "backfill", "dataset_triggered"] => |s: &DagRun| Some(s.run_type.clone()),
@@ -30,7 +30,7 @@ impl_filterable! {
 
 impl_filterable! {
     TaskInstance,
-    primary: task_id => |s: &TaskInstance| Some(s.task_id.clone()),
+    primary: task_id => |s: &TaskInstance| Some(s.task_id.to_string()),
     fields: [
         state: enum[
             "running", "success", "failed", "queued",
@@ -92,7 +92,7 @@ mod tests {
     #[test]
     fn test_dag_get_field_value() {
         let dag = Dag {
-            dag_id: "test_dag".to_string(),
+            dag_id: "test_dag".into(),
             is_paused: true,
             owners: vec!["alice".to_string(), "bob".to_string()],
             ..Default::default()

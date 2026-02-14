@@ -17,11 +17,13 @@ use crate::{
         SURFACE_STYLE,
     },
 };
+use crate::airflow::model::common::{DagId, DagRunId};
+
 pub struct MarkDagRunPopup {
-    pub dag_id: String,
+    pub dag_id: DagId,
     pub status: MarkState,
     pub confirm: bool,
-    pub marked: Vec<String>,
+    pub marked: Vec<DagRunId>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Display)]
@@ -35,7 +37,7 @@ pub enum MarkState {
 }
 
 impl MarkDagRunPopup {
-    pub const fn new(marked: Vec<String>, dag_id: String) -> Self {
+    pub const fn new(marked: Vec<DagRunId>, dag_id: DagId) -> Self {
         Self {
             dag_id,
             status: MarkState::Success,

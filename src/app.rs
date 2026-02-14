@@ -9,7 +9,10 @@ use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
 use worker::{Dispatcher, WorkerMessage};
 
-use crate::{airflow::client::create_client, ui::draw_ui};
+use crate::{
+    airflow::{client::create_client, model::common::EnvironmentKey},
+    ui::draw_ui,
+};
 
 pub mod environment_state;
 pub mod events;
@@ -42,7 +45,7 @@ where
                     let env_data = environment_state::EnvironmentData::new(client);
                     app.environment_state
                         .environments
-                        .insert(server_config.name.clone(), env_data);
+                        .insert(EnvironmentKey::from(server_config.name.clone()), env_data);
                 } else {
                     log::error!(
                         "Failed to create client for server '{}'; skipping",
@@ -55,7 +58,7 @@ where
         // Set the active environment if one was configured
         if let Some(active_server_name) = active_server_name {
             app.environment_state
-                .set_active_environment(active_server_name);
+                .set_active_environment(EnvironmentKey::from(active_server_name));
         }
     }
 

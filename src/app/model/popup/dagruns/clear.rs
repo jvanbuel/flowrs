@@ -17,14 +17,16 @@ use crate::{
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
 };
 
+use crate::airflow::model::common::{DagId, DagRunId};
+
 pub struct ClearDagRunPopup {
-    pub dag_run_ids: Vec<String>,
-    pub dag_id: String,
+    pub dag_run_ids: Vec<DagRunId>,
+    pub dag_id: DagId,
     pub confirm: bool,
 }
 
 impl ClearDagRunPopup {
-    pub const fn new(dag_run_ids: Vec<String>, dag_id: String) -> Self {
+    pub const fn new(dag_run_ids: Vec<DagRunId>, dag_id: DagId) -> Self {
         Self {
             dag_run_ids,
             dag_id,

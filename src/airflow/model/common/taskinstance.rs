@@ -8,9 +8,9 @@ use super::duration::TimeBounded;
 /// Common `TaskInstance` model used by the application
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TaskInstance {
-    pub task_id: String,
-    pub dag_id: String,
-    pub dag_run_id: String,
+    pub task_id: super::TaskId,
+    pub dag_id: super::DagId,
+    pub dag_run_id: super::DagRunId,
     pub logical_date: Option<OffsetDateTime>,
     pub start_date: Option<OffsetDateTime>,
     pub end_date: Option<OffsetDateTime>,
@@ -51,9 +51,9 @@ impl TimeBounded for TaskInstance {
 impl From<v1::model::taskinstance::TaskInstanceResponse> for TaskInstance {
     fn from(value: v1::model::taskinstance::TaskInstanceResponse) -> Self {
         Self {
-            task_id: value.task_id,
-            dag_id: value.dag_id,
-            dag_run_id: value.dag_run_id,
+            task_id: value.task_id.into(),
+            dag_id: value.dag_id.into(),
+            dag_run_id: value.dag_run_id.into(),
             logical_date: Some(value.execution_date),
             start_date: value.start_date,
             end_date: value.end_date,
@@ -93,9 +93,9 @@ impl From<v1::model::taskinstance::TaskInstanceCollectionResponse> for TaskInsta
 impl From<v2::model::taskinstance::TaskInstance> for TaskInstance {
     fn from(value: v2::model::taskinstance::TaskInstance) -> Self {
         Self {
-            task_id: value.task_id,
-            dag_id: value.dag_id,
-            dag_run_id: value.dag_run_id,
+            task_id: value.task_id.into(),
+            dag_id: value.dag_id.into(),
+            dag_run_id: value.dag_run_id.into(),
             logical_date: value.logical_date,
             start_date: value.start_date,
             end_date: value.end_date,

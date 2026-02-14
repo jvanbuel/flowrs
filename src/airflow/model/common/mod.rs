@@ -14,3 +14,6 @@ pub use duration::{calculate_duration, format_duration};
 pub use log::Log;
 pub use task::{Task, TaskList};
 pub use taskinstance::{TaskInstance, TaskInstanceList};
+
+// Re-export newtype IDs
+pub use super::newtype_id::{DagId, DagRunId, EnvironmentKey, TaskId};

@@ -17,18 +17,20 @@ use crate::{
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
 };
 
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+
 pub struct ClearTaskInstancePopup {
-    pub dag_run_id: String,
-    pub dag_id: String,
-    pub task_ids: Vec<String>,
+    pub dag_run_id: DagRunId,
+    pub dag_id: DagId,
+    pub task_ids: Vec<TaskId>,
     pub confirm: bool,
 }
 
 impl ClearTaskInstancePopup {
-    pub fn new(dag_run_id: &str, dag_id: &str, task_ids: Vec<String>) -> Self {
+    pub fn new(dag_run_id: &DagRunId, dag_id: &DagId, task_ids: Vec<TaskId>) -> Self {
         Self {
-            dag_run_id: dag_run_id.to_string(),
-            dag_id: dag_id.to_string(),
+            dag_run_id: dag_run_id.clone(),
+            dag_id: dag_id.clone(),
             task_ids,
             confirm: false,
         }

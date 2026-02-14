@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use super::model::popup::dagruns::mark::MarkState;
 use super::model::popup::taskinstances::mark::MarkState as TaskMarkState;
 use super::state::App;
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use anyhow::Result;
 use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
@@ -25,50 +26,50 @@ pub enum WorkerMessage {
     ConfigSelected(usize),
     UpdateDagsAndStats,
     ToggleDag {
-        dag_id: String,
+        dag_id: DagId,
         is_paused: bool,
     },
     UpdateDagRuns {
-        dag_id: String,
+        dag_id: DagId,
     },
     UpdateTaskInstances {
-        dag_id: String,
-        dag_run_id: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
     },
     GetDagCode {
-        dag_id: String,
+        dag_id: DagId,
     },
     ClearDagRun {
-        dag_run_id: String,
-        dag_id: String,
+        dag_run_id: DagRunId,
+        dag_id: DagId,
     },
     UpdateTaskLogs {
-        dag_id: String,
-        dag_run_id: String,
-        task_id: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
+        task_id: TaskId,
         task_try: u16,
     },
     MarkDagRun {
-        dag_run_id: String,
-        dag_id: String,
+        dag_run_id: DagRunId,
+        dag_id: DagId,
         status: MarkState,
     },
     ClearTaskInstance {
-        task_id: String,
-        dag_id: String,
-        dag_run_id: String,
+        task_id: TaskId,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
     },
     MarkTaskInstance {
-        task_id: String,
-        dag_id: String,
-        dag_run_id: String,
+        task_id: TaskId,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
         status: TaskMarkState,
     },
     TriggerDagRun {
-        dag_id: String,
+        dag_id: DagId,
     },
     UpdateTasks {
-        dag_id: String,
+        dag_id: DagId,
     },
     OpenItem(OpenItem),
 }
@@ -77,21 +78,21 @@ pub enum WorkerMessage {
 pub enum OpenItem {
     Config(String),
     Dag {
-        dag_id: String,
+        dag_id: DagId,
     },
     DagRun {
-        dag_id: String,
-        dag_run_id: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
     },
     TaskInstance {
-        dag_id: String,
-        dag_run_id: String,
-        task_id: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
+        task_id: TaskId,
     },
     Log {
-        dag_id: String,
-        dag_run_id: String,
-        task_id: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
+        task_id: TaskId,
         #[allow(dead_code)]
         task_try: u16,
     },
