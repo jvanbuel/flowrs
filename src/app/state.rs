@@ -344,11 +344,4 @@ impl App {
             }
         }
     }
-
-    /// Sync the active panel's data from `environment_state`.
-    /// Called on panel navigation and after worker completes API calls.
-    pub fn sync_panel_data(&mut self) {
-        let panel = self.active_panel.clone();
-        self.sync_panel(&panel);
-    }
 }

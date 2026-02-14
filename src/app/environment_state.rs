@@ -107,10 +107,6 @@ impl EnvironmentStateContainer {
         }
     }
 
-    pub fn add_environment(&mut self, key: EnvironmentKey, data: EnvironmentData) {
-        self.environments.insert(key, data);
-    }
-
     pub fn get_active_environment(&self) -> Option<&EnvironmentData> {
         self.active_environment
             .as_ref()
@@ -129,23 +125,13 @@ impl EnvironmentStateContainer {
         }
     }
 
-    pub fn get_active_client(&self) -> Option<Arc<dyn AirflowClientTrait>> {
-        self.get_active_environment().map(|env| env.client.clone())
-    }
-
-    // ── Read methods (called by sync_panel and workers) ─────────────
+    // ── Read methods (called by sync_panel) ────────────────────────
 
     /// Get all DAGs for the active environment (already sorted).
     pub fn get_active_dags(&self) -> Vec<Dag> {
         self.get_active_environment()
             .map(|env| env.dags.clone())
             .unwrap_or_default()
-    }
-
-    /// Get a specific DAG by ID from the active environment.
-    pub fn get_active_dag(&self, dag_id: &str) -> Option<Dag> {
-        self.get_active_environment()
-            .and_then(|env| env.dags.iter().find(|d| d.dag_id == dag_id).cloned())
     }
 
     /// Get all DAG statistics for the active environment.

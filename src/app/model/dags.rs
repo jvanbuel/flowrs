@@ -52,13 +52,6 @@ impl DagModel {
         Self::default()
     }
 
-    /// Find a DAG by its ID
-    pub fn get_dag_by_id(&self, dag_id: &str) -> Option<&Dag> {
-        self.table.all.iter().find(|dag| dag.dag_id == dag_id)
-    }
-}
-
-impl DagModel {
     /// Handle model-specific popup (returns messages from popup)
     fn handle_popup(
         &mut self,

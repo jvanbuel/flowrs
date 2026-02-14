@@ -31,7 +31,8 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
             Ok(client) => {
                 let env_data = EnvironmentData::new(client);
                 app.environment_state
-                    .add_environment(env_name.clone(), env_data);
+                    .environments
+                    .insert(env_name.clone(), env_data);
             }
             Err(e) => {
                 log::error!("Failed to create client for '{env_name}': {e}");
@@ -54,7 +55,8 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
     app.clear_state();
 
     // Sync panel data from the new environment
-    app.sync_panel_data();
+    let panel = app.active_panel.clone();
+    app.sync_panel(&panel);
     app.loading = false;
     Ok(())
 }

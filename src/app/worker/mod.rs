@@ -186,7 +186,9 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
     // Get the active client from the environment state
     let client = {
         let app = app.lock().unwrap();
-        app.environment_state.get_active_client()
+        app.environment_state
+            .get_active_environment()
+            .map(|env| env.client.clone())
     };
 
     let Some(client) = client else {

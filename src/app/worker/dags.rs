@@ -13,10 +13,9 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
         let app_lock = app.lock().unwrap();
         app_lock
             .environment_state
-            .get_active_dags()
-            .iter()
-            .map(|dag| dag.dag_id.clone())
-            .collect()
+            .get_active_environment()
+            .map(|env| env.dags.iter().map(|dag| dag.dag_id.clone()).collect())
+            .unwrap_or_default()
     };
 
     if cached_dag_ids.is_empty() {
@@ -118,7 +117,10 @@ pub async fn handle_get_dag_code(
 ) {
     let current_dag = {
         let app_lock = app.lock().unwrap();
-        app_lock.environment_state.get_active_dag(dag_id)
+        app_lock
+            .environment_state
+            .get_active_environment()
+            .and_then(|env| env.dags.iter().find(|d| d.dag_id == dag_id).cloned())
     };
 
     if let Some(current_dag) = current_dag {

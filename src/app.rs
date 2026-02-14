@@ -41,7 +41,8 @@ where
                 if let Ok(client) = create_client(&server_config) {
                     let env_data = environment_state::EnvironmentData::new(client);
                     app.environment_state
-                        .add_environment(server_config.name.clone(), env_data);
+                        .environments
+                        .insert(server_config.name.clone(), env_data);
                 } else {
                     log::error!(
                         "Failed to create client for server '{}'; skipping",
@@ -169,11 +170,13 @@ where
                     }
                     KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
                         app.next_panel();
-                        app.sync_panel_data();
+                        let panel = app.active_panel.clone();
+                        app.sync_panel(&panel);
                     }
                     KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => {
                         app.previous_panel();
-                        app.sync_panel_data();
+                        let panel = app.active_panel.clone();
+                        app.sync_panel(&panel);
                     }
                     _ => {}
                 }
