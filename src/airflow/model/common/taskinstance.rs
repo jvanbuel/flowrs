@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 use super::duration::TimeBounded;
+use super::{DagId, DagRunId, TaskId};
 
 /// Common `TaskInstance` model used by the application
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TaskInstance {
-    pub task_id: super::TaskId,
-    pub dag_id: super::DagId,
-    pub dag_run_id: super::DagRunId,
+    pub task_id: TaskId,
+    pub dag_id: DagId,
+    pub dag_run_id: DagRunId,
     pub logical_date: Option<OffsetDateTime>,
     pub start_date: Option<OffsetDateTime>,
     pub end_date: Option<OffsetDateTime>,

@@ -3,11 +3,13 @@ use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+use super::DagId;
+
 /// Common DAG model used by the application
 #[allow(clippy::struct_field_names)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dag {
-    pub dag_id: super::DagId,
+    pub dag_id: DagId,
     pub dag_display_name: Option<String>,
     pub description: Option<String>,
     pub fileloc: String,

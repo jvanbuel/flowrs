@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
 use super::duration::TimeBounded;
+use super::{DagId, DagRunId};
 
 /// Common `DagRun` model used by the application
 #[allow(clippy::struct_field_names)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagRun {
-    pub dag_id: super::DagId,
-    pub dag_run_id: super::DagRunId,
+    pub dag_id: DagId,
+    pub dag_run_id: DagRunId,
     pub logical_date: Option<OffsetDateTime>,
     pub data_interval_end: Option<OffsetDateTime>,
     pub data_interval_start: Option<OffsetDateTime>,

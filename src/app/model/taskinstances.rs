@@ -10,7 +10,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use time::format_description;
 
 use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::{calculate_duration, format_duration, TaskInstance};
+use crate::airflow::model::common::{calculate_duration, format_duration, TaskId, TaskInstance};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
@@ -59,11 +59,7 @@ impl TaskInstanceModel {
     }
 
     /// Mark a task instance with a new status (optimistic update)
-    pub fn mark_task_instance(
-        &mut self,
-        task_id: &crate::airflow::model::common::TaskId,
-        status: &str,
-    ) {
+    pub fn mark_task_instance(&mut self, task_id: &TaskId, status: &str) {
         if let Some(task_instance) = self
             .table
             .filtered
@@ -76,7 +72,7 @@ impl TaskInstanceModel {
     }
 
     /// Returns selected task IDs for passing to mark/clear popups
-    fn selected_task_ids(&self) -> Vec<crate::airflow::model::common::TaskId> {
+    fn selected_task_ids(&self) -> Vec<TaskId> {
         self.table.selected_ids(|item| item.task_id.clone())
     }
 }

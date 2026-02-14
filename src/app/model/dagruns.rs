@@ -13,7 +13,7 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 use time::format_description;
 
-use crate::airflow::model::common::{calculate_duration, format_duration, DagRun};
+use crate::airflow::model::common::{calculate_duration, format_duration, DagRun, DagRunId};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
@@ -134,16 +134,12 @@ impl DagRunModel {
     }
 
     /// Returns selected DAG run IDs for passing to mark/clear popups
-    fn selected_dag_run_ids(&self) -> Vec<crate::airflow::model::common::DagRunId> {
+    fn selected_dag_run_ids(&self) -> Vec<DagRunId> {
         self.table.selected_ids(|item| item.dag_run_id.clone())
     }
 
     /// Mark a DAG run with a new status (optimistic update)
-    pub fn mark_dag_run(
-        &mut self,
-        dag_run_id: &crate::airflow::model::common::DagRunId,
-        status: &str,
-    ) {
+    pub fn mark_dag_run(&mut self, dag_run_id: &DagRunId, status: &str) {
         if let Some(dag_run) = self
             .table
             .filtered
