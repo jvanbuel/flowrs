@@ -7,13 +7,21 @@ use crate::app::state::App;
 /// On cold start (empty cache), fetches DAGs first then stats sequentially so
 /// stats use fresh IDs. On warm cache, fetches both concurrently using cached
 /// DAG IDs; new DAGs pick up stats on the next refresh.
-pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dyn AirflowClient>) {
-    // Snapshot cached DAG IDs for the stats request (avoids holding the lock during I/O)
+///
+/// `env_name` identifies which environment initiated this request, ensuring
+/// results are written to the correct environment even if the active one changes.
+pub async fn handle_update_dags_and_stats(
+    app: &Arc<Mutex<App>>,
+    client: &Arc<dyn AirflowClient>,
+    env_name: &str,
+) {
+    // Snapshot cached DAG IDs from the originating environment for the stats request
     let cached_dag_ids: Vec<String> = {
         let app_lock = app.lock().unwrap();
         app_lock
             .environment_state
-            .get_active_environment()
+            .environments
+            .get(env_name)
             .map(|env| env.dags.iter().map(|dag| dag.dag_id.clone()).collect())
             .unwrap_or_default()
     };
@@ -27,7 +35,7 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
             match dag_list_result {
                 Ok(dag_list) => {
                     let ids: Vec<String> = dag_list.dags.iter().map(|d| d.dag_id.clone()).collect();
-                    if let Some(env) = app.environment_state.get_active_environment_mut() {
+                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         env.replace_dags(dag_list.dags);
                     }
                     ids
@@ -44,7 +52,7 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
             match client.get_dag_stats(refs).await {
                 Ok(dag_stats) => {
                     let mut app = app.lock().unwrap();
-                    if let Some(env) = app.environment_state.get_active_environment_mut() {
+                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         for dag_stats in dag_stats.dags {
                             env.update_dag_stats(&dag_stats.dag_id, dag_stats.stats);
                         }
@@ -66,7 +74,7 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
 
         match dag_list_result {
             Ok(dag_list) => {
-                if let Some(env) = app.environment_state.get_active_environment_mut() {
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                     env.replace_dags(dag_list.dags);
                 }
             }
@@ -77,7 +85,7 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
 
         match dag_stats_result {
             Ok(dag_stats) => {
-                if let Some(env) = app.environment_state.get_active_environment_mut() {
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                     for dag_stats in dag_stats.dags {
                         env.update_dag_stats(&dag_stats.dag_id, dag_stats.stats);
                     }
@@ -89,10 +97,12 @@ pub async fn handle_update_dags_and_stats(app: &Arc<Mutex<App>>, client: &Arc<dy
         }
     }
 
-    // Sync the Dag panel from environment state
-    app.lock()
-        .unwrap()
-        .sync_panel(&crate::app::state::Panel::Dag);
+    // Only sync panel data if this environment is still the active one,
+    // otherwise we'd overwrite the UI with stale data from a different server
+    let mut app = app.lock().unwrap();
+    if app.environment_state.active_environment.as_deref() == Some(env_name) {
+        app.sync_panel(&crate::app::state::Panel::Dag);
+    }
 }
 
 /// Handle toggling the paused state of a DAG.

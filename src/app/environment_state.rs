@@ -113,12 +113,6 @@ impl EnvironmentStateContainer {
             .and_then(|key| self.environments.get(key))
     }
 
-    pub fn get_active_environment_mut(&mut self) -> Option<&mut EnvironmentData> {
-        self.active_environment
-            .as_ref()
-            .and_then(|key| self.environments.get_mut(key))
-    }
-
     pub fn set_active_environment(&mut self, key: EnvironmentKey) {
         if self.environments.contains_key(&key) {
             self.active_environment = Some(key);
