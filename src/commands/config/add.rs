@@ -7,7 +7,7 @@ use strum::IntoEnumIterator;
 use super::model::AddCommand;
 use crate::{
     airflow::config::{
-        AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenCmd,
+        AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenSource,
     },
     commands::config::model::{validate_endpoint, ConfigOption},
 };
@@ -49,27 +49,20 @@ impl AddCommand {
                 }
             }
             ConfigOption::Token(_) => {
-                let cmd = Some(inquire::Text::new("cmd").prompt()?);
-                let token: String;
-                if let Some(cmd) = &cmd {
-                    info!("🔑 Running command: {cmd}");
-                    let output = std::process::Command::new("sh")
-                        .arg("-c")
-                        .arg(cmd)
-                        .output()
-                        .with_context(|| format!("Failed to execute token command: {cmd}"))?;
-                    token = String::from_utf8(output.stdout)?.trim().to_string();
-                } else {
-                    token = inquire::Text::new("token").prompt()?;
-                }
+                let cmd = inquire::Text::new("cmd").prompt()?;
+                info!("🔑 Running command: {cmd}");
+                let output = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&cmd)
+                    .output()
+                    .with_context(|| format!("Failed to execute token command: {cmd}"))?;
+                // Validate the command produces a token
+                let _token = String::from_utf8(output.stdout)?.trim().to_string();
 
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::Token(TokenCmd {
-                        cmd,
-                        token: Some(token),
-                    }),
+                    auth: AirflowAuth::Token(TokenSource::Command { cmd }),
                     managed: None,
                     version,
                     timeout_secs: 30,

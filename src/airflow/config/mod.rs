@@ -82,7 +82,7 @@ const fn default_timeout() -> u64 {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AirflowAuth {
     Basic(BasicAuth),
-    Token(TokenCmd),
+    Token(TokenSource),
     Conveyor,
     Mwaa(super::managed_services::mwaa::MwaaAuth),
     Astronomer(super::managed_services::astronomer::AstronomerAuth),
@@ -95,9 +95,10 @@ pub struct BasicAuth {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct TokenCmd {
-    pub cmd: Option<String>,
-    pub token: Option<String>,
+#[serde(untagged)]
+pub enum TokenSource {
+    Command { cmd: String },
+    Static { token: String },
 }
 
 impl Default for FlowrsConfig {
