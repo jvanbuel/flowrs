@@ -59,7 +59,11 @@ impl TaskInstanceModel {
     }
 
     /// Mark a task instance with a new status (optimistic update)
-    pub fn mark_task_instance(&mut self, task_id: &crate::airflow::model::common::TaskId, status: &str) {
+    pub fn mark_task_instance(
+        &mut self,
+        task_id: &crate::airflow::model::common::TaskId,
+        status: &str,
+    ) {
         if let Some(task_instance) = self
             .table
             .filtered

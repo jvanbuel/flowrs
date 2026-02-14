@@ -55,7 +55,10 @@ pub async fn handle_update_dags_and_stats(
                     let mut app = app.lock().unwrap();
                     if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         for dag_stats in dag_stats.dags {
-                            env.update_dag_stats(&DagId::from(dag_stats.dag_id.clone()), dag_stats.stats);
+                            env.update_dag_stats(
+                                &DagId::from(dag_stats.dag_id.clone()),
+                                dag_stats.stats,
+                            );
                         }
                     }
                 }
@@ -88,7 +91,10 @@ pub async fn handle_update_dags_and_stats(
             Ok(dag_stats) => {
                 if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                     for dag_stats in dag_stats.dags {
-                        env.update_dag_stats(&DagId::from(dag_stats.dag_id.clone()), dag_stats.stats);
+                        env.update_dag_stats(
+                            &DagId::from(dag_stats.dag_id.clone()),
+                            dag_stats.stats,
+                        );
                     }
                 }
             }
@@ -110,7 +116,7 @@ pub async fn handle_update_dags_and_stats(
 pub async fn handle_toggle_dag(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
+    dag_id: &DagId,
     is_paused: bool,
 ) {
     let dag = client.toggle_dag(dag_id, is_paused).await;
@@ -124,14 +130,14 @@ pub async fn handle_toggle_dag(
 pub async fn handle_get_dag_code(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
+    dag_id: &DagId,
 ) {
     let current_dag = {
         let app_lock = app.lock().unwrap();
         app_lock
             .environment_state
             .get_active_environment()
-            .and_then(|env| env.dags.iter().find(|d| *d.dag_id == *dag_id).cloned())
+            .and_then(|env| env.dags.iter().find(|d| d.dag_id == *dag_id).cloned())
     };
 
     if let Some(current_dag) = current_dag {

@@ -57,7 +57,10 @@ async fn test_v2_get_dag_code() {
             .get_dag_code(dag)
             .await
             .expect("Failed to get DAG code");
-        assert!(code.contains(&*dag.dag_id), "DAG code should contain DAG ID");
+        assert!(
+            code.contains(&*dag.dag_id),
+            "DAG code should contain DAG ID"
+        );
     }
 }
 

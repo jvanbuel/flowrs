@@ -44,7 +44,7 @@ pub async fn handle_update_task_logs(
     // Store logs in the originating environment, not the active one
     if !collected_logs.is_empty() {
         if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-            env.add_task_logs(dag_id, dag_run_id, task_id, collected_logs);
+            env.replace_task_logs(dag_id, dag_run_id, task_id, collected_logs);
         }
     }
 

@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::airflow::{
-    model::common::{Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance},
+    model::common::{
+        Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
+    },
     traits::AirflowClient as AirflowClientTrait,
 };
 
@@ -74,7 +76,7 @@ impl EnvironmentData {
     }
 
     /// Replace logs for a specific task instance.
-    pub fn add_task_logs(
+    pub fn replace_task_logs(
         &mut self,
         dag_id: &DagId,
         dag_run_id: &DagRunId,
@@ -144,7 +146,10 @@ impl EnvironmentStateContainer {
         dag_run_id: &DagRunId,
     ) -> Vec<TaskInstance> {
         self.get_active_environment()
-            .and_then(|env| env.task_instances.get(&(dag_id.clone(), dag_run_id.clone())))
+            .and_then(|env| {
+                env.task_instances
+                    .get(&(dag_id.clone(), dag_run_id.clone()))
+            })
             .cloned()
             .unwrap_or_default()
     }

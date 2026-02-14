@@ -139,7 +139,11 @@ impl DagRunModel {
     }
 
     /// Mark a DAG run with a new status (optimistic update)
-    pub fn mark_dag_run(&mut self, dag_run_id: &crate::airflow::model::common::DagRunId, status: &str) {
+    pub fn mark_dag_run(
+        &mut self,
+        dag_run_id: &crate::airflow::model::common::DagRunId,
+        status: &str,
+    ) {
         if let Some(dag_run) = self
             .table
             .filtered
