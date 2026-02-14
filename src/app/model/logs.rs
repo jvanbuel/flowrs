@@ -78,9 +78,12 @@ impl Model for LogModel {
                 if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let (Some(dag_id), Some(dag_run_id), Some(task_id), Some(task_try)) =
-                    (&ctx.dag_id, &ctx.dag_run_id, &ctx.task_id, &ctx.task_try)
-                {
+                if let (Some(dag_id), Some(dag_run_id), Some(task_id), Some(task_try)) = (
+                    ctx.dag_id(),
+                    ctx.dag_run_id(),
+                    ctx.task_id(),
+                    ctx.task_try(),
+                ) {
                     log::debug!("Updating task logs for dag_run_id: {dag_run_id}");
                     return (
                         Some(FlowrsEvent::Tick),
@@ -88,7 +91,7 @@ impl Model for LogModel {
                             dag_id: dag_id.clone(),
                             dag_run_id: dag_run_id.clone(),
                             task_id: task_id.clone(),
-                            task_try: *task_try,
+                            task_try,
                         }],
                     );
                 }
@@ -141,7 +144,7 @@ impl Model for LogModel {
                     KeyCode::Char('o') => {
                         if self.all.get(self.current % self.all.len()).is_some() {
                             if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
-                                (&ctx.dag_id, &ctx.dag_run_id, &ctx.task_id)
+                                (ctx.dag_id(), ctx.dag_run_id(), ctx.task_id())
                             {
                                 return (
                                     Some(FlowrsEvent::Key(*key)),
