@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.9](https://github.com/jvanbuel/flowrs/compare/v0.8.8...v0.8.9) - 2026-02-14
+
+### Other
+
+- Fix async handler data corruption when active environment changes ([#562](https://github.com/jvanbuel/flowrs/pull/562))
+- centralize navigation context, flatten cache, add request d… ([#560](https://github.com/jvanbuel/flowrs/pull/560))
+
 ## [0.8.8](https://github.com/jvanbuel/flowrs/compare/v0.8.7...v0.8.8) - 2026-02-13
 
 ### Fixed
