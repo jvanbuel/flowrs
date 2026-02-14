@@ -6,7 +6,6 @@ use ratatui::{
 };
 
 pub fn render_init_screen(f: &mut Frame, index: u32) {
-    // let text = ASCII_LOGO.into_text().unwrap();
     let text = ROTATING_LOGO[index as usize % ROTATING_LOGO.len()]
         .into_text()
         .expect("ROTATING_LOGO should contain valid ANSI text");
