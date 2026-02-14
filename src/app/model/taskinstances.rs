@@ -25,8 +25,6 @@ use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
 pub struct TaskInstanceModel {
-    pub dag_id: Option<String>,
-    pub dag_run_id: Option<String>,
     /// Filterable table containing all task instances and filtered view
     pub table: FilterableTable<TaskInstance>,
     /// Unified popup state (error, commands, or custom for this model)
@@ -39,8 +37,6 @@ pub struct TaskInstanceModel {
 impl Default for TaskInstanceModel {
     fn default() -> Self {
         Self {
-            dag_id: None,
-            dag_run_id: None,
             table: FilterableTable::new(),
             popup: Popup::None,
             ticks: 0,
@@ -83,11 +79,15 @@ impl TaskInstanceModel {
 
 impl TaskInstanceModel {
     /// Handle model-specific popups (returns messages from popup)
-    fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
+    fn handle_popup(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> Option<Vec<WorkerMessage>> {
         let custom_popup = self.popup.custom_mut()?;
         let (key_event, messages) = match custom_popup {
-            TaskInstancePopUp::Clear(p) => p.update(event),
-            TaskInstancePopUp::Mark(p) => p.update(event),
+            TaskInstancePopUp::Clear(p) => p.update(event, ctx),
+            TaskInstancePopUp::Mark(p) => p.update(event, ctx),
         };
         debug!("Popup messages: {messages:?}");
 
@@ -105,12 +105,16 @@ impl TaskInstanceModel {
     }
 
     /// Handle model-specific keys
-    fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
+    fn handle_keys(
+        &mut self,
+        key_code: KeyCode,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> KeyResult {
         match key_code {
             KeyCode::Char('m') => {
                 let task_ids = self.selected_task_ids();
                 if !task_ids.is_empty() {
-                    if let (Some(dag_id), Some(dag_run_id)) = (&self.dag_id, &self.dag_run_id) {
+                    if let (Some(dag_id), Some(dag_run_id)) = (&ctx.dag_id, &ctx.dag_run_id) {
                         self.popup.show_custom(TaskInstancePopUp::Mark(
                             MarkTaskInstancePopup::new(task_ids, dag_id, dag_run_id),
                         ));
@@ -120,7 +124,7 @@ impl TaskInstanceModel {
             }
             KeyCode::Char('c') => {
                 let task_ids = self.selected_task_ids();
-                if let (Some(dag_id), Some(dag_run_id)) = (&self.dag_id, &self.dag_run_id) {
+                if let (Some(dag_id), Some(dag_run_id)) = (&ctx.dag_id, &ctx.dag_run_id) {
                     if !task_ids.is_empty() {
                         self.popup.show_custom(TaskInstancePopUp::Clear(
                             ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
@@ -164,14 +168,18 @@ impl TaskInstanceModel {
 }
 
 impl Model for TaskInstanceModel {
-    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn update(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let (Some(dag_run_id), Some(dag_id)) = (&self.dag_run_id, &self.dag_id) {
+                if let (Some(dag_id), Some(dag_run_id)) = (&ctx.dag_id, &ctx.dag_run_id) {
                     log::debug!("Updating task instances for dag_run_id: {dag_run_id}");
                     return (
                         Some(FlowrsEvent::Tick),
@@ -185,7 +193,7 @@ impl Model for TaskInstanceModel {
             }
             FlowrsEvent::Key(key_event) => {
                 // Popup handling (has its own update method)
-                if let Some(messages) = self.handle_popup(event) {
+                if let Some(messages) = self.handle_popup(event, ctx) {
                     return (None, messages);
                 }
 
@@ -199,7 +207,7 @@ impl Model for TaskInstanceModel {
                         self.table
                             .handle_navigation(key_event.code, &mut self.event_buffer)
                     })
-                    .or_else(|| self.handle_keys(key_event.code));
+                    .or_else(|| self.handle_keys(key_event.code, ctx));
 
                 result.into_result(event)
             }

@@ -16,14 +16,12 @@ pub async fn handle_update_dag_runs(
     let mut app = app.lock().unwrap();
     match dag_runs {
         Ok(dag_runs) => {
-            // Store DAG runs in the environment state
+            // Replace DAG runs — full replacement evicts stale entries
             if let Some(env) = app.environment_state.get_active_environment_mut() {
-                for dag_run in &dag_runs.dag_runs {
-                    env.upsert_dag_run(dag_run.clone());
-                }
+                env.replace_dag_runs(dag_id, dag_runs.dag_runs);
             }
-            // Sync panel data from environment state to refresh with new API data
-            app.sync_panel_data();
+            // Sync the DAGRun panel from environment state
+            app.sync_panel(&crate::app::state::Panel::DAGRun);
         }
         Err(e) => {
             app.dagruns.popup.show_error(vec![e.to_string()]);

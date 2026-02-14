@@ -60,10 +60,14 @@ impl DagModel {
 
 impl DagModel {
     /// Handle model-specific popup (returns messages from popup)
-    fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
+    fn handle_popup(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> Option<Vec<WorkerMessage>> {
         let custom_popup = self.popup.custom_mut()?;
         let DagPopUp::Trigger(trigger_popup) = custom_popup;
-        let (key_event, messages) = trigger_popup.update(event);
+        let (key_event, messages) = trigger_popup.update(event, ctx);
         debug!("Popup messages: {messages:?}");
 
         if let Some(FlowrsEvent::Key(key_event)) = &key_event {
@@ -140,7 +144,11 @@ impl DagModel {
 }
 
 impl Model for DagModel {
-    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn update(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
@@ -154,7 +162,7 @@ impl Model for DagModel {
             }
             FlowrsEvent::Key(key_event) => {
                 // Popup handling (has its own update method)
-                if let Some(messages) = self.handle_popup(event) {
+                if let Some(messages) = self.handle_popup(event, ctx) {
                     return (None, messages);
                 }
 

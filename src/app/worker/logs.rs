@@ -43,6 +43,6 @@ pub async fn handle_update_task_logs(
         }
     }
 
-    // Sync panel data from environment state to refresh with new API data
-    app.sync_panel_data();
+    // Sync the Logs panel from environment state
+    app.sync_panel(&crate::app::state::Panel::Logs);
 }

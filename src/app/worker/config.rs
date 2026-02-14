@@ -47,7 +47,8 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
     // Set this as the active environment
     app.environment_state
         .set_active_environment(env_name.clone());
-    app.config.active_server = Some(env_name);
+    app.config.active_server = Some(env_name.clone());
+    app.nav_context.environment = Some(env_name);
 
     // Clear the view state but NOT the environment data
     app.clear_state();

@@ -12,143 +12,89 @@ pub type DagId = String;
 pub type DagRunId = String;
 pub type TaskId = String;
 
-/// State for a specific task instance's logs
-#[derive(Debug, Clone)]
-pub struct TaskInstanceData {
-    pub task_instance: TaskInstance,
-    pub logs: Vec<Log>,
-}
-
-impl TaskInstanceData {
-    pub const fn new(task_instance: TaskInstance) -> Self {
-        Self {
-            task_instance,
-            logs: Vec::new(),
-        }
-    }
-}
-
-/// State for a specific DAG run
-#[derive(Debug, Clone)]
-pub struct DagRunData {
-    pub dag_run: DagRun,
-    pub task_instances: HashMap<TaskId, TaskInstanceData>,
-}
-
-impl DagRunData {
-    pub fn new(dag_run: DagRun) -> Self {
-        Self {
-            dag_run,
-            task_instances: HashMap::new(),
-        }
-    }
-    pub fn get_task_instance(&self, task_id: &str) -> Option<&TaskInstanceData> {
-        self.task_instances.get(task_id)
-    }
-}
-
-/// State for a specific DAG
-#[derive(Debug, Clone)]
-pub struct DagData {
-    pub dag: Dag,
-    pub dag_runs: HashMap<DagRunId, DagRunData>,
-    pub stats: Vec<DagStatistic>,
-}
-
-impl DagData {
-    pub fn new(dag: Dag) -> Self {
-        Self {
-            dag,
-            dag_runs: HashMap::new(),
-            stats: Vec::new(),
-        }
-    }
-
-    pub fn get_dag_run(&self, dag_run_id: &str) -> Option<&DagRunData> {
-        self.dag_runs.get(dag_run_id)
-    }
-}
-
-/// State for a specific environment (Airflow server)
+/// Flat, request-keyed cache for a single Airflow environment.
+///
+/// Each collection is keyed by the parameters of the API request that produced
+/// it. This replaces the previous nested `DagData → DagRunData → TaskInstanceData`
+/// hierarchy with direct lookups, and makes stale-entry eviction trivial
+/// (just replace the whole Vec).
 #[derive(Clone)]
 pub struct EnvironmentData {
     pub client: Arc<dyn AirflowClientTrait>,
-    pub dags: HashMap<DagId, DagData>,
+
+    /// Result of `list_dags()` — sorted alphabetically by `dag_id` on write.
+    pub dags: Vec<Dag>,
+
+    /// Result of `get_dag_stats(dag_ids)` — keyed per DAG.
+    pub dag_stats: HashMap<DagId, Vec<DagStatistic>>,
+
+    /// Result of `list_dagruns(dag_id)` — keyed by `dag_id`.
+    pub dag_runs: HashMap<DagId, Vec<DagRun>>,
+
+    /// Result of `list_task_instances(dag_id, dag_run_id)` — keyed by (`dag_id`, `dag_run_id`).
+    pub task_instances: HashMap<DagId, HashMap<DagRunId, Vec<TaskInstance>>>,
+
+    /// Result of `get_task_logs(dag_id, dag_run_id, task_id, try)` — keyed by (`dag_id`, `dag_run_id`, `task_id`).
+    pub task_logs: HashMap<DagId, HashMap<DagRunId, HashMap<TaskId, Vec<Log>>>>,
 }
 
 impl EnvironmentData {
     pub fn new(client: Arc<dyn AirflowClientTrait>) -> Self {
         Self {
             client,
-            dags: HashMap::new(),
+            dags: Vec::new(),
+            dag_stats: HashMap::new(),
+            dag_runs: HashMap::new(),
+            task_instances: HashMap::new(),
+            task_logs: HashMap::new(),
         }
     }
 
-    pub fn get_dag(&self, dag_id: &str) -> Option<&DagData> {
-        self.dags.get(dag_id)
+    // ── Write methods (called by workers after API responses) ────────
+
+    /// Replace the full DAG list (evicts deleted DAGs).
+    pub fn replace_dags(&mut self, mut dags: Vec<Dag>) {
+        dags.sort_by(|a, b| a.dag_id.cmp(&b.dag_id));
+        self.dags = dags;
     }
 
-    /// Update or create a DAG in the environment
-    pub fn upsert_dag(&mut self, dag: Dag) {
-        let dag_id = dag.dag_id.clone();
-        if let Some(existing_dag_data) = self.dags.get_mut(&dag_id) {
-            existing_dag_data.dag = dag;
-        } else {
-            self.dags.insert(dag_id, DagData::new(dag));
-        }
-    }
-
-    /// Update or create a DAG run in the environment
-    pub fn upsert_dag_run(&mut self, dag_run: DagRun) {
-        let dag_id = dag_run.dag_id.clone();
-        let dag_run_id = dag_run.dag_run_id.clone();
-
-        if let Some(dag_data) = self.dags.get_mut(&dag_id) {
-            if let Some(existing_run) = dag_data.dag_runs.get_mut(&dag_run_id) {
-                existing_run.dag_run = dag_run;
-            } else {
-                dag_data
-                    .dag_runs
-                    .insert(dag_run_id, DagRunData::new(dag_run));
-            }
-        }
-    }
-
-    /// Update or create a task instance in the environment
-    pub fn upsert_task_instance(&mut self, task_instance: TaskInstance) {
-        let dag_id = task_instance.dag_id.clone();
-        let dag_run_id = task_instance.dag_run_id.clone();
-        let task_id = task_instance.task_id.clone();
-
-        if let Some(dag_data) = self.dags.get_mut(&dag_id) {
-            if let Some(dag_run_data) = dag_data.dag_runs.get_mut(&dag_run_id) {
-                if let Some(existing_task) = dag_run_data.task_instances.get_mut(&task_id) {
-                    existing_task.task_instance = task_instance;
-                } else {
-                    dag_run_data
-                        .task_instances
-                        .insert(task_id, TaskInstanceData::new(task_instance));
-                }
-            }
-        }
-    }
-
-    /// Add logs to a task instance
-    pub fn add_task_logs(&mut self, dag_id: &str, dag_run_id: &str, task_id: &str, logs: Vec<Log>) {
-        if let Some(dag_data) = self.dags.get_mut(dag_id) {
-            if let Some(dag_run_data) = dag_data.dag_runs.get_mut(dag_run_id) {
-                if let Some(task_data) = dag_run_data.task_instances.get_mut(task_id) {
-                    task_data.logs = logs;
-                }
-            }
-        }
-    }
-
-    /// Update statistics for a specific DAG
+    /// Replace stats for a single DAG.
     pub fn update_dag_stats(&mut self, dag_id: &str, stats: Vec<DagStatistic>) {
-        if let Some(dag_data) = self.dags.get_mut(dag_id) {
-            dag_data.stats = stats;
-        }
+        self.dag_stats.insert(dag_id.to_string(), stats);
+    }
+
+    /// Replace all DAG runs for a DAG (evicts deleted runs).
+    pub fn replace_dag_runs(&mut self, dag_id: &str, dag_runs: Vec<DagRun>) {
+        self.dag_runs.insert(dag_id.to_string(), dag_runs);
+    }
+
+    /// Replace all task instances for a DAG run (evicts deleted instances).
+    pub fn replace_task_instances(
+        &mut self,
+        dag_id: &str,
+        dag_run_id: &str,
+        task_instances: Vec<TaskInstance>,
+    ) {
+        self.task_instances
+            .entry(dag_id.to_string())
+            .or_default()
+            .insert(dag_run_id.to_string(), task_instances);
+    }
+
+    /// Replace logs for a specific task instance.
+    pub fn add_task_logs(
+        &mut self,
+        dag_id: &str,
+        dag_run_id: &str,
+        task_id: &str,
+        logs: Vec<Log>,
+    ) {
+        self.task_logs
+            .entry(dag_id.to_string())
+            .or_default()
+            .entry(dag_run_id.to_string())
+            .or_default()
+            .insert(task_id.to_string(), logs);
     }
 }
 
@@ -193,77 +139,57 @@ impl EnvironmentStateContainer {
         self.get_active_environment().map(|env| env.client.clone())
     }
 
-    /// Get all DAGs for the active environment, sorted alphabetically by `dag_id`
+    // ── Read methods (called by sync_panel and workers) ─────────────
+
+    /// Get all DAGs for the active environment (already sorted).
     pub fn get_active_dags(&self) -> Vec<Dag> {
         self.get_active_environment()
-            .map(|env| {
-                let mut dags: Vec<Dag> = env
-                    .dags
-                    .values()
-                    .map(|dag_data| dag_data.dag.clone())
-                    .collect();
-                dags.sort_by(|a, b| a.dag_id.cmp(&b.dag_id));
-                dags
-            })
+            .map(|env| env.dags.clone())
             .unwrap_or_default()
     }
 
-    /// Get all DAG runs for a specific DAG in the active environment
-    pub fn get_active_dag_runs(&self, dag_id: &str) -> Vec<DagRun> {
-        self.get_active_environment()
-            .and_then(|env| env.get_dag(dag_id))
-            .map(|dag_data| {
-                dag_data
-                    .dag_runs
-                    .values()
-                    .map(|run_data| run_data.dag_run.clone())
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    /// Get all task instances for a specific DAG run in the active environment
-    pub fn get_active_task_instances(&self, dag_id: &str, dag_run_id: &str) -> Vec<TaskInstance> {
-        self.get_active_environment()
-            .and_then(|env| env.get_dag(dag_id))
-            .and_then(|dag_data| dag_data.get_dag_run(dag_run_id))
-            .map(|run_data| {
-                run_data
-                    .task_instances
-                    .values()
-                    .map(|task_data| task_data.task_instance.clone())
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    /// Get logs for a specific task instance in the active environment
-    pub fn get_active_task_logs(&self, dag_id: &str, dag_run_id: &str, task_id: &str) -> Vec<Log> {
-        self.get_active_environment()
-            .and_then(|env| env.get_dag(dag_id))
-            .and_then(|dag_data| dag_data.get_dag_run(dag_run_id))
-            .and_then(|run_data| run_data.get_task_instance(task_id))
-            .map(|task_data| task_data.logs.clone())
-            .unwrap_or_default()
-    }
-
-    /// Get a specific DAG by ID from the active environment
+    /// Get a specific DAG by ID from the active environment.
     pub fn get_active_dag(&self, dag_id: &str) -> Option<Dag> {
         self.get_active_environment()
-            .and_then(|env| env.get_dag(dag_id))
-            .map(|dag_data| dag_data.dag.clone())
+            .and_then(|env| env.dags.iter().find(|d| d.dag_id == dag_id).cloned())
     }
 
-    /// Get all DAG statistics for the active environment as a `HashMap`
+    /// Get all DAG statistics for the active environment.
     pub fn get_active_dag_stats(&self) -> HashMap<String, Vec<DagStatistic>> {
         self.get_active_environment()
-            .map(|env| {
-                env.dags
-                    .iter()
-                    .filter(|(_, dag_data)| !dag_data.stats.is_empty())
-                    .map(|(dag_id, dag_data)| (dag_id.clone(), dag_data.stats.clone()))
-                    .collect()
-            })
+            .map(|env| env.dag_stats.clone())
+            .unwrap_or_default()
+    }
+
+    /// Get all DAG runs for a specific DAG in the active environment.
+    pub fn get_active_dag_runs(&self, dag_id: &str) -> Vec<DagRun> {
+        self.get_active_environment()
+            .and_then(|env| env.dag_runs.get(dag_id))
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// Get all task instances for a specific DAG run in the active environment.
+    pub fn get_active_task_instances(&self, dag_id: &str, dag_run_id: &str) -> Vec<TaskInstance> {
+        self.get_active_environment()
+            .and_then(|env| env.task_instances.get(dag_id))
+            .and_then(|runs| runs.get(dag_run_id))
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    /// Get logs for a specific task instance in the active environment.
+    pub fn get_active_task_logs(
+        &self,
+        dag_id: &str,
+        dag_run_id: &str,
+        task_id: &str,
+    ) -> Vec<Log> {
+        self.get_active_environment()
+            .and_then(|env| env.task_logs.get(dag_id))
+            .and_then(|runs| runs.get(dag_run_id))
+            .and_then(|tasks| tasks.get(task_id))
+            .cloned()
             .unwrap_or_default()
     }
 }

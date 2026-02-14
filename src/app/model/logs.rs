@@ -24,10 +24,6 @@ use super::Model;
 
 #[derive(Default)]
 pub struct LogModel {
-    pub dag_id: Option<String>,
-    pub dag_run_id: Option<String>,
-    pub task_id: Option<String>,
-    pub tries: Option<u16>,
     pub all: Vec<Log>,
     pub current: usize,
     pub error_popup: Option<ErrorPopup>,
@@ -71,24 +67,28 @@ impl LogModel {
 }
 
 impl Model for LogModel {
-    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn update(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let (Some(dag_run_id), Some(dag_id), Some(task_id), Some(tries)) =
-                    (&self.dag_run_id, &self.dag_id, &self.task_id, &self.tries)
+                if let (Some(dag_id), Some(dag_run_id), Some(task_id), Some(task_try)) =
+                    (&ctx.dag_id, &ctx.dag_run_id, &ctx.task_id, &ctx.task_try)
                 {
-                    log::debug!("Updating task instances for dag_run_id: {dag_run_id}");
+                    log::debug!("Updating task logs for dag_run_id: {dag_run_id}");
                     return (
                         Some(FlowrsEvent::Tick),
                         vec![WorkerMessage::UpdateTaskLogs {
                             dag_id: dag_id.clone(),
                             dag_run_id: dag_run_id.clone(),
                             task_id: task_id.clone(),
-                            task_try: *tries,
+                            task_try: *task_try,
                         }],
                     );
                 }
@@ -140,19 +140,20 @@ impl Model for LogModel {
                     }
                     KeyCode::Char('o') => {
                         if self.all.get(self.current % self.all.len()).is_some() {
-                            return (
-                                Some(FlowrsEvent::Key(*key)),
-                                vec![WorkerMessage::OpenItem(OpenItem::Log {
-                                    dag_id: self.dag_id.clone().expect("DAG ID not set"),
-                                    dag_run_id: self
-                                        .dag_run_id
-                                        .clone()
-                                        .expect("DAG Run ID not set"),
-                                    task_id: self.task_id.clone().expect("Task ID not set"),
-                                    #[allow(clippy::cast_possible_truncation)]
-                                    task_try: (self.current + 1) as u16,
-                                })],
-                            );
+                            if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
+                                (&ctx.dag_id, &ctx.dag_run_id, &ctx.task_id)
+                            {
+                                return (
+                                    Some(FlowrsEvent::Key(*key)),
+                                    vec![WorkerMessage::OpenItem(OpenItem::Log {
+                                        dag_id: dag_id.clone(),
+                                        dag_run_id: dag_run_id.clone(),
+                                        task_id: task_id.clone(),
+                                        #[allow(clippy::cast_possible_truncation)]
+                                        task_try: (self.current + 1) as u16,
+                                    })],
+                                );
+                            }
                         }
                     }
                     KeyCode::Char('G') => {

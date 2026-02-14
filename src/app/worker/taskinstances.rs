@@ -17,14 +17,12 @@ pub async fn handle_update_task_instances(
     let mut app = app.lock().unwrap();
     match task_instances {
         Ok(task_instances) => {
-            // Store task instances in the environment state
+            // Replace task instances — full replacement evicts stale entries
             if let Some(env) = app.environment_state.get_active_environment_mut() {
-                for task_instance in &task_instances.task_instances {
-                    env.upsert_task_instance(task_instance.clone());
-                }
+                env.replace_task_instances(dag_id, dag_run_id, task_instances.task_instances);
             }
-            // Sync panel data from environment state to refresh with new API data
-            app.sync_panel_data();
+            // Sync the TaskInstance panel from environment state
+            app.sync_panel(&crate::app::state::Panel::TaskInstance);
         }
         Err(e) => {
             log::error!("Error getting task instances: {e:?}");

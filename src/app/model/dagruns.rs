@@ -32,7 +32,6 @@ use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
 pub struct DagRunModel {
-    pub dag_id: Option<String>,
     pub dag_code: DagCodeWidget,
     /// Filterable table containing all DAG runs and filtered view
     pub table: FilterableTable<DagRun>,
@@ -45,7 +44,6 @@ pub struct DagRunModel {
 impl Default for DagRunModel {
     fn default() -> Self {
         Self {
-            dag_id: None,
             dag_code: DagCodeWidget::default(),
             table: FilterableTable::new(),
             popup: Popup::None,
@@ -184,12 +182,16 @@ impl DagRunModel {
     }
 
     /// Handle model-specific popups (returns messages from popup)
-    fn handle_popup(&mut self, event: &FlowrsEvent) -> Option<Vec<WorkerMessage>> {
+    fn handle_popup(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> Option<Vec<WorkerMessage>> {
         let custom_popup = self.popup.custom_mut()?;
         let (key_event, messages) = match custom_popup {
-            DagRunPopUp::Clear(p) => p.update(event),
-            DagRunPopUp::Mark(p) => p.update(event),
-            DagRunPopUp::Trigger(p) => p.update(event),
+            DagRunPopUp::Clear(p) => p.update(event, ctx),
+            DagRunPopUp::Mark(p) => p.update(event, ctx),
+            DagRunPopUp::Trigger(p) => p.update(event, ctx),
         };
         debug!("Popup messages: {messages:?}");
 
@@ -211,10 +213,14 @@ impl DagRunModel {
     }
 
     /// Handle model-specific keys
-    fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
+    fn handle_keys(
+        &mut self,
+        key_code: KeyCode,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> KeyResult {
         match key_code {
             KeyCode::Char('t') => {
-                if let Some(dag_id) = &self.dag_id {
+                if let Some(dag_id) = &ctx.dag_id {
                     self.popup
                         .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
                             dag_id.clone(),
@@ -224,7 +230,7 @@ impl DagRunModel {
             }
             KeyCode::Char('m') => {
                 let dag_run_ids = self.selected_dag_run_ids();
-                if let Some(dag_id) = &self.dag_id {
+                if let Some(dag_id) = &ctx.dag_id {
                     if !dag_run_ids.is_empty() {
                         self.popup
                             .show_custom(DagRunPopUp::Mark(MarkDagRunPopup::new(
@@ -240,7 +246,7 @@ impl DagRunModel {
                 KeyResult::Consumed
             }
             KeyCode::Char('v') => {
-                if let Some(dag_id) = &self.dag_id {
+                if let Some(dag_id) = &ctx.dag_id {
                     KeyResult::ConsumedWith(vec![WorkerMessage::GetDagCode {
                         dag_id: dag_id.clone(),
                     }])
@@ -250,7 +256,7 @@ impl DagRunModel {
             }
             KeyCode::Char('c') => {
                 let dag_run_ids = self.selected_dag_run_ids();
-                if let Some(dag_id) = &self.dag_id {
+                if let Some(dag_id) = &ctx.dag_id {
                     if !dag_run_ids.is_empty() {
                         self.popup
                             .show_custom(DagRunPopUp::Clear(ClearDagRunPopup::new(
@@ -262,7 +268,7 @@ impl DagRunModel {
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
-                if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                if let (Some(dag_id), Some(dag_run)) = (&ctx.dag_id, &self.current()) {
                     KeyResult::PassWith(vec![
                         WorkerMessage::UpdateTasks {
                             dag_id: dag_id.clone(),
@@ -277,7 +283,7 @@ impl DagRunModel {
                 }
             }
             KeyCode::Char('o') => {
-                if let (Some(dag_id), Some(dag_run)) = (&self.dag_id, &self.current()) {
+                if let (Some(dag_id), Some(dag_run)) = (&ctx.dag_id, &self.current()) {
                     KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::DagRun {
                         dag_id: dag_id.clone(),
                         dag_run_id: dag_run.dag_run_id.clone(),
@@ -292,14 +298,18 @@ impl DagRunModel {
 }
 
 impl Model for DagRunModel {
-    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn update(
+        &mut self,
+        event: &FlowrsEvent,
+        ctx: &crate::app::state::NavigationContext,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
                 if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                let worker_messages = if let Some(dag_id) = &self.dag_id {
+                let worker_messages = if let Some(dag_id) = &ctx.dag_id {
                     vec![WorkerMessage::UpdateDagRuns {
                         dag_id: dag_id.clone(),
                     }]
@@ -319,7 +329,7 @@ impl Model for DagRunModel {
                 }
 
                 // Popup handling (has its own update method)
-                if let Some(messages) = self.handle_popup(event) {
+                if let Some(messages) = self.handle_popup(event, ctx) {
                     return (None, messages);
                 }
 
@@ -333,7 +343,7 @@ impl Model for DagRunModel {
                         self.table
                             .handle_navigation(key_event.code, &mut self.event_buffer)
                     })
-                    .or_else(|| self.handle_keys(key_event.code));
+                    .or_else(|| self.handle_keys(key_event.code, ctx));
 
                 result.into_result(event)
             }

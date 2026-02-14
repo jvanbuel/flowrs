@@ -76,7 +76,11 @@ impl ConfigModel {
 }
 
 impl Model for ConfigModel {
-    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn update(
+        &mut self,
+        event: &FlowrsEvent,
+        _ctx: &crate::app::state::NavigationContext,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),
             FlowrsEvent::Key(key_event) => {

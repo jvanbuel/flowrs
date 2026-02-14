@@ -104,68 +104,23 @@ where
             // Then handle panel specific events, and send messages to the event channel
             let (fall_through_event, messages) = {
                 let mut app = app.lock().unwrap();
+                let ctx = app.nav_context.clone();
                 match app.active_panel {
-                    Panel::Config => app.configs.update(&event),
-                    Panel::Dag => app.dags.update(&event),
-                    Panel::DAGRun => app.dagruns.update(&event),
-                    Panel::TaskInstance => app.task_instances.update(&event),
-                    Panel::Logs => app.logs.update(&event),
+                    Panel::Config => app.configs.update(&event, &ctx),
+                    Panel::Dag => app.dags.update(&event, &ctx),
+                    Panel::DAGRun => app.dagruns.update(&event, &ctx),
+                    Panel::TaskInstance => app.task_instances.update(&event, &ctx),
+                    Panel::Logs => app.logs.update(&event, &ctx),
                 }
             };
 
-            // Process messages and sync cached data immediately
-            for message in &messages {
-                // Set context IDs and sync cached data before worker processes the message
-                {
-                    let mut app = app.lock().unwrap();
-                    match message {
-                        WorkerMessage::UpdateDagRuns { dag_id } => {
-                            app.dagruns.dag_id = Some(dag_id.clone());
-                            app.dagruns.table.all =
-                                app.environment_state.get_active_dag_runs(dag_id);
-                            app.dagruns.table.apply_filter();
-                            app.dagruns.sort_dag_runs();
-                        }
-                        WorkerMessage::UpdateTaskInstances { dag_id, dag_run_id } => {
-                            app.task_instances.dag_id = Some(dag_id.clone());
-                            app.task_instances.dag_run_id = Some(dag_run_id.clone());
-                            app.task_instances.table.all = app
-                                .environment_state
-                                .get_active_task_instances(dag_id, dag_run_id);
-                            app.task_instances.sort_task_instances();
-                            app.task_instances.table.apply_filter();
-                        }
-                        WorkerMessage::UpdateTaskLogs {
-                            dag_id,
-                            dag_run_id,
-                            task_id,
-                            task_try,
-                        } => {
-                            // Reset view state only when navigating to different logs
-                            let is_new_context = app.logs.dag_id.as_ref() != Some(dag_id)
-                                || app.logs.dag_run_id.as_ref() != Some(dag_run_id)
-                                || app.logs.task_id.as_ref() != Some(task_id);
-                            app.logs.dag_id = Some(dag_id.clone());
-                            app.logs.dag_run_id = Some(dag_run_id.clone());
-                            app.logs.task_id = Some(task_id.clone());
-                            app.logs.tries = Some(*task_try);
-                            if is_new_context {
-                                app.logs.current = 0;
-                                app.logs.follow_mode = true;
-                            }
-                            let logs = app
-                                .environment_state
-                                .get_active_task_logs(dag_id, dag_run_id, task_id);
-                            app.logs.update_logs(logs);
-                        }
-                        WorkerMessage::UpdateTasks { dag_id } => {
-                            // Clear task graph when switching DAGs
-                            if app.task_instances.dag_id.as_ref() != Some(dag_id) {
-                                app.task_instances.task_graph = None;
-                            }
-                        }
-                        _ => {}
-                    }
+            // Set context IDs on target panels before sending messages to the worker.
+            // Data sync from environment_state happens via sync_panel_data() on
+            // navigation (Enter/Esc) and after worker completes API calls.
+            {
+                let mut app = app.lock().unwrap();
+                for message in &messages {
+                    app.set_context_from_message(message);
                 }
             }
 
