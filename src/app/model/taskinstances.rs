@@ -10,7 +10,9 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use time::format_description;
 
 use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::{calculate_duration, format_duration, TaskId, TaskInstance};
+use crate::airflow::model::common::{
+    calculate_duration, format_duration, TaskId, TaskInstance, TaskInstanceState,
+};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
@@ -59,7 +61,7 @@ impl TaskInstanceModel {
     }
 
     /// Mark a task instance with a new status (optimistic update)
-    pub fn mark_task_instance(&mut self, task_id: &TaskId, status: &str) {
+    pub fn mark_task_instance(&mut self, task_id: &TaskId, status: TaskInstanceState) {
         if let Some(task_instance) = self
             .table
             .filtered
@@ -67,7 +69,7 @@ impl TaskInstanceModel {
             .iter_mut()
             .find(|ti| ti.task_id == *task_id)
         {
-            task_instance.state = Some(status.to_string());
+            task_instance.state = Some(status);
         }
     }
 
@@ -243,23 +245,11 @@ impl Widget for &mut TaskInstanceModel {
                     Line::from(
                         calculate_duration(item).map_or_else(|| "-".to_string(), format_duration),
                     ),
-                    Line::from(if let Some(state) = &item.state {
-                        match state.as_str() {
-                            "success" => state_to_colored_square(AirflowStateColor::Success),
-                            "running" => state_to_colored_square(AirflowStateColor::Running),
-                            "failed" => state_to_colored_square(AirflowStateColor::Failed),
-                            "queued" => state_to_colored_square(AirflowStateColor::Queued),
-                            "up_for_retry" => {
-                                state_to_colored_square(AirflowStateColor::UpForRetry)
-                            }
-                            "upstream_failed" => {
-                                state_to_colored_square(AirflowStateColor::UpstreamFailed)
-                            }
-                            _ => state_to_colored_square(AirflowStateColor::None),
-                        }
-                    } else {
-                        state_to_colored_square(AirflowStateColor::None)
-                    }),
+                    Line::from(state_to_colored_square(
+                        item.state
+                            .as_ref()
+                            .map_or(AirflowStateColor::None, AirflowStateColor::from),
+                    )),
                     Line::from(item.try_number.to_string()),
                 ])
                 .style(self.table.row_style(idx))
