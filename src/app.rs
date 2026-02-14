@@ -39,19 +39,17 @@ where
         let active_server_name = app.config.active_server.clone();
 
         // Initialize all environments with their clients
-        if let Some(servers) = servers {
-            for server_config in servers {
-                if let Ok(client) = create_client(&server_config) {
-                    let env_data = environment_state::EnvironmentData::new(client);
-                    app.environment_state
-                        .environments
-                        .insert(EnvironmentKey::from(server_config.name.clone()), env_data);
-                } else {
-                    log::error!(
-                        "Failed to create client for server '{}'; skipping",
-                        server_config.name
-                    );
-                }
+        for server_config in servers {
+            if let Ok(client) = create_client(&server_config) {
+                let env_data = environment_state::EnvironmentData::new(client);
+                app.environment_state
+                    .environments
+                    .insert(EnvironmentKey::from(server_config.name.clone()), env_data);
+            } else {
+                log::error!(
+                    "Failed to create client for server '{}'; skipping",
+                    server_config.name
+                );
             }
         }
 

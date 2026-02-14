@@ -22,13 +22,9 @@ pub fn handle_open_item(
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No active server configured"))?;
 
-        let servers = app_lock
+        let server = app_lock
             .config
             .servers
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("No servers configured"))?;
-
-        let server = servers
             .iter()
             .find(|s| &s.name == active_server_name)
             .ok_or_else(|| {

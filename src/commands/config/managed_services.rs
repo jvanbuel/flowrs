@@ -18,18 +18,11 @@ impl ManagedServiceCommand {
         let path = self.file.as_ref().map(PathBuf::from);
         let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
-        match config.managed_services {
-            Some(ref mut services) => {
-                if services.contains(&managed_service) {
-                    println!("Managed service already enabled!");
-                    return Ok(());
-                }
-                services.push(managed_service);
-            }
-            None => {
-                config.managed_services = Some(vec![managed_service]);
-            }
+        if config.managed_services.contains(&managed_service) {
+            println!("Managed service already enabled!");
+            return Ok(());
         }
+        config.managed_services.push(managed_service);
 
         config.write_to_file()?;
 
@@ -46,13 +39,13 @@ impl ManagedServiceCommand {
         let path = self.file.as_ref().map(PathBuf::from);
         let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
-        if let Some(ref mut services) = config.managed_services {
-            if !services.contains(&managed_service) {
-                println!("Managed service already disabled!");
-                return Ok(());
-            }
-            services.retain(|service| service != &managed_service);
+        if !config.managed_services.contains(&managed_service) {
+            println!("Managed service already disabled!");
+            return Ok(());
         }
+        config
+            .managed_services
+            .retain(|service| service != &managed_service);
 
         config.write_to_file()?;
 
