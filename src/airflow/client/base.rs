@@ -43,9 +43,9 @@ impl BaseClient {
                     .request(method, url)
                     .basic_auth(&auth.username, Some(&auth.password)))
             }
-            AirflowAuth::Token(token) => {
-                info!("🔑 Token Auth: {:?}", token.cmd);
-                if let Some(cmd) = &token.cmd {
+            AirflowAuth::Token(token_source) => match token_source {
+                crate::airflow::config::TokenSource::Command { cmd } => {
+                    info!("🔑 Token Auth (command): {cmd}");
                     let output = std::process::Command::new("sh")
                         .arg("-c")
                         .arg(cmd)
@@ -68,13 +68,12 @@ impl BaseClient {
                         .trim()
                         .replace('"', "");
                     Ok(self.client.request(method, url).bearer_auth(token))
-                } else {
-                    if let Some(token) = &token.token {
-                        return Ok(self.client.request(method, url).bearer_auth(token.trim()));
-                    }
-                    Err(anyhow::anyhow!("Token not found"))
                 }
-            }
+                crate::airflow::config::TokenSource::Static { token } => {
+                    info!("🔑 Token Auth (static)");
+                    Ok(self.client.request(method, url).bearer_auth(token.trim()))
+                }
+            },
             AirflowAuth::Conveyor => {
                 info!("🔑 Conveyor Auth");
                 let token: String = ConveyorClient::get_token()?;
