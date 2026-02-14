@@ -318,7 +318,7 @@ impl App {
                 };
                 if is_new_context {
                     self.logs.current = 0;
-                    self.logs.follow_mode = true;
+                    self.logs.reset_scroll();
                 }
             }
             WorkerMessage::UpdateTasks { dag_id } => {

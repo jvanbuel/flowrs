@@ -22,39 +22,59 @@ use crate::{
 use super::popup::error::ErrorPopup;
 use super::Model;
 
+/// Represents the log viewer's scroll behavior.
+///
+/// Eliminates the invalid state where `follow_mode = true` but `vertical_scroll`
+/// points somewhere other than the bottom.
+#[derive(Default)]
+pub enum ScrollMode {
+    /// Automatically scroll to bottom when new content arrives (tail mode).
+    /// The scroll position is computed from the content length at render time.
+    #[default]
+    Following,
+    /// User is manually scrolling at a fixed position.
+    Manual { position: usize },
+}
+
+impl ScrollMode {
+    /// Returns the concrete scroll position for the given content length.
+    fn position(&self, line_count: usize) -> usize {
+        match self {
+            ScrollMode::Following => line_count.saturating_sub(1),
+            ScrollMode::Manual { position } => *position,
+        }
+    }
+
+    fn is_following(&self) -> bool {
+        matches!(self, ScrollMode::Following)
+    }
+}
+
 #[derive(Default)]
 pub struct LogModel {
     pub all: Vec<Log>,
     pub current: usize,
     pub error_popup: Option<ErrorPopup>,
     ticks: u32,
-    vertical_scroll: usize,
+    scroll_mode: ScrollMode,
     vertical_scroll_state: ScrollbarState,
     pending_g: bool,
-    /// When true, automatically scroll to bottom when new content arrives (tail mode)
-    pub follow_mode: bool,
 }
 
 impl LogModel {
     pub fn new() -> Self {
-        Self {
-            follow_mode: true, // Start in follow mode for live tailing
-            ..Default::default()
-        }
+        Self::default() // ScrollMode defaults to Following
     }
 
-    /// Update the logs and handle auto-scroll if in follow mode
+    /// Reset scroll to follow mode (used when navigating to a new context)
+    pub fn reset_scroll(&mut self) {
+        self.scroll_mode = ScrollMode::Following;
+    }
+
+    /// Update the logs content. When in follow mode, the scroll position
+    /// will automatically track the bottom at render time.
     pub fn update_logs(&mut self, logs: Vec<Log>) {
         self.all = logs;
-        if self.follow_mode {
-            self.scroll_to_bottom();
-        }
-    }
-
-    /// Scroll to the bottom of the current log
-    fn scroll_to_bottom(&mut self) {
-        self.vertical_scroll = self.current_line_count().saturating_sub(1);
-        self.vertical_scroll_state = self.vertical_scroll_state.position(self.vertical_scroll);
     }
 
     /// Returns the total number of lines in the current log content
@@ -125,21 +145,21 @@ impl Model for LogModel {
                         self.current -= 1;
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
-                        self.vertical_scroll = self.vertical_scroll.saturating_add(1);
-                        self.vertical_scroll_state =
-                            self.vertical_scroll_state.position(self.vertical_scroll);
-                        // Check if we're at the bottom - if so, enable follow mode
                         let line_count = self.current_line_count();
-                        if self.vertical_scroll >= line_count.saturating_sub(1) {
-                            self.follow_mode = true;
+                        let current_pos = self.scroll_mode.position(line_count);
+                        let new_pos = current_pos.saturating_add(1);
+                        if new_pos >= line_count.saturating_sub(1) {
+                            self.scroll_mode = ScrollMode::Following;
+                        } else {
+                            self.scroll_mode = ScrollMode::Manual { position: new_pos };
                         }
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
-                        self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
-                        self.vertical_scroll_state =
-                            self.vertical_scroll_state.position(self.vertical_scroll);
-                        // Disable follow mode when scrolling up
-                        self.follow_mode = false;
+                        let line_count = self.current_line_count();
+                        let current_pos = self.scroll_mode.position(line_count);
+                        self.scroll_mode = ScrollMode::Manual {
+                            position: current_pos.saturating_sub(1),
+                        };
                     }
                     KeyCode::Char('o') => {
                         if self.all.get(self.current % self.all.len()).is_some() {
@@ -160,28 +180,25 @@ impl Model for LogModel {
                         }
                     }
                     KeyCode::Char('G') => {
-                        // Go to bottom of log and enable follow mode
-                        self.scroll_to_bottom();
-                        self.follow_mode = true;
+                        self.scroll_mode = ScrollMode::Following;
                     }
                     KeyCode::Char('F') => {
                         // Toggle follow mode
-                        self.follow_mode = !self.follow_mode;
-                        if self.follow_mode {
-                            self.scroll_to_bottom();
+                        if self.scroll_mode.is_following() {
+                            let line_count = self.current_line_count();
+                            self.scroll_mode = ScrollMode::Manual {
+                                position: line_count.saturating_sub(1),
+                            };
+                        } else {
+                            self.scroll_mode = ScrollMode::Following;
                         }
                     }
                     KeyCode::Char('g') => {
                         // gg: go to top of log
                         if self.pending_g {
-                            // Second consecutive 'g' - go to top and disable follow mode
-                            self.vertical_scroll = 0;
-                            self.vertical_scroll_state =
-                                self.vertical_scroll_state.position(self.vertical_scroll);
+                            self.scroll_mode = ScrollMode::Manual { position: 0 };
                             self.pending_g = false;
-                            self.follow_mode = false;
                         } else {
-                            // First 'g' - mark as pending for potential gg
                             self.pending_g = true;
                         }
                     }
@@ -240,6 +257,10 @@ impl Widget for &mut LogModel {
                 content.push_line(Line::raw(line));
             }
 
+            let line_count = self.current_line_count();
+            let scroll_pos = self.scroll_mode.position(line_count);
+            self.vertical_scroll_state = self.vertical_scroll_state.position(scroll_pos);
+
             #[allow(clippy::cast_possible_truncation)]
             let paragraph = Paragraph::new(content)
                 .block(
@@ -247,7 +268,7 @@ impl Widget for &mut LogModel {
                         .border_type(BorderType::Plain)
                         .borders(Borders::ALL)
                         .title(" Content ")
-                        .title_bottom(if self.follow_mode {
+                        .title_bottom(if self.scroll_mode.is_following() {
                             " [F]ollow: ON - auto-scrolling "
                         } else {
                             " [F]ollow: OFF - press G to resume "
@@ -257,7 +278,7 @@ impl Widget for &mut LogModel {
                 )
                 .wrap(Wrap { trim: true })
                 .style(DEFAULT_STYLE)
-                .scroll((self.vertical_scroll as u16, 0));
+                .scroll((scroll_pos as u16, 0));
 
             // Render the selected log's content
             paragraph.render(chunks[1], buffer);
