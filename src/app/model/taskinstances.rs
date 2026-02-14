@@ -97,7 +97,6 @@ impl TaskInstanceModel {
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
                 self.popup.close();
-                self.table.visual_mode = false;
                 self.table.visual_anchor = None;
             }
         }
@@ -114,7 +113,7 @@ impl TaskInstanceModel {
             KeyCode::Char('m') => {
                 let task_ids = self.selected_task_ids();
                 if !task_ids.is_empty() {
-                    if let (Some(dag_id), Some(dag_run_id)) = (&ctx.dag_id, &ctx.dag_run_id) {
+                    if let (Some(dag_id), Some(dag_run_id)) = (ctx.dag_id(), ctx.dag_run_id()) {
                         self.popup.show_custom(TaskInstancePopUp::Mark(
                             MarkTaskInstancePopup::new(task_ids, dag_id, dag_run_id),
                         ));
@@ -124,7 +123,7 @@ impl TaskInstanceModel {
             }
             KeyCode::Char('c') => {
                 let task_ids = self.selected_task_ids();
-                if let (Some(dag_id), Some(dag_run_id)) = (&ctx.dag_id, &ctx.dag_run_id) {
+                if let (Some(dag_id), Some(dag_run_id)) = (ctx.dag_id(), ctx.dag_run_id()) {
                     if !task_ids.is_empty() {
                         self.popup.show_custom(TaskInstancePopUp::Clear(
                             ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
@@ -177,7 +176,7 @@ impl Model for TaskInstanceModel {
                 if !self.ticks.is_multiple_of(10) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let (Some(dag_id), Some(dag_run_id)) = (&ctx.dag_id, &ctx.dag_run_id) {
+                if let (Some(dag_id), Some(dag_run_id)) = (ctx.dag_id(), ctx.dag_run_id()) {
                     log::debug!("Updating task instances for dag_run_id: {dag_run_id}");
                     return (
                         Some(FlowrsEvent::Tick),

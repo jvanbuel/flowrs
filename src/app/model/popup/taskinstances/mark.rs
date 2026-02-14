@@ -23,7 +23,6 @@ pub struct MarkTaskInstancePopup {
     pub dag_id: DagId,
     pub dag_run_id: DagRunId,
     pub status: MarkState,
-    pub confirm: bool,
     pub marked: Vec<TaskId>,
 }
 
@@ -42,7 +41,6 @@ impl MarkTaskInstancePopup {
         Self {
             dag_id: dag_id.clone(),
             status: MarkState::Success,
-            confirm: false,
             marked,
             dag_run_id: dag_run_id.clone(),
         }

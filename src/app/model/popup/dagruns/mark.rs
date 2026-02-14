@@ -22,7 +22,6 @@ use crate::{
 pub struct MarkDagRunPopup {
     pub dag_id: DagId,
     pub status: MarkState,
-    pub confirm: bool,
     pub marked: Vec<DagRunId>,
 }
 
@@ -41,7 +40,6 @@ impl MarkDagRunPopup {
         Self {
             dag_id,
             status: MarkState::Success,
-            confirm: false,
             marked,
         }
     }

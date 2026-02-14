@@ -6,7 +6,7 @@ use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
 use crate::{
-    airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenCmd},
+    airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource},
     commands::config::model::{validate_endpoint, ConfigOption},
 };
 
@@ -17,12 +17,12 @@ impl UpdateCommand {
         let path = self.file.as_ref().map(PathBuf::from);
         let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
-        if config.servers.is_none() {
+        if config.servers.is_empty() {
             println!("❌ No servers found in config file");
             return Ok(());
         }
 
-        let mut servers = config.servers.unwrap();
+        let mut servers = config.servers;
 
         let name: String = if self.name.is_none() {
             Select::new(
@@ -62,25 +62,20 @@ impl UpdateCommand {
                 airflow_config.auth = AirflowAuth::Basic(BasicAuth { username, password });
             }
             ConfigOption::Token(_) => {
-                let cmd = Some(inquire::Text::new("cmd").prompt()?);
-                let token: String;
-                if let Some(cmd) = &cmd {
-                    info!("🔑 Running command: {cmd}");
-                    let output = std::process::Command::new(cmd)
-                        .output()
-                        .expect("failed to execute process");
-                    token = String::from_utf8(output.stdout)?;
-                } else {
-                    token = inquire::Text::new("token").prompt()?;
-                }
-                airflow_config.auth = AirflowAuth::Token(TokenCmd {
-                    cmd,
-                    token: Some(token),
-                });
+                let cmd = inquire::Text::new("cmd").prompt()?;
+                info!("🔑 Running command: {cmd}");
+                let output = std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg(&cmd)
+                    .output()
+                    .expect("failed to execute process");
+                // Validate the command produces a token
+                let _token = String::from_utf8(output.stdout)?;
+                airflow_config.auth = AirflowAuth::Token(TokenSource::Command { cmd });
             }
         }
 
-        config.servers = Some(servers);
+        config.servers = servers;
         config.write_to_file()?;
 
         println!("✅ Config updated successfully!");

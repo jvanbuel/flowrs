@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use flowrs_tui::airflow::client::create_client;
 use flowrs_tui::airflow::config::{
-    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenCmd,
+    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource,
 };
 use flowrs_tui::airflow::traits::AirflowClient;
 
@@ -88,10 +88,7 @@ pub async fn create_test_client_v3() -> anyhow::Result<Arc<dyn AirflowClient>> {
     let config = AirflowConfig {
         name: "test".to_string(),
         endpoint: url,
-        auth: AirflowAuth::Token(TokenCmd {
-            cmd: None,
-            token: Some(jwt_token),
-        }),
+        auth: AirflowAuth::Token(TokenSource::Static { token: jwt_token }),
         managed: None,
         version: AirflowVersion::V3,
         timeout_secs: 30,

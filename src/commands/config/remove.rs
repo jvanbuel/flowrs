@@ -11,21 +11,24 @@ impl RemoveCommand {
         let path = self.file.as_ref().map(PathBuf::from);
         let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
-        if let Some(mut servers) = config.servers.clone() {
-            let name = match self.name {
-                None => Select::new(
-                    "name",
-                    servers.iter().map(|server| server.name.clone()).collect(),
-                )
-                .prompt()?,
-                Some(ref name) => name.clone(),
-            };
-            servers.retain(|server| server.name != name && server.managed.is_none());
-            config.servers = Some(servers);
-            config.write_to_file()?;
+        let name = match self.name {
+            None => Select::new(
+                "name",
+                config
+                    .servers
+                    .iter()
+                    .map(|server| server.name.clone())
+                    .collect(),
+            )
+            .prompt()?,
+            Some(ref name) => name.clone(),
+        };
+        config
+            .servers
+            .retain(|server| server.name != name && server.managed.is_none());
+        config.write_to_file()?;
 
-            println!("✅ Config '{name}' removed successfully!");
-        }
+        println!("✅ Config '{name}' removed successfully!");
         Ok(())
     }
 }

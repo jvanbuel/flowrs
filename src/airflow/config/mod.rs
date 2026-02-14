@@ -53,8 +53,10 @@ impl Display for ManagedService {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct FlowrsConfig {
-    pub servers: Option<Vec<AirflowConfig>>,
-    pub managed_services: Option<Vec<ManagedService>>,
+    #[serde(default)]
+    pub servers: Vec<AirflowConfig>,
+    #[serde(default)]
+    pub managed_services: Vec<ManagedService>,
     pub active_server: Option<String>,
     #[serde(skip_serializing)]
     pub path: Option<PathBuf>,
@@ -80,7 +82,7 @@ const fn default_timeout() -> u64 {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AirflowAuth {
     Basic(BasicAuth),
-    Token(TokenCmd),
+    Token(TokenSource),
     Conveyor,
     Mwaa(super::managed_services::mwaa::MwaaAuth),
     Astronomer(super::managed_services::astronomer::AstronomerAuth),
@@ -93,9 +95,10 @@ pub struct BasicAuth {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct TokenCmd {
-    pub cmd: Option<String>,
-    pub token: Option<String>,
+#[serde(untagged)]
+pub enum TokenSource {
+    Command { cmd: String },
+    Static { token: String },
 }
 
 impl Default for FlowrsConfig {
@@ -114,8 +117,8 @@ impl FlowrsConfig {
     /// - Default config file path
     pub fn new() -> Self {
         Self {
-            servers: None,
-            managed_services: None,
+            servers: Vec::new(),
+            managed_services: Vec::new(),
             active_server: None,
             path: Some(CONFIG_PATHS.write_path.clone()),
         }
@@ -141,12 +144,11 @@ impl FlowrsConfig {
 
     pub fn parse_toml(config: &str) -> Result<Self> {
         let config: Self = toml::from_str(config)?;
-        let num_serves = config.servers.as_ref().map_or(0, std::vec::Vec::len);
-        let num_managed = config
-            .managed_services
-            .as_ref()
-            .map_or(0, std::vec::Vec::len);
-        info!("Loaded config: servers={num_serves}, managed_services={num_managed}");
+        info!(
+            "Loaded config: servers={}, managed_services={}",
+            config.servers.len(),
+            config.managed_services.len()
+        );
         Ok(config)
     }
 
@@ -154,10 +156,7 @@ impl FlowrsConfig {
     where
         I: IntoIterator<Item = AirflowConfig>,
     {
-        match &mut self.servers {
-            Some(existing) => existing.extend(new_servers),
-            None => self.servers = Some(new_servers.into_iter().collect()),
-        }
+        self.servers.extend(new_servers);
     }
 
     /// Expands the config by resolving managed services and adding their servers.
@@ -167,11 +166,11 @@ impl FlowrsConfig {
     pub async fn expand_managed_services(mut self) -> Result<(Self, Vec<String>)> {
         let mut all_errors = Vec::new();
 
-        if self.managed_services.is_none() {
+        if self.managed_services.is_empty() {
             return Ok((self, all_errors));
         }
 
-        let services = self.managed_services.clone().unwrap();
+        let services = self.managed_services.clone();
         for service in services {
             match service {
                 ManagedService::Conveyor => {
@@ -192,9 +191,9 @@ impl FlowrsConfig {
                 }
             }
         }
-        let total = self.servers.as_ref().map_or(0, std::vec::Vec::len);
         info!(
-            "Expanded config: servers={total}, errors={}",
+            "Expanded config: servers={}, errors={}",
+            self.servers.len(),
             all_errors.len()
         );
         Ok((self, all_errors))
@@ -223,13 +222,7 @@ impl FlowrsConfig {
             .open(path)?;
 
         // Only write non-managed servers to the config file
-        if let Some(servers) = &mut self.servers {
-            *servers = servers
-                .iter()
-                .filter(|server| server.managed.is_none())
-                .cloned()
-                .collect();
-        }
+        self.servers.retain(|server| server.managed.is_none());
         file.write_all(Self::to_str(self)?.as_bytes())?;
         Ok(())
     }
@@ -251,9 +244,8 @@ mod tests {
     #[test]
     fn test_get_config() {
         let result = FlowrsConfig::parse_toml(TEST_CONFIG).unwrap();
-        let servers = result.servers.unwrap();
-        assert_eq!(servers.len(), 1);
-        assert_eq!(servers[0].name, "test");
+        assert_eq!(result.servers.len(), 1);
+        assert_eq!(result.servers[0].name, "test");
     }
 
     const TEST_CONFIG_CONVEYOR: &str = r#"
@@ -272,15 +264,14 @@ password = "airflow"
     #[test]
     fn test_get_config_conveyor() {
         let result = FlowrsConfig::parse_toml(TEST_CONFIG_CONVEYOR.trim()).unwrap();
-        let services = result.managed_services.unwrap();
-        assert_eq!(services.len(), 1);
-        assert_eq!(services[0], ManagedService::Conveyor);
+        assert_eq!(result.managed_services.len(), 1);
+        assert_eq!(result.managed_services[0], ManagedService::Conveyor);
     }
 
     #[test]
     fn test_write_config_conveyor() {
         let config = FlowrsConfig {
-            servers: Some(vec![AirflowConfig {
+            servers: vec![AirflowConfig {
                 name: "bla".to_string(),
                 endpoint: "http://localhost:8080".to_string(),
                 auth: AirflowAuth::Basic(BasicAuth {
@@ -290,8 +281,8 @@ password = "airflow"
                 managed: None,
                 version: AirflowVersion::V2,
                 timeout_secs: default_timeout(),
-            }]),
-            managed_services: Some(vec![ManagedService::Conveyor]),
+            }],
+            managed_services: vec![ManagedService::Conveyor],
             active_server: None,
             path: None,
         };
