@@ -7,22 +7,28 @@ use crate::app::model::popup::taskinstances::mark::MarkState;
 use crate::app::state::App;
 
 /// Handle updating the list of task instances for a specific DAG run.
+///
+/// `env_name` identifies which environment initiated this request, ensuring
+/// results are written to the correct environment even if the active one changes.
 pub async fn handle_update_task_instances(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
     dag_id: &str,
     dag_run_id: &str,
+    env_name: &str,
 ) {
     let task_instances = client.list_task_instances(dag_id, dag_run_id).await;
     let mut app = app.lock().unwrap();
     match task_instances {
         Ok(task_instances) => {
-            // Replace task instances — full replacement evicts stale entries
-            if let Some(env) = app.environment_state.get_active_environment_mut() {
+            // Replace task instances in the originating environment, not the active one
+            if let Some(env) = app.environment_state.get_environment_mut(env_name) {
                 env.replace_task_instances(dag_id, dag_run_id, task_instances.task_instances);
             }
-            // Sync the TaskInstance panel from environment state
-            app.sync_panel(&crate::app::state::Panel::TaskInstance);
+            // Only sync panel data if this environment is still active
+            if app.environment_state.is_active_environment(env_name) {
+                app.sync_panel(&crate::app::state::Panel::TaskInstance);
+            }
         }
         Err(e) => {
             log::error!("Error getting task instances: {e:?}");
