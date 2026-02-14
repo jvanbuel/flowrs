@@ -21,7 +21,7 @@ pub struct TaskInstanceResponse {
     pub end_date: Option<OffsetDateTime>,
     pub duration: Option<f64>,
     pub state: Option<String>,
-    pub try_number: i64,
+    pub try_number: u32,
     pub map_index: i64,
     pub max_tries: i64,
     pub hostname: String,

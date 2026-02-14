@@ -28,7 +28,7 @@ pub struct TaskInstance {
     pub end_date: Option<OffsetDateTime>,
     pub duration: Option<f64>,
     pub state: Option<String>,
-    pub try_number: i64,
+    pub try_number: u32,
     pub max_tries: i64,
     pub task_display_name: String,
     pub hostname: Option<String>,

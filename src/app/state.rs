@@ -42,7 +42,7 @@ pub enum NavigationContext {
         dag_id: DagId,
         dag_run_id: DagRunId,
         task_id: TaskId,
-        task_try: u16,
+        task_try: u32,
     },
 }
 
@@ -83,7 +83,7 @@ impl NavigationContext {
         }
     }
 
-    pub fn task_try(&self) -> Option<u16> {
+    pub fn task_try(&self) -> Option<u32> {
         match self {
             NavigationContext::Task { task_try, .. } => Some(*task_try),
             _ => Option::None,

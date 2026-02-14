@@ -138,13 +138,11 @@ impl TaskInstanceModel {
             }
             KeyCode::Enter => {
                 if let Some(task_instance) = self.table.current() {
-                    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-                    let task_try = task_instance.try_number as u16;
                     KeyResult::PassWith(vec![WorkerMessage::UpdateTaskLogs {
                         dag_id: task_instance.dag_id.clone(),
                         dag_run_id: task_instance.dag_run_id.clone(),
                         task_id: task_instance.task_id.clone(),
-                        task_try,
+                        task_try: task_instance.try_number,
                     }])
                 } else {
                     KeyResult::Consumed
@@ -262,7 +260,7 @@ impl Widget for &mut TaskInstanceModel {
                     } else {
                         state_to_colored_square(AirflowStateColor::None)
                     }),
-                    Line::from(format!("{:?}", item.try_number)),
+                    Line::from(item.try_number.to_string()),
                 ])
                 .style(self.table.row_style(idx))
             });
