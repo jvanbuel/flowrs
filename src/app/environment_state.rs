@@ -118,12 +118,14 @@ impl EnvironmentStateContainer {
     /// active, preventing data corruption when the active environment changes
     /// during async operations.
     pub fn get_environment_mut(&mut self, key: &str) -> Option<&mut EnvironmentData> {
-        self.environments.get_mut(key)
+        self.environments
+            .get_mut(key)
     }
 
     /// Check if the given environment name is the currently active one.
     pub fn is_active_environment(&self, key: &str) -> bool {
-        self.active_environment.as_deref() == Some(key)
+        self.active_environment
+            .as_deref() == Some(key)
     }
 
     pub fn set_active_environment(&mut self, key: EnvironmentKey) {
