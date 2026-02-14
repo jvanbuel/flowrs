@@ -47,7 +47,7 @@ pub enum WorkerMessage {
         dag_id: DagId,
         dag_run_id: DagRunId,
         task_id: TaskId,
-        task_try: u16,
+        task_try: u32,
     },
     MarkDagRun {
         dag_run_id: DagRunId,
@@ -94,7 +94,7 @@ pub enum OpenItem {
         dag_run_id: DagRunId,
         task_id: TaskId,
         #[allow(dead_code)]
-        task_try: u16,
+        task_try: u32,
     },
 }
 

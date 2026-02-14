@@ -18,7 +18,7 @@ pub async fn handle_update_task_logs(
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,
-    task_try: u16,
+    task_try: u32,
     env_name: &str,
 ) {
     debug!("Getting logs for task: {task_id}, try number {task_try}");

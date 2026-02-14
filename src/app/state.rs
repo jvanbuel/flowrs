@@ -26,7 +26,7 @@ pub struct NavigationContext {
     pub dag_id: Option<DagId>,
     pub dag_run_id: Option<DagRunId>,
     pub task_id: Option<TaskId>,
-    pub task_try: Option<u16>,
+    pub task_try: Option<u32>,
 }
 
 pub struct App {

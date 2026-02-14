@@ -15,7 +15,7 @@ impl LogOperations for V2Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
-        task_try: u16,
+        task_try: u32,
     ) -> Result<Log> {
         let response = self
             .base_api(

@@ -150,7 +150,7 @@ impl Model for LogModel {
                                         dag_run_id: dag_run_id.clone(),
                                         task_id: task_id.clone(),
                                         #[allow(clippy::cast_possible_truncation)]
-                                        task_try: (self.current + 1) as u16,
+                                        task_try: (self.current + 1) as u32,
                                     })],
                                 );
                             }
