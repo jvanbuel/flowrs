@@ -18,15 +18,87 @@ static BREADCRUMB_DATE_FORMAT: LazyLock<Vec<BorrowedFormatItem<'static>>> = Lazy
 });
 
 /// Centralized navigation context — the single source of truth for what the
-/// user is currently looking at. Replaces the redundant per-panel context IDs
-/// that were previously stored on `DagRunModel`, `TaskInstanceModel`, and `LogModel`.
-#[derive(Clone, Default, Debug)]
-pub struct NavigationContext {
-    pub environment: Option<String>,
-    pub dag_id: Option<DagId>,
-    pub dag_run_id: Option<DagRunId>,
-    pub task_id: Option<TaskId>,
-    pub task_try: Option<u16>,
+/// user is currently looking at. Encoded as an enum to enforce the strict
+/// hierarchy: environment ⊃ dag ⊃ `dag_run` ⊃ task. It is impossible to have,
+/// e.g., a `task_id` without a `dag_id`.
+#[derive(Clone, Debug, Default)]
+pub enum NavigationContext {
+    #[default]
+    None,
+    Environment {
+        environment: String,
+    },
+    Dag {
+        environment: String,
+        dag_id: DagId,
+    },
+    DagRun {
+        environment: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
+    },
+    Task {
+        environment: String,
+        dag_id: DagId,
+        dag_run_id: DagRunId,
+        task_id: TaskId,
+        task_try: u16,
+    },
+}
+
+impl NavigationContext {
+    pub fn environment(&self) -> Option<&String> {
+        match self {
+            NavigationContext::None => Option::None,
+            NavigationContext::Environment { environment, .. }
+            | NavigationContext::Dag { environment, .. }
+            | NavigationContext::DagRun { environment, .. }
+            | NavigationContext::Task { environment, .. } => Some(environment),
+        }
+    }
+
+    pub fn dag_id(&self) -> Option<&DagId> {
+        match self {
+            NavigationContext::None | NavigationContext::Environment { .. } => Option::None,
+            NavigationContext::Dag { dag_id, .. }
+            | NavigationContext::DagRun { dag_id, .. }
+            | NavigationContext::Task { dag_id, .. } => Some(dag_id),
+        }
+    }
+
+    pub fn dag_run_id(&self) -> Option<&DagRunId> {
+        match self {
+            NavigationContext::None
+            | NavigationContext::Environment { .. }
+            | NavigationContext::Dag { .. } => Option::None,
+            NavigationContext::DagRun { dag_run_id, .. }
+            | NavigationContext::Task { dag_run_id, .. } => Some(dag_run_id),
+        }
+    }
+
+    pub fn task_id(&self) -> Option<&TaskId> {
+        match self {
+            NavigationContext::Task { task_id, .. } => Some(task_id),
+            _ => Option::None,
+        }
+    }
+
+    pub fn task_try(&self) -> Option<u16> {
+        match self {
+            NavigationContext::Task { task_try, .. } => Some(*task_try),
+            _ => Option::None,
+        }
+    }
+
+    /// Reset to environment-only level, discarding any deeper context.
+    pub fn reset_to_environment(&mut self) {
+        *self = match self.environment() {
+            Some(env) => NavigationContext::Environment {
+                environment: env.clone(),
+            },
+            Option::None => NavigationContext::None,
+        };
+    }
 }
 
 pub struct App {
@@ -80,9 +152,9 @@ impl App {
             Some(WarningPopup::new(warnings))
         };
 
-        let nav_context = NavigationContext {
-            environment: config.active_server.clone(),
-            ..Default::default()
+        let nav_context = match config.active_server.clone() {
+            Some(env) => NavigationContext::Environment { environment: env },
+            None => NavigationContext::None,
         };
 
         Self {
@@ -130,10 +202,7 @@ impl App {
     pub fn clear_state(&mut self) {
         self.loading = true;
         // Clear navigation context below the environment level
-        self.nav_context.dag_id = None;
-        self.nav_context.dag_run_id = None;
-        self.nav_context.task_id = None;
-        self.nav_context.task_try = None;
+        self.nav_context.reset_to_environment();
         // Clear view models but not environment_state
         self.dags.table.all.clear();
         self.dagruns.table.all.clear();
@@ -147,12 +216,12 @@ impl App {
         let mut parts: Vec<String> = Vec::new();
 
         // Always start with the active environment name
-        let env_name = self.nav_context.environment.as_ref()?;
+        let env_name = self.nav_context.environment()?;
         parts.push(env_name.clone());
 
         // Add DAG if we're past the Config panel
         if self.active_panel != Panel::Config && self.active_panel != Panel::Dag {
-            if let Some(dag_id) = &self.nav_context.dag_id {
+            if let Some(dag_id) = self.nav_context.dag_id() {
                 let truncated = Self::truncate_breadcrumb_part(dag_id, 25);
                 parts.push(truncated);
             }
@@ -167,7 +236,7 @@ impl App {
                         .unwrap_or_else(|_| "unknown".to_string());
                     parts.push(formatted);
                 }
-            } else if let Some(dag_run_id) = &self.nav_context.dag_run_id {
+            } else if let Some(dag_run_id) = self.nav_context.dag_run_id() {
                 let truncated = Self::truncate_breadcrumb_part(dag_run_id, 20);
                 parts.push(truncated);
             }
@@ -175,7 +244,7 @@ impl App {
 
         // Add Task if we're at Logs panel
         if self.active_panel == Panel::Logs {
-            if let Some(task_id) = &self.nav_context.task_id {
+            if let Some(task_id) = self.nav_context.task_id() {
                 let truncated = Self::truncate_breadcrumb_part(task_id, 20);
                 parts.push(truncated);
             }
@@ -210,20 +279,25 @@ impl App {
     /// This is the single place where navigation state changes in response
     /// to panel-emitted messages.
     pub fn set_context_from_message(&mut self, message: &WorkerMessage) {
+        // Capture the current environment for reuse across all branches.
+        let env = match self.nav_context.environment() {
+            Some(e) => e.clone(),
+            Option::None => return, // No environment set; nothing to navigate into
+        };
+
         match message {
             WorkerMessage::UpdateDagRuns { dag_id } => {
-                self.nav_context.dag_id = Some(dag_id.clone());
-                // Clear deeper context when navigating to a new DAG
-                self.nav_context.dag_run_id = None;
-                self.nav_context.task_id = None;
-                self.nav_context.task_try = None;
+                self.nav_context = NavigationContext::Dag {
+                    environment: env,
+                    dag_id: dag_id.clone(),
+                };
             }
             WorkerMessage::UpdateTaskInstances { dag_id, dag_run_id } => {
-                self.nav_context.dag_id = Some(dag_id.clone());
-                self.nav_context.dag_run_id = Some(dag_run_id.clone());
-                // Clear deeper context
-                self.nav_context.task_id = None;
-                self.nav_context.task_try = None;
+                self.nav_context = NavigationContext::DagRun {
+                    environment: env,
+                    dag_id: dag_id.clone(),
+                    dag_run_id: dag_run_id.clone(),
+                };
             }
             WorkerMessage::UpdateTaskLogs {
                 dag_id,
@@ -231,21 +305,24 @@ impl App {
                 task_id,
                 task_try,
             } => {
-                let is_new_context = self.nav_context.dag_id.as_ref() != Some(dag_id)
-                    || self.nav_context.dag_run_id.as_ref() != Some(dag_run_id)
-                    || self.nav_context.task_id.as_ref() != Some(task_id)
-                    || self.nav_context.task_try.as_ref() != Some(task_try);
-                self.nav_context.dag_id = Some(dag_id.clone());
-                self.nav_context.dag_run_id = Some(dag_run_id.clone());
-                self.nav_context.task_id = Some(task_id.clone());
-                self.nav_context.task_try = Some(*task_try);
+                let is_new_context = self.nav_context.dag_id() != Some(dag_id)
+                    || self.nav_context.dag_run_id() != Some(dag_run_id)
+                    || self.nav_context.task_id() != Some(task_id)
+                    || self.nav_context.task_try() != Some(*task_try);
+                self.nav_context = NavigationContext::Task {
+                    environment: env,
+                    dag_id: dag_id.clone(),
+                    dag_run_id: dag_run_id.clone(),
+                    task_id: task_id.clone(),
+                    task_try: *task_try,
+                };
                 if is_new_context {
                     self.logs.current = 0;
                     self.logs.follow_mode = true;
                 }
             }
             WorkerMessage::UpdateTasks { dag_id } => {
-                if self.nav_context.dag_id.as_ref() != Some(dag_id) {
+                if self.nav_context.dag_id() != Some(dag_id) {
                     self.task_instances.task_graph = None;
                 }
             }
@@ -270,7 +347,7 @@ impl App {
                 self.dags.table.apply_filter();
             }
             Panel::DAGRun => {
-                if let Some(dag_id) = &self.nav_context.dag_id {
+                if let Some(dag_id) = self.nav_context.dag_id() {
                     self.dagruns.table.all = self.environment_state.get_active_dag_runs(dag_id);
                     let dag_run_ids: Vec<String> = self
                         .dagruns
@@ -291,7 +368,7 @@ impl App {
             }
             Panel::TaskInstance => {
                 if let (Some(dag_id), Some(dag_run_id)) =
-                    (&self.nav_context.dag_id, &self.nav_context.dag_run_id)
+                    (self.nav_context.dag_id(), self.nav_context.dag_run_id())
                 {
                     self.task_instances.table.all = self
                         .environment_state
@@ -315,9 +392,9 @@ impl App {
             }
             Panel::Logs => {
                 if let (Some(dag_id), Some(dag_run_id), Some(task_id)) = (
-                    &self.nav_context.dag_id,
-                    &self.nav_context.dag_run_id,
-                    &self.nav_context.task_id,
+                    self.nav_context.dag_id(),
+                    self.nav_context.dag_run_id(),
+                    self.nav_context.task_id(),
                 ) {
                     self.logs.update_logs(
                         self.environment_state
