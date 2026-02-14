@@ -115,6 +115,34 @@ pub fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
     area
 }
 
+/// Represents which button is currently selected in a confirmation popup.
+///
+/// Replaces a raw `bool` to make the selected state self-documenting and
+/// eliminate the ambiguity of which value means "yes" vs "no".
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+pub enum SelectedButton {
+    /// The "Yes" / confirm button is highlighted.
+    Yes,
+    /// The "No" / cancel button is highlighted (default).
+    #[default]
+    No,
+}
+
+impl SelectedButton {
+    /// Toggle between Yes and No.
+    pub fn toggle(&mut self) {
+        *self = match self {
+            SelectedButton::Yes => SelectedButton::No,
+            SelectedButton::No => SelectedButton::Yes,
+        };
+    }
+
+    /// Returns `true` when the confirm button is selected.
+    pub fn is_yes(self) -> bool {
+        matches!(self, SelectedButton::Yes)
+    }
+}
+
 /// Create a themed button with consistent styling across popups.
 pub fn themed_button(text: &str, selected: bool) -> Paragraph<'_> {
     let (style, border_color) = if selected {

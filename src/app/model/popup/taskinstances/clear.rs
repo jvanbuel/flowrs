@@ -9,7 +9,7 @@ use crate::{
     app::{
         events::custom::FlowrsEvent,
         model::{
-            popup::{popup_area, themed_button},
+            popup::{popup_area, themed_button, SelectedButton},
             Model,
         },
         worker::WorkerMessage,
@@ -23,7 +23,7 @@ pub struct ClearTaskInstancePopup {
     pub dag_run_id: DagRunId,
     pub dag_id: DagId,
     pub task_ids: Vec<TaskId>,
-    pub confirm: bool,
+    selected_button: SelectedButton,
 }
 
 impl ClearTaskInstancePopup {
@@ -32,7 +32,7 @@ impl ClearTaskInstancePopup {
             dag_run_id: dag_run_id.clone(),
             dag_id: dag_id.clone(),
             task_ids,
-            confirm: false,
+            selected_button: SelectedButton::default(),
         }
     }
 }
@@ -47,8 +47,8 @@ impl Model for ClearTaskInstancePopup {
             match key_event.code {
                 KeyCode::Enter => {
                     // On Enter, we always return the key event, so the parent can close the popup
-                    // If the confirm flag is set, we also return WorkerMessages to clear the task instances
-                    if self.confirm {
+                    // If Yes is selected, we also return WorkerMessages to clear the task instances
+                    if self.selected_button.is_yes() {
                         return (
                             Some(FlowrsEvent::Key(*key_event)),
                             self.task_ids
@@ -68,8 +68,7 @@ impl Model for ClearTaskInstancePopup {
                 | KeyCode::Up
                 | KeyCode::Left
                 | KeyCode::Right => {
-                    // For any movement vim key, we toggle the confirm flag, and we consume the event
-                    self.confirm = !self.confirm;
+                    self.selected_button.toggle();
                     return (None, vec![]);
                 }
                 KeyCode::Char('q') | KeyCode::Esc => {
@@ -122,8 +121,8 @@ impl Widget for &mut ClearTaskInstancePopup {
         ])
         .areas(options);
 
-        let yes_btn = themed_button("Yes", self.confirm);
-        let no_btn = themed_button("No", !self.confirm);
+        let yes_btn = themed_button("Yes", self.selected_button.is_yes());
+        let no_btn = themed_button("No", !self.selected_button.is_yes());
 
         Clear.render(area, buffer);
         popup_block.render(area, buffer);
