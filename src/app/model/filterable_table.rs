@@ -30,9 +30,7 @@ pub struct FilterableTable<T> {
     pub filtered: StatefulTable<T>,
     /// Filter state machine with autocomplete
     pub filter: FilterStateMachine,
-    /// Whether visual mode (multi-select) is active
-    pub visual_mode: bool,
-    /// Anchor index for visual selection
+    /// Anchor index for visual selection; `Some` means visual mode is active
     pub visual_anchor: Option<usize>,
 }
 
@@ -43,7 +41,6 @@ impl<T: Filterable + Clone> FilterableTable<T> {
             all: Vec::new(),
             filtered: StatefulTable::new(Vec::new()),
             filter: FilterStateMachine::default(),
-            visual_mode: false,
             visual_anchor: None,
         }
     }
@@ -98,9 +95,6 @@ impl<T: Filterable + Clone> FilterableTable<T> {
 
     /// Returns the inclusive range of selected indices, if in visual mode
     pub fn visual_selection(&self) -> Option<RangeInclusive<usize>> {
-        if !self.visual_mode {
-            return None;
-        }
         let anchor = self.visual_anchor?;
         let cursor = self.filtered.state.selected()?;
         let (start, end) = if anchor <= cursor {
@@ -183,14 +177,12 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         match key_code {
             KeyCode::Char('V') => {
                 if let Some(cursor) = self.filtered.state.selected() {
-                    self.visual_mode = true;
                     self.visual_anchor = Some(cursor);
                 }
                 KeyResult::Consumed
             }
             KeyCode::Esc => {
-                if self.visual_mode {
-                    self.visual_mode = false;
+                if self.visual_anchor.is_some() {
                     self.visual_anchor = None;
                     KeyResult::Consumed
                 } else {
@@ -238,7 +230,7 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     /// Returns None if neither visual mode nor filter is active.
     pub fn status_title(&self) -> Option<Line<'static>> {
         let filter_text = self.filter.filter_display();
-        match (self.visual_mode, filter_text) {
+        match (self.visual_anchor.is_some(), filter_text) {
             (true, Some(filter)) => Some(Line::from(vec![
                 Span::raw(" -- VISUAL ("),
                 Span::styled(
@@ -386,9 +378,8 @@ mod tests {
         assert!(table.visual_selection().is_none());
 
         // Enter visual mode
-        table.visual_mode = true;
         table.visual_anchor = table.filtered.state.selected();
-        assert!(table.visual_mode);
+        assert!(table.visual_anchor.is_some());
         assert_eq!(table.visual_anchor, Some(0));
         assert_eq!(table.visual_selection_count(), 1);
 
@@ -402,9 +393,8 @@ mod tests {
         assert_eq!(ids, vec!["1", "2", "3"]);
 
         // Exit visual mode
-        table.visual_mode = false;
         table.visual_anchor = None;
-        assert!(!table.visual_mode);
+        assert!(table.visual_anchor.is_none());
         assert!(table.visual_selection().is_none());
     }
 
@@ -501,28 +491,28 @@ mod tests {
 
         // Select first item
         table.filtered.next();
-        assert!(!table.visual_mode);
+        assert!(table.visual_anchor.is_none());
 
         // V key enters visual mode
         assert!(matches!(
             table.handle_visual_mode_key(KeyCode::Char('V')),
             KeyResult::Consumed
         ));
-        assert!(table.visual_mode);
+        assert!(table.visual_anchor.is_some());
 
         // Esc key exits visual mode when in visual mode
         assert!(matches!(
             table.handle_visual_mode_key(KeyCode::Esc),
             KeyResult::Consumed
         ));
-        assert!(!table.visual_mode);
+        assert!(table.visual_anchor.is_none());
 
         // Esc key returns PassThrough when not in visual mode
         assert!(matches!(
             table.handle_visual_mode_key(KeyCode::Esc),
             KeyResult::PassThrough
         ));
-        assert!(!table.visual_mode);
+        assert!(table.visual_anchor.is_none());
 
         // Unknown key returns Ignored
         assert!(matches!(

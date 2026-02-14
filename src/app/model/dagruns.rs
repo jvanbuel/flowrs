@@ -204,7 +204,6 @@ impl DagRunModel {
                     matches!(custom_popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
                 self.popup.close();
                 if exit_visual {
-                    self.table.visual_mode = false;
                     self.table.visual_anchor = None;
                 }
             }
