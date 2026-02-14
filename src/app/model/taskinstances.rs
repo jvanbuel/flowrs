@@ -97,7 +97,6 @@ impl TaskInstanceModel {
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
                 self.popup.close();
-                self.table.visual_mode = false;
                 self.table.visual_anchor = None;
             }
         }
