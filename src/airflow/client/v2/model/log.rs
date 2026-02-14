@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     fmt::{Display, Formatter},
 };
 
@@ -11,7 +11,7 @@ pub struct StructuredLogMessage {
     pub timestamp: Option<String>,
     pub event: String,
     #[serde(flatten)]
-    pub additional_fields: HashMap<String, serde_json::Value>,
+    pub additional_fields: BTreeMap<String, serde_json::Value>,
 }
 
 /// Log content can be either structured messages or plain text lines
