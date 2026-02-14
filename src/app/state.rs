@@ -235,7 +235,8 @@ impl App {
             } => {
                 let is_new_context = self.nav_context.dag_id.as_ref() != Some(dag_id)
                     || self.nav_context.dag_run_id.as_ref() != Some(dag_run_id)
-                    || self.nav_context.task_id.as_ref() != Some(task_id);
+                    || self.nav_context.task_id.as_ref() != Some(task_id)
+                    || self.nav_context.task_try.as_ref() != Some(task_try);
                 self.nav_context.dag_id = Some(dag_id.clone());
                 self.nav_context.dag_run_id = Some(dag_run_id.clone());
                 self.nav_context.task_id = Some(task_id.clone());
@@ -272,8 +273,7 @@ impl App {
             }
             Panel::DAGRun => {
                 if let Some(dag_id) = &self.nav_context.dag_id {
-                    self.dagruns.table.all =
-                        self.environment_state.get_active_dag_runs(dag_id);
+                    self.dagruns.table.all = self.environment_state.get_active_dag_runs(dag_id);
                     let dag_run_ids: Vec<String> = self
                         .dagruns
                         .table
