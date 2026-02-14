@@ -145,7 +145,8 @@ pub async fn handle_get_dag_code(
         let mut app = app.lock().unwrap();
         match dag_code {
             Ok(dag_code) => {
-                app.dagruns.dag_code.set_code(&dag_code);
+                app.dagruns.dag_code =
+                    Some(crate::app::model::dagruns::DagCodeView::new(&dag_code));
             }
             Err(e) => {
                 app.dags.popup.show_error(vec![e.to_string()]);

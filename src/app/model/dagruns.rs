@@ -32,7 +32,7 @@ use crate::app::worker::{OpenItem, WorkerMessage};
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
 pub struct DagRunModel {
-    pub dag_code: DagCodeWidget,
+    pub dag_code: Option<DagCodeView>,
     /// Filterable table containing all DAG runs and filtered view
     pub table: FilterableTable<DagRun>,
     /// Unified popup state (error, commands, or custom for this model)
@@ -44,7 +44,7 @@ pub struct DagRunModel {
 impl Default for DagRunModel {
     fn default() -> Self {
         Self {
-            dag_code: DagCodeWidget::default(),
+            dag_code: None,
             table: FilterableTable::new(),
             popup: Popup::None,
             ticks: 0,
@@ -53,24 +53,19 @@ impl Default for DagRunModel {
     }
 }
 
-#[derive(Default)]
-pub struct DagCodeWidget {
-    pub cached_lines: Option<Vec<Line<'static>>>,
+pub struct DagCodeView {
+    pub lines: Vec<Line<'static>>,
     pub vertical_scroll: usize,
     pub vertical_scroll_state: ScrollbarState,
 }
 
-impl DagCodeWidget {
-    pub fn set_code(&mut self, code: &str) {
-        self.cached_lines = Some(code_to_lines(code));
-        self.vertical_scroll = 0;
-        self.vertical_scroll_state = ScrollbarState::default();
-    }
-
-    pub fn clear(&mut self) {
-        self.cached_lines = None;
-        self.vertical_scroll = 0;
-        self.vertical_scroll_state = ScrollbarState::default();
+impl DagCodeView {
+    pub fn new(code: &str) -> Self {
+        Self {
+            lines: code_to_lines(code),
+            vertical_scroll: 0,
+            vertical_scroll_state: ScrollbarState::default(),
+        }
     }
 }
 
@@ -155,26 +150,22 @@ impl DagRunModel {
 impl DagRunModel {
     /// Handle dag code viewer navigation
     fn handle_dag_code_viewer(&mut self, key_code: KeyCode) -> KeyResult {
-        if self.dag_code.cached_lines.is_none() {
+        let Some(view) = self.dag_code.as_mut() else {
             return KeyResult::Ignored;
-        }
+        };
         match key_code {
             KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
-                self.dag_code.clear();
+                self.dag_code = None;
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                self.dag_code.vertical_scroll = self.dag_code.vertical_scroll.saturating_add(1);
-                self.dag_code.vertical_scroll_state = self
-                    .dag_code
-                    .vertical_scroll_state
-                    .position(self.dag_code.vertical_scroll);
+                view.vertical_scroll = view.vertical_scroll.saturating_add(1);
+                view.vertical_scroll_state =
+                    view.vertical_scroll_state.position(view.vertical_scroll);
             }
             KeyCode::Up | KeyCode::Char('k') => {
-                self.dag_code.vertical_scroll = self.dag_code.vertical_scroll.saturating_sub(1);
-                self.dag_code.vertical_scroll_state = self
-                    .dag_code
-                    .vertical_scroll_state
-                    .position(self.dag_code.vertical_scroll);
+                view.vertical_scroll = view.vertical_scroll.saturating_sub(1);
+                view.vertical_scroll_state =
+                    view.vertical_scroll_state.position(view.vertical_scroll);
             }
             _ => {}
         }
@@ -465,7 +456,7 @@ impl Widget for &mut DagRunModel {
         .row_highlight_style(SELECTED_ROW_STYLE);
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
-        if let Some(cached_lines) = &self.dag_code.cached_lines {
+        if let Some(view) = &mut self.dag_code {
             let area = popup_area(area, 60, 90);
 
             let popup = Block::default()
@@ -477,11 +468,11 @@ impl Widget for &mut DagRunModel {
                 .title_style(TITLE_STYLE);
 
             #[allow(clippy::cast_possible_truncation)]
-            let code_text = Paragraph::new(cached_lines.clone())
+            let code_text = Paragraph::new(view.lines.clone())
                 .block(popup)
                 .style(DEFAULT_STYLE)
                 .wrap(Wrap { trim: false })
-                .scroll((self.dag_code.vertical_scroll as u16, 0));
+                .scroll((view.vertical_scroll as u16, 0));
 
             Clear.render(area, buf); //this clears out the background
             code_text.render(area, buf);
@@ -490,7 +481,7 @@ impl Widget for &mut DagRunModel {
                 .begin_symbol(Some("↑"))
                 .end_symbol(Some("↓"));
 
-            scrollbar.render(area, buf, &mut self.dag_code.vertical_scroll_state);
+            scrollbar.render(area, buf, &mut view.vertical_scroll_state);
         }
 
         // Render any active popup (error, commands, or custom)
