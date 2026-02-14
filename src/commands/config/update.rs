@@ -17,12 +17,12 @@ impl UpdateCommand {
         let path = self.file.as_ref().map(PathBuf::from);
         let mut config = FlowrsConfig::from_file(path.as_ref())?;
 
-        if config.servers.is_none() {
+        if config.servers.is_empty() {
             println!("❌ No servers found in config file");
             return Ok(());
         }
 
-        let mut servers = config.servers.unwrap();
+        let mut servers = config.servers;
 
         let name: String = if self.name.is_none() {
             Select::new(
@@ -80,7 +80,7 @@ impl UpdateCommand {
             }
         }
 
-        config.servers = Some(servers);
+        config.servers = servers;
         config.write_to_file()?;
 
         println!("✅ Config updated successfully!");

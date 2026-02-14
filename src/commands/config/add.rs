@@ -86,13 +86,10 @@ impl AddCommand {
             config.path = Some(user_path);
         }
 
-        if let Some(mut servers) = config.servers.clone() {
-            servers.retain(|server| server.name != new_config.name && server.managed.is_none());
-            servers.push(new_config);
-            config.servers = Some(servers);
-        } else {
-            config.servers = Some(vec![new_config]);
-        }
+        config
+            .servers
+            .retain(|server| server.name != new_config.name && server.managed.is_none());
+        config.servers.push(new_config);
 
         config.write_to_file()?;
 

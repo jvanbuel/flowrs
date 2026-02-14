@@ -69,7 +69,7 @@ impl App {
         errors: Vec<String>,
         warnings: Vec<String>,
     ) -> Self {
-        let servers = config.servers.clone().unwrap_or_default();
+        let servers = config.servers.clone();
         let has_active_server = config
             .active_server
             .as_ref()

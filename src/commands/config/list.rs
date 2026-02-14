@@ -8,7 +8,7 @@ impl ListCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(PathBuf::from);
         let config = FlowrsConfig::from_file(path.as_ref())?;
-        let servers = config.servers.unwrap_or_default();
+        let servers = config.servers;
 
         if servers.is_empty() {
             println!("❌ No servers found in the config file!");
