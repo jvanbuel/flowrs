@@ -9,15 +9,29 @@ use throbber_widgets_tui::ThrobberState;
 use time::format_description::BorrowedFormatItem;
 
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
+use super::worker::WorkerMessage;
 
 /// Cached date format for breadcrumb display (YYYY-MM-DD)
 static BREADCRUMB_DATE_FORMAT: LazyLock<Vec<BorrowedFormatItem<'static>>> = LazyLock::new(|| {
     time::format_description::parse("[year]-[month]-[day]").expect("Invalid date format")
 });
 
+/// Centralized navigation context — the single source of truth for what the
+/// user is currently looking at. Replaces the redundant per-panel context IDs
+/// that were previously stored on `DagRunModel`, `TaskInstanceModel`, and `LogModel`.
+#[derive(Clone, Default, Debug)]
+pub struct NavigationContext {
+    pub environment: Option<String>,
+    pub dag_id: Option<String>,
+    pub dag_run_id: Option<String>,
+    pub task_id: Option<String>,
+    pub task_try: Option<u16>,
+}
+
 pub struct App {
     pub config: FlowrsConfig,
     pub environment_state: EnvironmentStateContainer,
+    pub nav_context: NavigationContext,
     pub dags: DagModel,
     pub configs: ConfigModel,
     pub dagruns: DagRunModel,
@@ -66,9 +80,15 @@ impl App {
             Some(WarningPopup::new(warnings))
         };
 
+        let nav_context = NavigationContext {
+            environment: config.active_server.clone(),
+            ..Default::default()
+        };
+
         Self {
             config,
             environment_state: EnvironmentStateContainer::new(),
+            nav_context,
             dags: DagModel::new(),
             configs: ConfigModel::new_with_errors(&servers, errors),
             dagruns: DagRunModel::new(),
@@ -111,8 +131,12 @@ impl App {
     pub fn clear_state(&mut self) {
         self.ticks = 0;
         self.loading = true;
+        // Clear navigation context below the environment level
+        self.nav_context.dag_id = None;
+        self.nav_context.dag_run_id = None;
+        self.nav_context.task_id = None;
+        self.nav_context.task_try = None;
         // Clear view models but not environment_state
-        // This clears UI state (filters, selections) but data persists in environment_state
         self.dags.table.all.clear();
         self.dagruns.table.all.clear();
         self.task_instances.table.all.clear();
@@ -124,14 +148,13 @@ impl App {
     pub fn breadcrumb(&self) -> Option<String> {
         let mut parts: Vec<String> = Vec::new();
 
-        // Always start with the active environment (config) name if set
-        let env_name = self.config.active_server.as_ref()?;
+        // Always start with the active environment name
+        let env_name = self.nav_context.environment.as_ref()?;
         parts.push(env_name.clone());
 
         // Add DAG if we're past the Config panel
         if self.active_panel != Panel::Config && self.active_panel != Panel::Dag {
-            if let Some(dag_id) = &self.dagruns.dag_id {
-                // Truncate long dag_id
+            if let Some(dag_id) = &self.nav_context.dag_id {
                 let truncated = Self::truncate_breadcrumb_part(dag_id, 25);
                 parts.push(truncated);
             }
@@ -139,7 +162,6 @@ impl App {
 
         // Add DAG Run logical date if we're at TaskInstance or Logs panel
         if self.active_panel == Panel::TaskInstance || self.active_panel == Panel::Logs {
-            // Get logical_date from the first task instance (they all share the same dag run)
             if let Some(task_instance) = self.task_instances.table.filtered.items.first() {
                 if let Some(logical_date) = task_instance.logical_date {
                     let formatted = logical_date
@@ -147,8 +169,7 @@ impl App {
                         .unwrap_or_else(|_| "unknown".to_string());
                     parts.push(formatted);
                 }
-            } else if let Some(dag_run_id) = &self.task_instances.dag_run_id {
-                // Fallback to dag_run_id if no task instances loaded yet
+            } else if let Some(dag_run_id) = &self.nav_context.dag_run_id {
                 let truncated = Self::truncate_breadcrumb_part(dag_run_id, 20);
                 parts.push(truncated);
             }
@@ -156,8 +177,7 @@ impl App {
 
         // Add Task if we're at Logs panel
         if self.active_panel == Panel::Logs {
-            if let Some(task_id) = &self.logs.task_id {
-                // Truncate long task_id
+            if let Some(task_id) = &self.nav_context.task_id {
                 let truncated = Self::truncate_breadcrumb_part(task_id, 20);
                 parts.push(truncated);
             }
@@ -179,7 +199,6 @@ impl App {
         if char_count <= max_chars {
             s.to_string()
         } else {
-            // Find the byte index at the char boundary for truncation
             let truncate_at = max_chars.saturating_sub(3);
             let byte_index = s
                 .char_indices()
@@ -189,14 +208,59 @@ impl App {
         }
     }
 
-    /// Sync panel data from `environment_state`
-    /// This should be called when switching panels or environments
-    pub fn sync_panel_data(&mut self) {
-        match self.active_panel {
+    /// Update the centralized navigation context from a `WorkerMessage`.
+    /// This is the single place where navigation state changes in response
+    /// to panel-emitted messages.
+    pub fn set_context_from_message(&mut self, message: &WorkerMessage) {
+        match message {
+            WorkerMessage::UpdateDagRuns { dag_id } => {
+                self.nav_context.dag_id = Some(dag_id.clone());
+                // Clear deeper context when navigating to a new DAG
+                self.nav_context.dag_run_id = None;
+                self.nav_context.task_id = None;
+                self.nav_context.task_try = None;
+            }
+            WorkerMessage::UpdateTaskInstances { dag_id, dag_run_id } => {
+                self.nav_context.dag_id = Some(dag_id.clone());
+                self.nav_context.dag_run_id = Some(dag_run_id.clone());
+                // Clear deeper context
+                self.nav_context.task_id = None;
+                self.nav_context.task_try = None;
+            }
+            WorkerMessage::UpdateTaskLogs {
+                dag_id,
+                dag_run_id,
+                task_id,
+                task_try,
+            } => {
+                let is_new_context = self.nav_context.dag_id.as_ref() != Some(dag_id)
+                    || self.nav_context.dag_run_id.as_ref() != Some(dag_run_id)
+                    || self.nav_context.task_id.as_ref() != Some(task_id)
+                    || self.nav_context.task_try.as_ref() != Some(task_try);
+                self.nav_context.dag_id = Some(dag_id.clone());
+                self.nav_context.dag_run_id = Some(dag_run_id.clone());
+                self.nav_context.task_id = Some(task_id.clone());
+                self.nav_context.task_try = Some(*task_try);
+                if is_new_context {
+                    self.logs.current = 0;
+                    self.logs.follow_mode = true;
+                }
+            }
+            WorkerMessage::UpdateTasks { dag_id } => {
+                if self.nav_context.dag_id.as_ref() != Some(dag_id) {
+                    self.task_instances.task_graph = None;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// Sync a specific panel's data from `environment_state`.
+    pub fn sync_panel(&mut self, panel: &Panel) {
+        match panel {
             Panel::Dag => {
                 self.dags.table.all = self.environment_state.get_active_dags();
                 self.dags.dag_stats = self.environment_state.get_active_dag_stats();
-                // Set primary values for autocomplete (dag_id is the primary field)
                 let dag_ids: Vec<String> = self
                     .dags
                     .table
@@ -208,9 +272,8 @@ impl App {
                 self.dags.table.apply_filter();
             }
             Panel::DAGRun => {
-                if let Some(dag_id) = &self.dagruns.dag_id {
+                if let Some(dag_id) = &self.nav_context.dag_id {
                     self.dagruns.table.all = self.environment_state.get_active_dag_runs(dag_id);
-                    // Set primary values for autocomplete (dag_run_id is the primary field)
                     let dag_run_ids: Vec<String> = self
                         .dagruns
                         .table
@@ -230,13 +293,12 @@ impl App {
             }
             Panel::TaskInstance => {
                 if let (Some(dag_id), Some(dag_run_id)) =
-                    (&self.task_instances.dag_id, &self.task_instances.dag_run_id)
+                    (&self.nav_context.dag_id, &self.nav_context.dag_run_id)
                 {
                     self.task_instances.table.all = self
                         .environment_state
                         .get_active_task_instances(dag_id, dag_run_id);
                     self.task_instances.sort_task_instances();
-                    // Set primary values for autocomplete (task_id is the primary field)
                     let task_ids: Vec<String> = self
                         .task_instances
                         .table
@@ -254,9 +316,11 @@ impl App {
                 }
             }
             Panel::Logs => {
-                if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
-                    (&self.logs.dag_id, &self.logs.dag_run_id, &self.logs.task_id)
-                {
+                if let (Some(dag_id), Some(dag_run_id), Some(task_id)) = (
+                    &self.nav_context.dag_id,
+                    &self.nav_context.dag_run_id,
+                    &self.nav_context.task_id,
+                ) {
                     self.logs.update_logs(
                         self.environment_state
                             .get_active_task_logs(dag_id, dag_run_id, task_id),
@@ -266,7 +330,6 @@ impl App {
                 }
             }
             Panel::Config => {
-                // Set primary values for config filter (name is the primary field)
                 let config_names: Vec<String> = self
                     .configs
                     .table

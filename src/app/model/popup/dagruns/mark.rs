@@ -62,18 +62,17 @@ impl MarkDagRunPopup {
 }
 
 impl Model for MarkDagRunPopup {
-    fn update(&mut self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn update(
+        &mut self,
+        event: &FlowrsEvent,
+        _ctx: &crate::app::state::NavigationContext,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         if let FlowrsEvent::Key(key_event) = event {
             match key_event.code {
                 KeyCode::Enter => {
                     // On Enter, we always return the key event, so the parent can close the popup
                     return (
                         Some(FlowrsEvent::Key(*key_event)),
-                        // vec![WorkerMessage::MarkDagRun {
-                        //     dag_run_id: self.dag_run_id.clone(),
-                        //     dag_id: self.dag_id.clone(),
-                        //     status: self.status.clone(),
-                        // }],
                         self.marked
                             .iter()
                             .map(|i| WorkerMessage::MarkDagRun {

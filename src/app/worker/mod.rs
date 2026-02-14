@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use super::model::popup::dagruns::mark::MarkState;
@@ -96,6 +97,30 @@ pub enum OpenItem {
     },
 }
 
+impl WorkerMessage {
+    /// Returns a dedup key for periodic refresh messages.
+    /// One-off user actions (mark, clear, trigger, toggle, etc.) return `None`
+    /// so they are never deduplicated.
+    fn dedup_key(&self) -> Option<String> {
+        match self {
+            Self::UpdateDagsAndStats => Some("UpdateDagsAndStats".to_string()),
+            Self::UpdateDagRuns { dag_id } => Some(format!("UpdateDagRuns:{dag_id}")),
+            Self::UpdateTaskInstances { dag_id, dag_run_id } => {
+                Some(format!("UpdateTaskInstances:{dag_id}:{dag_run_id}"))
+            }
+            Self::UpdateTaskLogs {
+                dag_id,
+                dag_run_id,
+                task_id,
+                ..
+            } => Some(format!("UpdateTaskLogs:{dag_id}:{dag_run_id}:{task_id}")),
+            Self::UpdateTasks { dag_id } => Some(format!("UpdateTasks:{dag_id}")),
+            // One-off operations should never be deduplicated
+            _ => None,
+        }
+    }
+}
+
 impl Dispatcher {
     pub const fn new(app: Arc<Mutex<App>>) -> Self {
         Self { app }
@@ -103,15 +128,32 @@ impl Dispatcher {
 
     pub async fn run(self, mut rx: Receiver<WorkerMessage>) -> Result<()> {
         let mut tasks = JoinSet::new();
+        let in_flight: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
 
         // Process messages until the channel is closed (recv returns None)
         while let Some(message) = rx.recv().await {
+            let dedup_key = message.dedup_key();
+
+            // Skip if an identical periodic request is already in flight
+            if let Some(ref key) = dedup_key {
+                let mut set = in_flight.lock().unwrap();
+                if set.contains(key) {
+                    log::debug!("Skipping duplicate in-flight message: {key}");
+                    continue;
+                }
+                set.insert(key.clone());
+            }
+
             // Spawn each message processing as a concurrent task
-            // This allows multiple API requests to run in parallel
             let app = self.app.clone();
+            let in_flight = in_flight.clone();
             tasks.spawn(async move {
                 if let Err(e) = process_message(app, message).await {
                     log::error!("Error processing message: {e}");
+                }
+                // Remove from in-flight set when done
+                if let Some(key) = dedup_key {
+                    in_flight.lock().unwrap().remove(&key);
                 }
             });
         }
@@ -144,7 +186,9 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
     // Get the active client from the environment state
     let client = {
         let app = app.lock().unwrap();
-        app.environment_state.get_active_client()
+        app.environment_state
+            .get_active_environment()
+            .map(|env| env.client.clone())
     };
 
     let Some(client) = client else {
