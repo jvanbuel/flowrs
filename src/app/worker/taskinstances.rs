@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
-use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::taskinstances::mark::MarkState;
 use crate::app::state::App;
@@ -71,7 +71,7 @@ pub async fn handle_mark_task_instance(
         // Update the local state before sending the request; this way, the UI will update immediately
         let mut app = app.lock().unwrap();
         app.task_instances
-            .mark_task_instance(task_id, &status.to_string());
+            .mark_task_instance(task_id, TaskInstanceState::from(&status));
     }
     let task_instance = client
         .mark_task_instance(dag_id, dag_run_id, task_id, &status.to_string())
