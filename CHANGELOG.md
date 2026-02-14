@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.10](https://github.com/jvanbuel/flowrs/compare/v0.8.9...v0.8.10) - 2026-02-14
+
+### Fixed
+
+- use BTreeMap for consistent Airflow log field ordering
+
+### Other
+
+- replace stringly-typed state fields with typed enums
+- Change try_number from i64 to u32 and task_try from u16 to u32 ([#570](https://github.com/jvanbuel/flowrs/pull/570))
+- replace visual_mode bool + visual_anchor Option with single Option ([#566](https://github.com/jvanbuel/flowrs/pull/566))
+- Remove dead `confirm` field from MarkDagRunPopup and MarkTaskInstancePopup ([#565](https://github.com/jvanbuel/flowrs/pull/565))
+- replace TokenCmd struct with TokenSource enum ([#572](https://github.com/jvanbuel/flowrs/pull/572))
+- replace DagCodeWidget with Option<DagCodeView> ([#571](https://github.com/jvanbuel/flowrs/pull/571))
+- Refactor NavigationContext from flat struct to hierarchical enum ([#569](https://github.com/jvanbuel/flowrs/pull/569))
+- remove vestigial `startup` boolean from App ([#568](https://github.com/jvanbuel/flowrs/pull/568))
+- simplify FlowrsConfig servers/managed_services from Option<Vec<>> to Vec<> ([#567](https://github.com/jvanbuel/flowrs/pull/567))
+- replace type aliases with newtypes and flatten nested HashMaps ([#563](https://github.com/jvanbuel/flowrs/pull/563))
+
 ## [0.8.9](https://github.com/jvanbuel/flowrs/compare/v0.8.8...v0.8.9) - 2026-02-14
 
 ### Other
