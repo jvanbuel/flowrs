@@ -204,7 +204,11 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             dag_id, dag_run_id, ..
         } => {
             taskinstances::handle_update_task_instances(
-                &app, &client, &dag_id, &dag_run_id, &env_name,
+                &app,
+                &client,
+                &dag_id,
+                &dag_run_id,
+                &env_name,
             )
             .await;
         }
@@ -247,7 +251,13 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             ..
         } => {
             logs::handle_update_task_logs(
-                &app, &client, &dag_id, &dag_run_id, &task_id, task_try, &env_name,
+                &app,
+                &client,
+                &dag_id,
+                &dag_run_id,
+                &task_id,
+                task_try,
+                &env_name,
             )
             .await;
         }
