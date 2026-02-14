@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use crate::airflow::model::common::DagId;
 use crate::airflow::traits::AirflowClient;
 use crate::app::state::App;
 
@@ -16,7 +17,7 @@ pub async fn handle_update_dags_and_stats(
     env_name: &str,
 ) {
     // Snapshot cached DAG IDs from the originating environment for the stats request
-    let cached_dag_ids: Vec<String> = {
+    let cached_dag_ids: Vec<DagId> = {
         let app_lock = app.lock().unwrap();
         app_lock
             .environment_state
@@ -30,11 +31,11 @@ pub async fn handle_update_dags_and_stats(
         // Cold start: fetch DAGs first, then stats with fresh IDs
         let dag_list_result = client.list_dags().await;
 
-        let dag_ids: Vec<String> = {
+        let dag_ids: Vec<DagId> = {
             let mut app = app.lock().unwrap();
             match dag_list_result {
                 Ok(dag_list) => {
-                    let ids: Vec<String> = dag_list.dags.iter().map(|d| d.dag_id.clone()).collect();
+                    let ids: Vec<DagId> = dag_list.dags.iter().map(|d| d.dag_id.clone()).collect();
                     if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         env.replace_dags(dag_list.dags);
                     }
@@ -48,13 +49,16 @@ pub async fn handle_update_dags_and_stats(
         };
 
         if !dag_ids.is_empty() {
-            let refs: Vec<&str> = dag_ids.iter().map(String::as_str).collect();
+            let refs: Vec<&str> = dag_ids.iter().map(AsRef::as_ref).collect();
             match client.get_dag_stats(refs).await {
                 Ok(dag_stats) => {
                     let mut app = app.lock().unwrap();
                     if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                         for dag_stats in dag_stats.dags {
-                            env.update_dag_stats(&dag_stats.dag_id, dag_stats.stats);
+                            env.update_dag_stats(
+                                &DagId::from(dag_stats.dag_id.clone()),
+                                dag_stats.stats,
+                            );
                         }
                     }
                 }
@@ -66,7 +70,7 @@ pub async fn handle_update_dags_and_stats(
     } else {
         // Warm cache: fetch DAG list and stats concurrently using cached IDs
         let (dag_list_result, dag_stats_result) = tokio::join!(client.list_dags(), async {
-            let refs: Vec<&str> = cached_dag_ids.iter().map(String::as_str).collect();
+            let refs: Vec<&str> = cached_dag_ids.iter().map(AsRef::as_ref).collect();
             client.get_dag_stats(refs).await
         });
 
@@ -87,7 +91,10 @@ pub async fn handle_update_dags_and_stats(
             Ok(dag_stats) => {
                 if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                     for dag_stats in dag_stats.dags {
-                        env.update_dag_stats(&dag_stats.dag_id, dag_stats.stats);
+                        env.update_dag_stats(
+                            &DagId::from(dag_stats.dag_id.clone()),
+                            dag_stats.stats,
+                        );
                     }
                 }
             }
@@ -109,7 +116,7 @@ pub async fn handle_update_dags_and_stats(
 pub async fn handle_toggle_dag(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
+    dag_id: &DagId,
     is_paused: bool,
 ) {
     let dag = client.toggle_dag(dag_id, is_paused).await;
@@ -123,14 +130,14 @@ pub async fn handle_toggle_dag(
 pub async fn handle_get_dag_code(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
+    dag_id: &DagId,
 ) {
     let current_dag = {
         let app_lock = app.lock().unwrap();
         app_lock
             .environment_state
             .get_active_environment()
-            .and_then(|env| env.dags.iter().find(|d| d.dag_id == dag_id).cloned())
+            .and_then(|env| env.dags.iter().find(|d| d.dag_id == *dag_id).cloned())
     };
 
     if let Some(current_dag) = current_dag {

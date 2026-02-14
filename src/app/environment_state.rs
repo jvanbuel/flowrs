@@ -2,22 +2,18 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::airflow::{
-    model::common::{Dag, DagRun, DagStatistic, Log, TaskInstance},
+    model::common::{
+        Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
+    },
     traits::AirflowClient as AirflowClientTrait,
 };
-
-/// Key identifying an environment (Airflow server configuration)
-pub type EnvironmentKey = String;
-pub type DagId = String;
-pub type DagRunId = String;
-pub type TaskId = String;
 
 /// Flat, request-keyed cache for a single Airflow environment.
 ///
 /// Each collection is keyed by the parameters of the API request that produced
-/// it. This replaces the previous nested `DagData → DagRunData → TaskInstanceData`
-/// hierarchy with direct lookups, and makes stale-entry eviction trivial
-/// (just replace the whole Vec).
+/// it. `task_instances` and `task_logs` use composite tuple keys instead of
+/// nested `HashMap`s, giving single-lookup access and eliminating intermediate
+/// allocations.
 #[derive(Clone)]
 pub struct EnvironmentData {
     pub client: Arc<dyn AirflowClientTrait>,
@@ -31,11 +27,11 @@ pub struct EnvironmentData {
     /// Result of `list_dagruns(dag_id)` — keyed by `dag_id`.
     pub dag_runs: HashMap<DagId, Vec<DagRun>>,
 
-    /// Result of `list_task_instances(dag_id, dag_run_id)` — keyed by (`dag_id`, `dag_run_id`).
-    pub task_instances: HashMap<DagId, HashMap<DagRunId, Vec<TaskInstance>>>,
+    /// Result of `list_task_instances(dag_id, dag_run_id)` — flat composite key.
+    pub task_instances: HashMap<(DagId, DagRunId), Vec<TaskInstance>>,
 
-    /// Result of `get_task_logs(dag_id, dag_run_id, task_id, try)` — keyed by (`dag_id`, `dag_run_id`, `task_id`).
-    pub task_logs: HashMap<DagId, HashMap<DagRunId, HashMap<TaskId, Vec<Log>>>>,
+    /// Result of `get_task_logs(dag_id, dag_run_id, task_id, try)` — flat composite key.
+    pub task_logs: HashMap<(DagId, DagRunId, TaskId), Vec<Log>>,
 }
 
 impl EnvironmentData {
@@ -59,36 +55,36 @@ impl EnvironmentData {
     }
 
     /// Replace stats for a single DAG.
-    pub fn update_dag_stats(&mut self, dag_id: &str, stats: Vec<DagStatistic>) {
-        self.dag_stats.insert(dag_id.to_string(), stats);
+    pub fn update_dag_stats(&mut self, dag_id: &DagId, stats: Vec<DagStatistic>) {
+        self.dag_stats.insert(dag_id.clone(), stats);
     }
 
     /// Replace all DAG runs for a DAG (evicts deleted runs).
-    pub fn replace_dag_runs(&mut self, dag_id: &str, dag_runs: Vec<DagRun>) {
-        self.dag_runs.insert(dag_id.to_string(), dag_runs);
+    pub fn replace_dag_runs(&mut self, dag_id: &DagId, dag_runs: Vec<DagRun>) {
+        self.dag_runs.insert(dag_id.clone(), dag_runs);
     }
 
     /// Replace all task instances for a DAG run (evicts deleted instances).
     pub fn replace_task_instances(
         &mut self,
-        dag_id: &str,
-        dag_run_id: &str,
+        dag_id: &DagId,
+        dag_run_id: &DagRunId,
         task_instances: Vec<TaskInstance>,
     ) {
         self.task_instances
-            .entry(dag_id.to_string())
-            .or_default()
-            .insert(dag_run_id.to_string(), task_instances);
+            .insert((dag_id.clone(), dag_run_id.clone()), task_instances);
     }
 
     /// Replace logs for a specific task instance.
-    pub fn add_task_logs(&mut self, dag_id: &str, dag_run_id: &str, task_id: &str, logs: Vec<Log>) {
+    pub fn replace_task_logs(
+        &mut self,
+        dag_id: &DagId,
+        dag_run_id: &DagRunId,
+        task_id: &TaskId,
+        logs: Vec<Log>,
+    ) {
         self.task_logs
-            .entry(dag_id.to_string())
-            .or_default()
-            .entry(dag_run_id.to_string())
-            .or_default()
-            .insert(task_id.to_string(), logs);
+            .insert((dag_id.clone(), dag_run_id.clone(), task_id.clone()), logs);
     }
 }
 
@@ -129,14 +125,14 @@ impl EnvironmentStateContainer {
     }
 
     /// Get all DAG statistics for the active environment.
-    pub fn get_active_dag_stats(&self) -> HashMap<String, Vec<DagStatistic>> {
+    pub fn get_active_dag_stats(&self) -> HashMap<DagId, Vec<DagStatistic>> {
         self.get_active_environment()
             .map(|env| env.dag_stats.clone())
             .unwrap_or_default()
     }
 
     /// Get all DAG runs for a specific DAG in the active environment.
-    pub fn get_active_dag_runs(&self, dag_id: &str) -> Vec<DagRun> {
+    pub fn get_active_dag_runs(&self, dag_id: &DagId) -> Vec<DagRun> {
         self.get_active_environment()
             .and_then(|env| env.dag_runs.get(dag_id))
             .cloned()
@@ -144,20 +140,32 @@ impl EnvironmentStateContainer {
     }
 
     /// Get all task instances for a specific DAG run in the active environment.
-    pub fn get_active_task_instances(&self, dag_id: &str, dag_run_id: &str) -> Vec<TaskInstance> {
+    pub fn get_active_task_instances(
+        &self,
+        dag_id: &DagId,
+        dag_run_id: &DagRunId,
+    ) -> Vec<TaskInstance> {
         self.get_active_environment()
-            .and_then(|env| env.task_instances.get(dag_id))
-            .and_then(|runs| runs.get(dag_run_id))
+            .and_then(|env| {
+                env.task_instances
+                    .get(&(dag_id.clone(), dag_run_id.clone()))
+            })
             .cloned()
             .unwrap_or_default()
     }
 
     /// Get logs for a specific task instance in the active environment.
-    pub fn get_active_task_logs(&self, dag_id: &str, dag_run_id: &str, task_id: &str) -> Vec<Log> {
+    pub fn get_active_task_logs(
+        &self,
+        dag_id: &DagId,
+        dag_run_id: &DagRunId,
+        task_id: &TaskId,
+    ) -> Vec<Log> {
         self.get_active_environment()
-            .and_then(|env| env.task_logs.get(dag_id))
-            .and_then(|runs| runs.get(dag_run_id))
-            .and_then(|tasks| tasks.get(task_id))
+            .and_then(|env| {
+                env.task_logs
+                    .get(&(dag_id.clone(), dag_run_id.clone(), task_id.clone()))
+            })
             .cloned()
             .unwrap_or_default()
     }

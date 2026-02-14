@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
+use crate::airflow::model::common::EnvironmentKey;
 use crate::app::environment_state::EnvironmentData;
 use crate::app::state::App;
 
@@ -23,7 +24,7 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
         app.loading = false;
         return Ok(());
     };
-    let env_name = selected_config.name.clone();
+    let env_name = EnvironmentKey::from(selected_config.name.clone());
 
     // Check if environment already exists, if not create it
     if !app.environment_state.environments.contains_key(&env_name) {
@@ -48,8 +49,8 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
     // Set this as the active environment
     app.environment_state
         .set_active_environment(env_name.clone());
-    app.config.active_server = Some(env_name.clone());
-    app.nav_context.environment = Some(env_name);
+    app.config.active_server = Some(env_name.to_string());
+    app.nav_context.environment = Some(env_name.to_string());
 
     // Clear the view state but NOT the environment data
     app.clear_state();

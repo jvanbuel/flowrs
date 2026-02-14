@@ -104,7 +104,7 @@ mod tests {
 
     fn make_task_instance(task_id: &str) -> TaskInstance {
         TaskInstance {
-            task_id: task_id.to_string(),
+            task_id: task_id.into(),
             ..Default::default()
         }
     }

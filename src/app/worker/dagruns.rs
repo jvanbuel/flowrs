@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
+use crate::airflow::model::common::{DagId, DagRunId};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::dagruns::mark::MarkState;
 use crate::app::state::App;
@@ -13,7 +14,7 @@ use crate::app::state::App;
 pub async fn handle_update_dag_runs(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
+    dag_id: &DagId,
     env_name: &str,
 ) {
     let dag_runs = client.list_dagruns(dag_id).await;
@@ -39,8 +40,8 @@ pub async fn handle_update_dag_runs(
 pub async fn handle_clear_dag_run(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-    dag_run_id: &str,
+    dag_id: &DagId,
+    dag_run_id: &DagRunId,
 ) {
     debug!("Clearing dag_run: {dag_run_id}");
     let dag_run = client.clear_dagrun(dag_id, dag_run_id).await;
@@ -55,8 +56,8 @@ pub async fn handle_clear_dag_run(
 pub async fn handle_mark_dag_run(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-    dag_run_id: &str,
+    dag_id: &DagId,
+    dag_run_id: &DagRunId,
     status: MarkState,
 ) {
     debug!("Marking dag_run: {dag_run_id}");
@@ -79,7 +80,7 @@ pub async fn handle_mark_dag_run(
 pub async fn handle_trigger_dag_run(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
+    dag_id: &DagId,
     env_name: &str,
 ) {
     debug!("Triggering dag_run: {dag_id}");

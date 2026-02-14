@@ -9,7 +9,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
-use crate::airflow::model::common::{Dag, DagStatistic};
+use crate::airflow::model::common::{Dag, DagId, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dagruns::trigger::TriggerDagRunPopUp;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
@@ -28,7 +28,7 @@ pub struct DagModel {
     /// Filterable table containing all DAGs and filtered view
     pub table: FilterableTable<Dag>,
     /// DAG statistics by `dag_id`
-    pub dag_stats: HashMap<String, Vec<DagStatistic>>,
+    pub dag_stats: HashMap<DagId, Vec<DagStatistic>>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagPopUp>,
     ticks: u32,
@@ -200,7 +200,7 @@ impl Widget for &mut DagModel {
                             Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
                         },
                         Line::from(Span::styled(
-                            item.dag_id.as_str(),
+                            &*item.dag_id,
                             Style::default().add_modifier(Modifier::BOLD),
                         )),
                         Line::from(item.owners.join(", ")),

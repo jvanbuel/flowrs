@@ -13,7 +13,7 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 use time::format_description;
 
-use crate::airflow::model::common::{calculate_duration, format_duration, DagRun};
+use crate::airflow::model::common::{calculate_duration, format_duration, DagRun, DagRunId};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
@@ -134,18 +134,18 @@ impl DagRunModel {
     }
 
     /// Returns selected DAG run IDs for passing to mark/clear popups
-    fn selected_dag_run_ids(&self) -> Vec<String> {
+    fn selected_dag_run_ids(&self) -> Vec<DagRunId> {
         self.table.selected_ids(|item| item.dag_run_id.clone())
     }
 
     /// Mark a DAG run with a new status (optimistic update)
-    pub fn mark_dag_run(&mut self, dag_run_id: &str, status: &str) {
+    pub fn mark_dag_run(&mut self, dag_run_id: &DagRunId, status: &str) {
         if let Some(dag_run) = self
             .table
             .filtered
             .items
             .iter_mut()
-            .find(|dr| dr.dag_run_id == dag_run_id)
+            .find(|dr| dr.dag_run_id == *dag_run_id)
         {
             dag_run.state = status.to_string();
         }
@@ -420,7 +420,7 @@ impl Widget for &mut DagRunModel {
                 Row::new(vec![
                     Line::from(Span::styled("■", Style::default().fg(state_color))),
                     Line::from(Span::styled(
-                        item.dag_run_id.as_str(),
+                        &*item.dag_run_id,
                         Style::default().add_modifier(Modifier::BOLD),
                     )),
                     Line::from(if let Some(date) = item.logical_date {
@@ -570,8 +570,8 @@ mod tests {
 
         // Oldest run: completed (has both logical_date and start_date)
         let oldest_run = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "run_1".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_1".into(),
             logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
             start_date: Some(datetime!(2024-01-01 10:05:00 UTC)),
             end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
@@ -582,8 +582,8 @@ mod tests {
 
         // Middle run: queued (has logical_date but no start_date)
         let queued_run = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "run_2".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_2".into(),
             logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
             start_date: None, // Queued runs don't have start_date
             end_date: None,
@@ -594,8 +594,8 @@ mod tests {
 
         // Newest run: running (has both logical_date and start_date)
         let newest_run = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "run_3".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_3".into(),
             logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
             start_date: Some(datetime!(2024-01-03 10:05:00 UTC)),
             end_date: None,
@@ -624,8 +624,8 @@ mod tests {
 
         // Run with only start_date (logical_date is None)
         let run_with_start = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "run_1".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_1".into(),
             logical_date: None,
             start_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
             state: "running".to_string(),
@@ -635,8 +635,8 @@ mod tests {
 
         // Run with both dates
         let run_with_both = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "run_2".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_2".into(),
             logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
             start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
             state: "success".to_string(),
@@ -659,8 +659,8 @@ mod tests {
         let mut model = DagRunModel::new();
 
         let run_manual = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "manual_run_1".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "manual_run_1".into(),
             logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
             state: "success".to_string(),
             run_type: "manual".to_string(),
@@ -668,8 +668,8 @@ mod tests {
         };
 
         let run_scheduled = DagRun {
-            dag_id: "test_dag".to_string(),
-            dag_run_id: "scheduled_run_1".to_string(),
+            dag_id: "test_dag".into(),
+            dag_run_id: "scheduled_run_1".into(),
             logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
             state: "queued".to_string(),
             run_type: "scheduled".to_string(),

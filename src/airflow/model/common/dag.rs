@@ -3,11 +3,13 @@ use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
+use super::DagId;
+
 /// Common DAG model used by the application
 #[allow(clippy::struct_field_names)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dag {
-    pub dag_id: String,
+    pub dag_id: DagId,
     pub dag_display_name: Option<String>,
     pub description: Option<String>,
     pub fileloc: String,
@@ -44,7 +46,7 @@ pub struct Tag {
 impl From<v1::model::dag::DagResponse> for Dag {
     fn from(value: v1::model::dag::DagResponse) -> Self {
         Self {
-            dag_id: value.dag_id,
+            dag_id: value.dag_id.into(),
             dag_display_name: Some(value.dag_display_name),
             description: value.description,
             fileloc: value.fileloc,
@@ -96,7 +98,7 @@ impl From<v1::model::dag::DagTagResponse> for Tag {
 impl From<v2::model::dag::Dag> for Dag {
     fn from(value: v2::model::dag::Dag) -> Self {
         Self {
-            dag_id: value.dag_id,
+            dag_id: value.dag_id.into(),
             dag_display_name: Some(value.dag_display_name),
             description: value.description,
             fileloc: value.fileloc,

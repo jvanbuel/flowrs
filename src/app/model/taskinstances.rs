@@ -10,7 +10,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use time::format_description;
 
 use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::{calculate_duration, format_duration, TaskInstance};
+use crate::airflow::model::common::{calculate_duration, format_duration, TaskId, TaskInstance};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
@@ -59,20 +59,20 @@ impl TaskInstanceModel {
     }
 
     /// Mark a task instance with a new status (optimistic update)
-    pub fn mark_task_instance(&mut self, task_id: &str, status: &str) {
+    pub fn mark_task_instance(&mut self, task_id: &TaskId, status: &str) {
         if let Some(task_instance) = self
             .table
             .filtered
             .items
             .iter_mut()
-            .find(|ti| ti.task_id == task_id)
+            .find(|ti| ti.task_id == *task_id)
         {
             task_instance.state = Some(status.to_string());
         }
     }
 
     /// Returns selected task IDs for passing to mark/clear popups
-    fn selected_task_ids(&self) -> Vec<String> {
+    fn selected_task_ids(&self) -> Vec<TaskId> {
         self.table.selected_ids(|item| item.task_id.clone())
     }
 }
@@ -233,7 +233,7 @@ impl Widget for &mut TaskInstanceModel {
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    Line::from(item.task_id.as_str()),
+                    Line::from(item.task_id.as_ref()),
                     Line::from(if let Some(date) = item.logical_date {
                         date.format(
                             &format_description::parse(TIME_FORMAT)

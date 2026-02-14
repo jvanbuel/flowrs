@@ -6,6 +6,7 @@ use ratatui::{
 };
 use strum::Display;
 
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::{
     app::{
         events::custom::FlowrsEvent,
@@ -17,12 +18,13 @@ use crate::{
         SURFACE_STYLE,
     },
 };
+
 pub struct MarkTaskInstancePopup {
-    pub dag_id: String,
-    pub dag_run_id: String,
+    pub dag_id: DagId,
+    pub dag_run_id: DagRunId,
     pub status: MarkState,
     pub confirm: bool,
-    pub marked: Vec<String>,
+    pub marked: Vec<TaskId>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Display)]
@@ -36,13 +38,13 @@ pub enum MarkState {
 }
 
 impl MarkTaskInstancePopup {
-    pub fn new(marked: Vec<String>, dag_id: &str, dag_run_id: &str) -> Self {
+    pub fn new(marked: Vec<TaskId>, dag_id: &DagId, dag_run_id: &DagRunId) -> Self {
         Self {
-            dag_id: dag_id.to_string(),
+            dag_id: dag_id.clone(),
             status: MarkState::Success,
             confirm: false,
             marked,
-            dag_run_id: dag_run_id.to_string(),
+            dag_run_id: dag_run_id.clone(),
         }
     }
 

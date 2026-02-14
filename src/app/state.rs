@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use crate::airflow::config::FlowrsConfig;
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::app::environment_state::EnvironmentStateContainer;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
@@ -22,9 +23,9 @@ static BREADCRUMB_DATE_FORMAT: LazyLock<Vec<BorrowedFormatItem<'static>>> = Lazy
 #[derive(Clone, Default, Debug)]
 pub struct NavigationContext {
     pub environment: Option<String>,
-    pub dag_id: Option<String>,
-    pub dag_run_id: Option<String>,
-    pub task_id: Option<String>,
+    pub dag_id: Option<DagId>,
+    pub dag_run_id: Option<DagRunId>,
+    pub task_id: Option<TaskId>,
     pub task_try: Option<u16>,
 }
 
@@ -266,7 +267,7 @@ impl App {
                     .table
                     .all
                     .iter()
-                    .map(|d| d.dag_id.clone())
+                    .map(|d| d.dag_id.to_string())
                     .collect();
                 self.dags.table.filter.set_primary_values("dag_id", dag_ids);
                 self.dags.table.apply_filter();
@@ -279,7 +280,7 @@ impl App {
                         .table
                         .all
                         .iter()
-                        .map(|dr| dr.dag_run_id.clone())
+                        .map(|dr| dr.dag_run_id.to_string())
                         .collect();
                     self.dagruns
                         .table
@@ -304,7 +305,7 @@ impl App {
                         .table
                         .all
                         .iter()
-                        .map(|ti| ti.task_id.clone())
+                        .map(|ti| ti.task_id.to_string())
                         .collect();
                     self.task_instances
                         .table
