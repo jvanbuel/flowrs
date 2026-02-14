@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyModifiers};
 use events::{custom::FlowrsEvent, generator::EventGenerator};
 use log::debug;
 use model::Model;
@@ -134,20 +134,6 @@ where
             }
             if fall_through_event.is_none() {
                 continue;
-            }
-
-            // We do this so that when a user switches config,
-            // it does not show the previous DAGs (because the Enter event falls through before the existing DAGs are cleared).
-            // Not very mindful, not very demure.
-            if let Some(FlowrsEvent::Key(KeyEvent {
-                code: KeyCode::Enter,
-                ..
-            })) = fall_through_event
-            {
-                let mut app = app.lock().unwrap();
-                if app.active_panel == Panel::Config {
-                    app.ticks = 0;
-                }
             }
 
             // then handle generic events

@@ -41,7 +41,6 @@ pub struct App {
     pub ticks: u32,
     pub active_panel: Panel,
     pub loading: bool,
-    pub startup: bool,
     pub throbber_state: ThrobberState,
     /// Global warning popup shown on startup (e.g., legacy config conflict)
     pub warning_popup: Option<WarningPopup>,
@@ -102,7 +101,6 @@ impl App {
             },
             ticks: 0,
             loading: true,
-            startup: true,
             throbber_state: ThrobberState::default(),
             warning_popup,
             focused: true,
@@ -130,7 +128,6 @@ impl App {
     }
 
     pub fn clear_state(&mut self) {
-        self.ticks = 0;
         self.loading = true;
         // Clear navigation context below the environment level
         self.nav_context.dag_id = None;
