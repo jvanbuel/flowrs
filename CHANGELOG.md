@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.11](https://github.com/jvanbuel/flowrs/compare/v0.8.10...v0.8.11) - 2026-02-16
+
+### Other
+
+- *(deps)* bump toml from 0.9.12+spec-1.1.0 to 1.0.1+spec-1.1.0
+- *(deps)* bump futures from 0.3.31 to 0.3.32
+- replace boolean flags with enums in popups and log viewer
+
 ## [0.8.10](https://github.com/jvanbuel/flowrs/compare/v0.8.9...v0.8.10) - 2026-02-14
 
 ### Fixed
