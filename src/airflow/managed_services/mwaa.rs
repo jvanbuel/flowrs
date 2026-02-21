@@ -177,10 +177,18 @@ pub struct MwaaAuth {
     pub environment_name: String,
 }
 
-#[derive(Debug)]
 pub struct MwaaAuthProvider {
     token: MwaaTokenType,
     environment_name: String,
+}
+
+impl std::fmt::Debug for MwaaAuthProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MwaaAuthProvider")
+            .field("token", &"***redacted***")
+            .field("environment_name", &self.environment_name)
+            .finish()
+    }
 }
 
 impl From<&MwaaAuth> for MwaaAuthProvider {
