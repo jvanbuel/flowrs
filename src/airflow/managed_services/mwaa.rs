@@ -295,7 +295,12 @@ mod tests {
         };
         let request = provider.authenticate(test_request()).await.unwrap();
         let built = request.build().unwrap();
-        let auth_header = built.headers().get("authorization").unwrap().to_str().unwrap();
+        let auth_header = built
+            .headers()
+            .get("authorization")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert_eq!(auth_header, "Bearer jwt-token");
     }
 }

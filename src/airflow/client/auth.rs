@@ -103,17 +103,13 @@ impl AuthProvider for CommandTokenProvider {
 /// Create an auth provider from an `AirflowAuth` config enum variant.
 pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>> {
     match auth {
-        AirflowAuth::Basic(BasicAuth { username, password }) => {
-            Ok(Box::new(BasicAuthProvider {
-                username: username.clone(),
-                password: password.clone(),
-            }))
-        }
-        AirflowAuth::Token(TokenSource::Static { token }) => {
-            Ok(Box::new(StaticTokenProvider {
-                token: token.clone(),
-            }))
-        }
+        AirflowAuth::Basic(BasicAuth { username, password }) => Ok(Box::new(BasicAuthProvider {
+            username: username.clone(),
+            password: password.clone(),
+        })),
+        AirflowAuth::Token(TokenSource::Static { token }) => Ok(Box::new(StaticTokenProvider {
+            token: token.clone(),
+        })),
         AirflowAuth::Token(TokenSource::Command { cmd }) => {
             Ok(Box::new(CommandTokenProvider { cmd: cmd.clone() }))
         }
@@ -144,7 +140,12 @@ mod tests {
         };
         let request = provider.authenticate(test_request()).await.unwrap();
         let built = request.build().unwrap();
-        let auth_header = built.headers().get("authorization").unwrap().to_str().unwrap();
+        let auth_header = built
+            .headers()
+            .get("authorization")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert!(auth_header.starts_with("Basic "));
     }
 
@@ -155,7 +156,12 @@ mod tests {
         };
         let request = provider.authenticate(test_request()).await.unwrap();
         let built = request.build().unwrap();
-        let auth_header = built.headers().get("authorization").unwrap().to_str().unwrap();
+        let auth_header = built
+            .headers()
+            .get("authorization")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert_eq!(auth_header, "Bearer my-token");
     }
 
@@ -166,7 +172,12 @@ mod tests {
         };
         let request = provider.authenticate(test_request()).await.unwrap();
         let built = request.build().unwrap();
-        let auth_header = built.headers().get("authorization").unwrap().to_str().unwrap();
+        let auth_header = built
+            .headers()
+            .get("authorization")
+            .unwrap()
+            .to_str()
+            .unwrap();
         assert_eq!(auth_header, "Bearer test-token");
     }
 
@@ -177,7 +188,10 @@ mod tests {
         };
         let result = provider.authenticate(test_request()).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Token helper command failed"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Token helper command failed"));
     }
 
     #[test]
