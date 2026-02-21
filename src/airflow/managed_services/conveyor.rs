@@ -89,7 +89,7 @@ impl ConveyorClient {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConveyorAuthProvider;
 
 #[async_trait]
@@ -98,10 +98,6 @@ impl AuthProvider for ConveyorAuthProvider {
         info!("🔑 Conveyor Auth");
         let token = ConveyorClient::get_token()?;
         Ok(request.bearer_auth(token))
-    }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
     }
 }
 

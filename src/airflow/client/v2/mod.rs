@@ -16,7 +16,7 @@ use crate::airflow::{config::AirflowVersion, traits::AirflowClient};
 use crate::app::worker::OpenItem;
 
 /// API v2 client implementation (for Airflow v3, uses /api/v2 endpoint)
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct V2Client {
     base: BaseClient,
 }
