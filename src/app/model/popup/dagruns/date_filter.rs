@@ -313,12 +313,8 @@ impl Widget for &mut DateFilterPopup {
             };
             let mut d = range_start;
             while d <= range_end {
-                if d != self.cursor_date && Some(d) != self.start_date && Some(d) != self.end_date
-                {
-                    events.add(
-                        d,
-                        Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
-                    );
+                if d != self.cursor_date && Some(d) != self.start_date && Some(d) != self.end_date {
+                    events.add(d, Style::default().fg(ACCENT).add_modifier(Modifier::BOLD));
                 }
                 if let Some(next) = d.next_day() {
                     d = next;
