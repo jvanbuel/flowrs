@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1](https://github.com/jvanbuel/flowrs/compare/v0.9.0...v0.9.1) - 2026-02-21
+
+### Fixed
+
+- use RangeInclusive::contains to satisfy clippy
+- don't use current time as end_date for non-running entities
+- run token command off async runtime and fix quote stripping
+- redact credentials in Debug impls for auth providers
+- redact api_token in AstronomerAuthProvider Debug impl
+
+### Other
+
+- split core auth providers into separate files
+- remove unnecessary Clone from client types
+- apply cargo fmt
+- extract authentication into AuthProvider trait
+
 ## [0.8.11](https://github.com/jvanbuel/flowrs/compare/v0.8.10...v0.8.11) - 2026-02-16
 
 ### Other
