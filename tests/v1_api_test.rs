@@ -1,6 +1,7 @@
 mod common;
 
 use common::{create_test_client, should_run_for_api_version};
+use flowrs_tui::airflow::traits::DagRunDateFilter;
 
 #[tokio::test]
 async fn test_v1_list_dags() {
@@ -68,7 +69,7 @@ async fn test_v1_list_dagruns() {
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if let Some(dag) = dag_list.dags.first() {
-        let result = client.list_dagruns(&dag.dag_id, &Default::default()).await;
+        let result = client.list_dagruns(&dag.dag_id, &DagRunDateFilter::default()).await;
         assert!(
             result.is_ok(),
             "Failed to list DAG runs: {:?}",
