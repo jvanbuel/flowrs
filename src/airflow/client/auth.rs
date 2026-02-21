@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use log::info;
 use reqwest::RequestBuilder;
+use std::fmt;
 
 use crate::airflow::config::{AirflowAuth, BasicAuth, TokenSource};
 use crate::airflow::managed_services::astronomer::AstronomerAuthProvider;
@@ -20,10 +21,18 @@ pub trait AuthProvider: Send + Sync {
 
 // --- Core (non-managed-service) providers ---
 
-#[derive(Debug)]
 pub struct BasicAuthProvider {
     username: String,
     password: String,
+}
+
+impl fmt::Debug for BasicAuthProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BasicAuthProvider")
+            .field("username", &self.username)
+            .field("password", &"***redacted***")
+            .finish()
+    }
 }
 
 #[async_trait]
@@ -34,9 +43,16 @@ impl AuthProvider for BasicAuthProvider {
     }
 }
 
-#[derive(Debug)]
 pub struct StaticTokenProvider {
     token: String,
+}
+
+impl fmt::Debug for StaticTokenProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StaticTokenProvider")
+            .field("token", &"***redacted***")
+            .finish()
+    }
 }
 
 #[async_trait]
