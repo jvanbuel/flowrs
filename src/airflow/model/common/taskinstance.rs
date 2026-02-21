@@ -110,6 +110,21 @@ impl TimeBounded for TaskInstance {
     fn end_date(&self) -> Option<OffsetDateTime> {
         self.end_date
     }
+
+    fn is_running(&self) -> bool {
+        matches!(
+            self.state,
+            Some(
+                TaskInstanceState::Running
+                    | TaskInstanceState::Queued
+                    | TaskInstanceState::Scheduled
+                    | TaskInstanceState::Deferred
+                    | TaskInstanceState::Restarting
+                    | TaskInstanceState::UpForReschedule
+                    | TaskInstanceState::UpForRetry
+            )
+        )
+    }
 }
 
 // From trait implementations for v1 models
