@@ -1,7 +1,10 @@
+use crate::airflow::client::auth::AuthProvider;
 use crate::airflow::config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use log::info;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt;
@@ -200,6 +203,31 @@ impl fmt::Debug for AstronomerAuth {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct AstronomerAuthProvider {
+    api_token: String,
+}
+
+impl From<&AstronomerAuth> for AstronomerAuthProvider {
+    fn from(auth: &AstronomerAuth) -> Self {
+        Self {
+            api_token: auth.api_token.clone(),
+        }
+    }
+}
+
+#[async_trait]
+impl AuthProvider for AstronomerAuthProvider {
+    async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
+        info!("🔑 Astronomer Auth");
+        Ok(request.bearer_auth(&self.api_token))
+    }
+
+    fn clone_box(&self) -> Box<dyn AuthProvider> {
+        Box::new(self.clone())
+    }
+}
+
 /// Lists all Astronomer deployments across all organizations and returns them as `AirflowConfig` instances
 /// Returns a tuple of (successful configs, error messages for failed organizations)
 pub async fn get_astronomer_environment_servers() -> (Vec<AirflowConfig>, Vec<String>) {
@@ -293,4 +321,24 @@ pub async fn get_astronomer_environment_servers() -> (Vec<AirflowConfig>, Vec<St
         errors.len()
     );
     (servers, errors)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_request() -> RequestBuilder {
+        reqwest::Client::new().get("http://localhost:8080/api/v1/dags")
+    }
+
+    #[tokio::test]
+    async fn test_astronomer_auth_provider() {
+        let provider = AstronomerAuthProvider {
+            api_token: "astro-token".to_string(),
+        };
+        let request = provider.authenticate(test_request()).await.unwrap();
+        let built = request.build().unwrap();
+        let auth_header = built.headers().get("authorization").unwrap().to_str().unwrap();
+        assert_eq!(auth_header, "Bearer astro-token");
+    }
 }

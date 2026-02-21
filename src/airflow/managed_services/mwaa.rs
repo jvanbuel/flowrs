@@ -1,8 +1,11 @@
+use crate::airflow::client::auth::AuthProvider;
 use crate::airflow::config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use aws_config::BehaviorVersion;
 use aws_sdk_mwaa as mwaa;
 use log::info;
+use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
 
 /// MWAA client for managing authentication and environment discovery
@@ -174,6 +177,38 @@ pub struct MwaaAuth {
     pub environment_name: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct MwaaAuthProvider {
+    token: MwaaTokenType,
+    environment_name: String,
+}
+
+impl From<&MwaaAuth> for MwaaAuthProvider {
+    fn from(auth: &MwaaAuth) -> Self {
+        Self {
+            token: auth.token.clone(),
+            environment_name: auth.environment_name.clone(),
+        }
+    }
+}
+
+#[async_trait]
+impl AuthProvider for MwaaAuthProvider {
+    async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
+        info!("🔑 MWAA Auth: {}", self.environment_name);
+        match &self.token {
+            MwaaTokenType::SessionCookie(cookie) => {
+                Ok(request.header("Cookie", format!("session={cookie}")))
+            }
+            MwaaTokenType::JwtToken(token) => Ok(request.bearer_auth(token)),
+        }
+    }
+
+    fn clone_box(&self) -> Box<dyn AuthProvider> {
+        Box::new(self.clone())
+    }
+}
+
 #[derive(Serialize)]
 struct LoginForm<'a> {
     token: &'a str,
@@ -230,4 +265,37 @@ pub async fn get_mwaa_environment_servers() -> Result<Vec<AirflowConfig>> {
 
     info!("Found {} MWAA environment(s)", servers.len());
     Ok(servers)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_request() -> RequestBuilder {
+        reqwest::Client::new().get("http://localhost:8080/api/v1/dags")
+    }
+
+    #[tokio::test]
+    async fn test_mwaa_session_cookie_provider() {
+        let provider = MwaaAuthProvider {
+            token: MwaaTokenType::SessionCookie("my-session".to_string()),
+            environment_name: "test-env".to_string(),
+        };
+        let request = provider.authenticate(test_request()).await.unwrap();
+        let built = request.build().unwrap();
+        let cookie = built.headers().get("Cookie").unwrap().to_str().unwrap();
+        assert_eq!(cookie, "session=my-session");
+    }
+
+    #[tokio::test]
+    async fn test_mwaa_jwt_token_provider() {
+        let provider = MwaaAuthProvider {
+            token: MwaaTokenType::JwtToken("jwt-token".to_string()),
+            environment_name: "test-env".to_string(),
+        };
+        let request = provider.authenticate(test_request()).await.unwrap();
+        let built = request.build().unwrap();
+        let auth_header = built.headers().get("authorization").unwrap().to_str().unwrap();
+        assert_eq!(auth_header, "Bearer jwt-token");
+    }
 }
