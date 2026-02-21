@@ -6,7 +6,7 @@ pub mod task;
 pub mod taskinstance;
 
 pub use dag::DagOperations;
-pub use dagrun::DagRunOperations;
+pub use dagrun::{DagRunDateFilter, DagRunOperations};
 pub use dagstats::DagStatsOperations;
 pub use log::LogOperations;
 pub use task::TaskOperations;

@@ -10,6 +10,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use time::OffsetDateTime;
 
 use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
+use crate::airflow::traits::DagRunDateFilter;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dagruns::trigger::TriggerDagRunPopUp;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
@@ -100,6 +101,7 @@ impl DagModel {
                     debug!("Selected dag: {}", dag.dag_id);
                     KeyResult::PassWith(vec![WorkerMessage::UpdateDagRuns {
                         dag_id: dag.dag_id.clone(),
+                        date_filter: DagRunDateFilter::default(),
                     }])
                 } else {
                     self.popup
