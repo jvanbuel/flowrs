@@ -29,6 +29,11 @@ pub static DAGRUN_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
             key_binding: "t",
             description: "Trigger a DAG run",
         },
+        Command {
+            name: "Date Filter",
+            key_binding: "d",
+            description: "Filter DAG runs by date range",
+        },
     ];
     commands.append(&mut DefaultCommands::new().0);
     CommandPopUp {

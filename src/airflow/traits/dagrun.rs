@@ -1,13 +1,25 @@
 use anyhow::Result;
 use async_trait::async_trait;
+use time::Date;
 
 use crate::airflow::model::common::DagRunList;
+
+/// Optional date range filter for listing DAG runs.
+#[derive(Debug, Clone, Default)]
+pub struct DagRunDateFilter {
+    pub start_date: Option<Date>,
+    pub end_date: Option<Date>,
+}
 
 /// Trait for DAG Run operations
 #[async_trait]
 pub trait DagRunOperations: Send + Sync {
-    /// List DAG runs for a specific DAG
-    async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList>;
+    /// List DAG runs for a specific DAG, optionally filtered by date range
+    async fn list_dagruns(
+        &self,
+        dag_id: &str,
+        date_filter: &DagRunDateFilter,
+    ) -> Result<DagRunList>;
 
     /// List all DAG runs across all DAGs
     #[allow(unused)]

@@ -4,17 +4,37 @@ use log::debug;
 use reqwest::{Method, Response};
 
 use super::model;
-use crate::airflow::{model::common::DagRunList, traits::DagRunOperations};
+use crate::airflow::{
+    model::common::DagRunList,
+    traits::{DagRunDateFilter, DagRunOperations},
+};
 
 use super::V1Client;
 
 #[async_trait]
 impl DagRunOperations for V1Client {
-    async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
+    async fn list_dagruns(
+        &self,
+        dag_id: &str,
+        date_filter: &DagRunDateFilter,
+    ) -> Result<DagRunList> {
+        let mut query: Vec<(&str, String)> = vec![
+            ("order_by", "-execution_date".to_string()),
+            ("limit", "50".to_string()),
+        ];
+        if let Some(start) = date_filter.start_date {
+            query.push(("execution_date_gte", format!("{start}")));
+        }
+        if let Some(end) = date_filter.end_date {
+            // Add one day to make the end date inclusive
+            if let Some(next_day) = end.next_day() {
+                query.push(("execution_date_lte", format!("{next_day}")));
+            }
+        }
         let response: Response = self
             .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))
             .await?
-            .query(&[("order_by", "-execution_date"), ("limit", "50")])
+            .query(&query)
             .send()
             .await?
             .error_for_status()?;
