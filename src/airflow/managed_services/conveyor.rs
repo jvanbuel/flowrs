@@ -1,7 +1,10 @@
+use crate::airflow::client::auth::AuthProvider;
 use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService};
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use dirs::home_dir;
 use log::info;
+use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
 use std::process::{Child, Command, Stdio};
@@ -83,6 +86,22 @@ impl ConveyorClient {
             .context("Failed to parse JSON token from conveyor output")?
             .access_token;
         Ok(token)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConveyorAuthProvider;
+
+#[async_trait]
+impl AuthProvider for ConveyorAuthProvider {
+    async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
+        info!("🔑 Conveyor Auth");
+        let token = ConveyorClient::get_token()?;
+        Ok(request.bearer_auth(token))
+    }
+
+    fn clone_box(&self) -> Box<dyn AuthProvider> {
+        Box::new(self.clone())
     }
 }
 
