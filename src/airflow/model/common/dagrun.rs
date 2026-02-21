@@ -94,6 +94,7 @@ pub struct DagRun {
     pub dag_id: DagId,
     pub dag_run_id: DagRunId,
     pub logical_date: Option<OffsetDateTime>,
+    pub run_after: Option<OffsetDateTime>,
     pub data_interval_end: Option<OffsetDateTime>,
     pub data_interval_start: Option<OffsetDateTime>,
     pub end_date: Option<OffsetDateTime>,
@@ -109,6 +110,16 @@ pub struct DagRun {
 pub struct DagRunList {
     pub dag_runs: Vec<DagRun>,
     pub total_entries: i64,
+}
+
+impl DagRun {
+    /// Returns the most meaningful date for display and sorting.
+    ///
+    /// Prefers `run_after` (Airflow v3) over `logical_date` (Airflow v2),
+    /// since `logical_date` can be `None` for manually triggered runs in v3.
+    pub fn display_date(&self) -> Option<OffsetDateTime> {
+        self.run_after.or(self.logical_date)
+    }
 }
 
 impl TimeBounded for DagRun {
@@ -132,6 +143,7 @@ impl From<v1::model::dagrun::DAGRunResponse> for DagRun {
             dag_id: value.dag_id.into(),
             dag_run_id: value.dag_run_id.unwrap_or_default().into(),
             logical_date: value.logical_date,
+            run_after: None,
             data_interval_end: value.data_interval_end,
             data_interval_start: value.data_interval_start,
             end_date: value.end_date,
@@ -165,6 +177,7 @@ impl From<v2::model::dagrun::DagRun> for DagRun {
             dag_id: value.dag_id.into(),
             dag_run_id: value.dag_run_id.into(),
             logical_date: value.logical_date,
+            run_after: value.run_after,
             data_interval_end: value.data_interval_end,
             data_interval_start: value.data_interval_start,
             end_date: value.end_date,
