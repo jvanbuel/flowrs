@@ -1,7 +1,7 @@
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::layout::{Constraint, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
@@ -113,15 +113,15 @@ impl DagRunModel {
         ])
     }
 
-    /// Sort filtered DAG runs by `logical_date` descending
-    /// Call this after `apply_filter()` to ensure proper ordering
+    /// Sort filtered DAG runs by date descending.
+    ///
+    /// Prefers `run_after` (Airflow v3) over `logical_date` (Airflow v2),
+    /// with a final fallback to `start_date` for runs that have neither.
     pub fn sort_dag_runs(&mut self) {
-        // Sort by logical_date (execution date) descending, with fallback to start_date
-        // This ensures queued runs (which have no start_date yet) appear in chronological order
         self.table.filtered.items.sort_by(|a, b| {
-            b.logical_date
+            b.display_date()
                 .or(b.start_date)
-                .cmp(&a.logical_date.or(a.start_date))
+                .cmp(&a.display_date().or(a.start_date))
         });
     }
 
@@ -350,14 +350,7 @@ impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let content_area = self.table.render_with_filter(area, buf);
 
-        let headers = [
-            "State",
-            "DAG Run ID",
-            "Logical Date",
-            "Type",
-            "Duration",
-            "Time",
-        ];
+        let headers = ["State", "Date", "Type", "Duration", "Time"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
@@ -372,12 +365,11 @@ impl Widget for &mut DagRunModel {
             .unwrap_or(1.0);
 
         // Calculate the width available for the Duration column
-        // Total width - borders(2) - state(6) - dag_run_id(variable) - logical_date(20) - type(11) - time(10)
+        // Total width - borders(2) - state(6) - date(20) - type(11) - time(10)
         let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
-        let fixed_columns_width = 6 + 20 + 11 + 10 + 10; // State + Logical Date + Type + Time + spacing
-        let dag_run_id_width = 30; // Fixed width for dag_run_id
+        let fixed_columns_width = 6 + 20 + 11 + 10 + 8; // State + Date + Type + Time + spacing
         let gauge_width = table_inner_width
-            .saturating_sub(fixed_columns_width + dag_run_id_width)
+            .saturating_sub(fixed_columns_width)
             .max(10) as usize;
 
         let rows = self
@@ -405,11 +397,7 @@ impl Widget for &mut DagRunModel {
 
                 Row::new(vec![
                     Line::from(Span::styled("■", Style::default().fg(state_color))),
-                    Line::from(Span::styled(
-                        &*item.dag_run_id,
-                        Style::default().add_modifier(Modifier::BOLD),
-                    )),
-                    Line::from(if let Some(date) = item.logical_date {
+                    Line::from(if let Some(date) = item.display_date() {
                         date.format(
                             &format_description::parse(TIME_FORMAT)
                                 .expect("TIME_FORMAT constant should be a valid time format"),
@@ -428,8 +416,7 @@ impl Widget for &mut DagRunModel {
             rows,
             &[
                 Constraint::Length(6),  // State
-                Constraint::Length(30), // DAG Run ID
-                Constraint::Length(20), // Logical Date
+                Constraint::Length(20), // Date
                 Constraint::Length(11), // Type
                 Constraint::Fill(1),    // Duration gauge (expands)
                 Constraint::Length(10), // Time (formatted duration)
@@ -552,7 +539,7 @@ mod tests {
 
     #[test]
     fn test_sort_dag_runs_by_logical_date() {
-        // Create test DAG runs with different states and dates
+        // Create test DAG runs with different states and dates (V2 / Airflow v2 style)
         let mut model = DagRunModel::new();
 
         // Oldest run: completed (has both logical_date and start_date)
@@ -598,11 +585,45 @@ mod tests {
         model.table.apply_filter();
         model.sort_dag_runs();
 
-        // Verify runs are sorted by logical_date descending (newest first)
+        // Verify runs are sorted by date descending (newest first)
         assert_eq!(model.table.filtered.items.len(), 3);
         assert_eq!(model.table.filtered.items[0].dag_run_id, "run_3"); // Newest
         assert_eq!(model.table.filtered.items[1].dag_run_id, "run_2"); // Queued (middle)
         assert_eq!(model.table.filtered.items[2].dag_run_id, "run_1"); // Oldest
+    }
+
+    #[test]
+    fn test_sort_dag_runs_prefers_run_after() {
+        // Airflow v3: run_after takes precedence over logical_date
+        let mut model = DagRunModel::new();
+
+        let run_a = DagRun {
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_a".into(),
+            logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
+            run_after: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            state: DagRunState::Success,
+            run_type: RunType::Scheduled,
+            ..Default::default()
+        };
+
+        let run_b = DagRun {
+            dag_id: "test_dag".into(),
+            dag_run_id: "run_b".into(),
+            logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            run_after: Some(datetime!(2024-01-03 10:00:00 UTC)),
+            state: DagRunState::Success,
+            run_type: RunType::Scheduled,
+            ..Default::default()
+        };
+
+        model.table.all = vec![run_a, run_b];
+        model.table.apply_filter();
+        model.sort_dag_runs();
+
+        // run_b has later run_after, so it should come first despite earlier logical_date
+        assert_eq!(model.table.filtered.items[0].dag_run_id, "run_b");
+        assert_eq!(model.table.filtered.items[1].dag_run_id, "run_a");
     }
 
     #[test]
