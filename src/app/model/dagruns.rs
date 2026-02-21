@@ -467,21 +467,20 @@ impl Widget for &mut DagRunModel {
         )
         .header(header)
         .block({
-            let date_filter_title = if self.date_filter.start_date.is_some()
-                || self.date_filter.end_date.is_some()
-            {
-                let start = self
-                    .date_filter
-                    .start_date
-                    .map_or_else(|| "..".to_string(), |d: time::Date| d.to_string());
-                let end = self
-                    .date_filter
-                    .end_date
-                    .map_or_else(|| "..".to_string(), |d: time::Date| d.to_string());
-                format!(" [{start} to {end}] ")
-            } else {
-                String::new()
-            };
+            let date_filter_title =
+                if self.date_filter.start_date.is_some() || self.date_filter.end_date.is_some() {
+                    let start = self
+                        .date_filter
+                        .start_date
+                        .map_or_else(|| "..".to_string(), |d: time::Date| d.to_string());
+                    let end = self
+                        .date_filter
+                        .end_date
+                        .map_or_else(|| "..".to_string(), |d: time::Date| d.to_string());
+                    format!(" [{start} to {end}] ")
+                } else {
+                    String::new()
+                };
 
             let block = Block::default()
                 .border_type(BorderType::Rounded)
