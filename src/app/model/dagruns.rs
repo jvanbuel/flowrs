@@ -84,7 +84,7 @@ impl DagRunModel {
         color: ratatui::style::Color,
         width: usize,
     ) -> Line<'static> {
-        const FILLED_CHAR: &str = "─";
+        const FILLED_CHAR: &str = "▃";
         const EMPTY_CHAR: &str = " ";
 
         // Calculate the ratio (0.0 to 1.0)
