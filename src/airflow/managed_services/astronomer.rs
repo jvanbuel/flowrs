@@ -203,9 +203,16 @@ impl fmt::Debug for AstronomerAuth {
     }
 }
 
-#[derive(Debug)]
 pub struct AstronomerAuthProvider {
     api_token: String,
+}
+
+impl fmt::Debug for AstronomerAuthProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("AstronomerAuthProvider")
+            .field("api_token", &"***redacted***")
+            .finish()
+    }
 }
 
 impl From<&AstronomerAuth> for AstronomerAuthProvider {
