@@ -119,6 +119,10 @@ impl TimeBounded for DagRun {
     fn end_date(&self) -> Option<OffsetDateTime> {
         self.end_date
     }
+
+    fn is_running(&self) -> bool {
+        self.state == DagRunState::Running || self.state == DagRunState::Queued
+    }
 }
 
 // From trait implementations for v1 models
