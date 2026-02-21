@@ -10,6 +10,11 @@ pub static DAG_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
             description: "Toggle pause/unpause a DAG",
         },
         Command {
+            name: "Show",
+            key_binding: "v",
+            description: "Show DAG code",
+        },
+        Command {
             name: "Trigger",
             key_binding: "t",
             description: "Trigger a DAG run",
