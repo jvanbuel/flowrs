@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::airflow::model::common::DagId;
 use crate::airflow::traits::AirflowClient;
+use crate::app::model::dagruns::DagCodeView;
 use crate::app::state::{App, Panel};
 
 /// Handle updating DAGs and their statistics from the Airflow server.
@@ -145,19 +146,24 @@ pub async fn handle_get_dag_code(
         let mut app = app.lock().unwrap();
         match dag_code {
             Ok(dag_code) => {
-                let view = Some(crate::app::model::dagruns::DagCodeView::new(&dag_code));
-                if app.active_panel == Panel::Dag {
-                    app.dags.dag_code = view;
-                } else {
-                    app.dagruns.dag_code = view;
+                let view = Some(DagCodeView::new(&dag_code));
+                match app.active_panel {
+                    Panel::Dag => app.dags.dag_code = view,
+                    Panel::DAGRun => app.dagruns.dag_code = view,
+                    _ => {}
                 }
             }
-            Err(e) => {
-                app.dags.popup.show_error(vec![e.to_string()]);
-            }
+            Err(e) => match app.active_panel {
+                Panel::DAGRun => app.dagruns.popup.show_error(vec![e.to_string()]),
+                _ => app.dags.popup.show_error(vec![e.to_string()]),
+            },
         }
     } else {
         let mut app = app.lock().unwrap();
-        app.dags.popup.show_error(vec!["DAG not found".to_string()]);
+        let error = vec!["DAG not found".to_string()];
+        match app.active_panel {
+            Panel::DAGRun => app.dagruns.popup.show_error(error),
+            _ => app.dags.popup.show_error(error),
+        }
     }
 }
