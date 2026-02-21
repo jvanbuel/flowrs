@@ -1,5 +1,6 @@
 use crossterm::event::KeyCode;
 use log::debug;
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -56,18 +57,82 @@ impl Default for DagRunModel {
 }
 
 pub struct DagCodeView {
-    pub lines: Vec<Line<'static>>,
-    pub vertical_scroll: usize,
-    pub vertical_scroll_state: ScrollbarState,
+    lines: Vec<Line<'static>>,
+    vertical_scroll: usize,
+    vertical_scroll_state: ScrollbarState,
+    event_buffer: Vec<KeyCode>,
 }
 
 impl DagCodeView {
     pub fn new(code: &str) -> Self {
+        let lines = code_to_lines(code);
+        let content_length = lines.len();
         Self {
-            lines: code_to_lines(code),
+            lines,
             vertical_scroll: 0,
-            vertical_scroll_state: ScrollbarState::default(),
+            vertical_scroll_state: ScrollbarState::default().content_length(content_length),
+            event_buffer: Vec::new(),
         }
+    }
+
+    /// Handle a key event. Returns `true` if the view should be closed.
+    pub fn update(&mut self, key_code: KeyCode) -> bool {
+        match key_code {
+            KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => return true,
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.vertical_scroll = self.vertical_scroll.saturating_add(1);
+                self.vertical_scroll_state =
+                    self.vertical_scroll_state.position(self.vertical_scroll);
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.vertical_scroll = self.vertical_scroll.saturating_sub(1);
+                self.vertical_scroll_state =
+                    self.vertical_scroll_state.position(self.vertical_scroll);
+            }
+            KeyCode::Char('G') => {
+                self.vertical_scroll = self.lines.len().saturating_sub(1);
+                self.vertical_scroll_state =
+                    self.vertical_scroll_state.position(self.vertical_scroll);
+            }
+            KeyCode::Char('g') => {
+                if let Some(KeyCode::Char('g')) = self.event_buffer.pop() {
+                    self.vertical_scroll = 0;
+                    self.vertical_scroll_state = self.vertical_scroll_state.position(0);
+                } else {
+                    self.event_buffer.push(key_code);
+                }
+            }
+            _ => {}
+        }
+        false
+    }
+
+    pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
+        let area = popup_area(area, 60, 90);
+
+        let popup = Block::default()
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .title(" DAG Code ")
+            .border_style(BORDER_STYLE)
+            .style(SURFACE_STYLE)
+            .title_style(TITLE_STYLE);
+
+        #[allow(clippy::cast_possible_truncation)]
+        let code_text = Paragraph::new(self.lines.clone())
+            .block(popup)
+            .style(DEFAULT_STYLE)
+            .wrap(Wrap { trim: false })
+            .scroll((self.vertical_scroll as u16, 0));
+
+        Clear.render(area, buf);
+        code_text.render(area, buf);
+
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(Some("↑"))
+            .end_symbol(Some("↓"));
+
+        scrollbar.render(area, buf, &mut self.vertical_scroll_state);
     }
 }
 
@@ -155,21 +220,8 @@ impl DagRunModel {
         let Some(view) = self.dag_code.as_mut() else {
             return KeyResult::Ignored;
         };
-        match key_code {
-            KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
-                self.dag_code = None;
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                view.vertical_scroll = view.vertical_scroll.saturating_add(1);
-                view.vertical_scroll_state =
-                    view.vertical_scroll_state.position(view.vertical_scroll);
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                view.vertical_scroll = view.vertical_scroll.saturating_sub(1);
-                view.vertical_scroll_state =
-                    view.vertical_scroll_state.position(view.vertical_scroll);
-            }
-            _ => {}
+        if view.update(key_code) {
+            self.dag_code = None;
         }
         KeyResult::Consumed
     }
@@ -452,31 +504,7 @@ impl Widget for &mut DagRunModel {
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
         if let Some(view) = &mut self.dag_code {
-            let area = popup_area(area, 60, 90);
-
-            let popup = Block::default()
-                .border_type(BorderType::Rounded)
-                .borders(Borders::ALL)
-                .title(" DAG Code ")
-                .border_style(BORDER_STYLE)
-                .style(SURFACE_STYLE)
-                .title_style(TITLE_STYLE);
-
-            #[allow(clippy::cast_possible_truncation)]
-            let code_text = Paragraph::new(view.lines.clone())
-                .block(popup)
-                .style(DEFAULT_STYLE)
-                .wrap(Wrap { trim: false })
-                .scroll((view.vertical_scroll as u16, 0));
-
-            Clear.render(area, buf); //this clears out the background
-            code_text.render(area, buf);
-
-            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                .begin_symbol(Some("↑"))
-                .end_symbol(Some("↓"));
-
-            scrollbar.render(area, buf, &mut view.vertical_scroll_state);
+            view.render(area, buf);
         }
 
         // Render any active popup (error, commands, or custom)

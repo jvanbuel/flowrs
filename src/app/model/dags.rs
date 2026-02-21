@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
@@ -19,6 +19,7 @@ use crate::ui::theme::{
     BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
 };
 
+use super::dagruns::DagCodeView;
 use super::popup::dags::DagPopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
@@ -31,6 +32,8 @@ pub struct DagModel {
     pub dag_stats: HashMap<DagId, Vec<DagStatistic>>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagPopUp>,
+    /// DAG source code viewer
+    pub dag_code: Option<DagCodeView>,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
 }
@@ -41,6 +44,7 @@ impl Default for DagModel {
             table: FilterableTable::new(),
             dag_stats: HashMap::new(),
             popup: Popup::None,
+            dag_code: None,
             ticks: 0,
             event_buffer: Vec::new(),
         }
@@ -72,6 +76,17 @@ impl DagModel {
             }
         }
         Some(messages)
+    }
+
+    /// Handle dag code viewer navigation
+    fn handle_dag_code_viewer(&mut self, key_code: KeyCode) -> KeyResult {
+        let Some(view) = self.dag_code.as_mut() else {
+            return KeyResult::Ignored;
+        };
+        if view.update(key_code) {
+            self.dag_code = None;
+        }
+        KeyResult::Consumed
     }
 
     /// Handle model-specific keys
@@ -116,6 +131,17 @@ impl DagModel {
                 } else {
                     self.popup
                         .show_error(vec!["No DAG selected to open in the browser".to_string()]);
+                    KeyResult::Consumed
+                }
+            }
+            KeyCode::Char('v') => {
+                if let Some(dag) = self.table.current() {
+                    KeyResult::ConsumedWith(vec![WorkerMessage::GetDagCode {
+                        dag_id: dag.dag_id.clone(),
+                    }])
+                } else {
+                    self.popup
+                        .show_error(vec!["No DAG selected to view code".to_string()]);
                     KeyResult::Consumed
                 }
             }
@@ -164,6 +190,7 @@ impl Model for DagModel {
                     .table
                     .handle_filter_key(key_event)
                     .or_else(|| self.popup.handle_dismiss(key_event.code))
+                    .or_else(|| self.handle_dag_code_viewer(key_event.code))
                     .or_else(|| {
                         self.table
                             .handle_navigation(key_event.code, &mut self.event_buffer)
@@ -261,6 +288,10 @@ impl Widget for &mut DagModel {
 
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
+        if let Some(view) = &mut self.dag_code {
+            view.render(area, buf);
+        }
+
         // Render any active popup (error, commands, or custom)
         (&self.popup).render(area, buf);
 
@@ -269,16 +300,6 @@ impl Widget for &mut DagModel {
             trigger_popup.render(area, buf);
         }
     }
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-#[allow(dead_code)]
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
 }
 
 fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -> String {

@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::airflow::model::common::DagId;
 use crate::airflow::traits::AirflowClient;
-use crate::app::state::App;
+use crate::app::state::{App, Panel};
 
 /// Handle updating DAGs and their statistics from the Airflow server.
 /// On cold start (empty cache), fetches DAGs first then stats sequentially so
@@ -145,8 +145,12 @@ pub async fn handle_get_dag_code(
         let mut app = app.lock().unwrap();
         match dag_code {
             Ok(dag_code) => {
-                app.dagruns.dag_code =
-                    Some(crate::app::model::dagruns::DagCodeView::new(&dag_code));
+                let view = Some(crate::app::model::dagruns::DagCodeView::new(&dag_code));
+                if app.active_panel == Panel::Dag {
+                    app.dags.dag_code = view;
+                } else {
+                    app.dagruns.dag_code = view;
+                }
             }
             Err(e) => {
                 app.dags.popup.show_error(vec![e.to_string()]);
