@@ -7,7 +7,6 @@ use reqwest::RequestBuilder;
 
 use super::ComposerAuth;
 
-#[derive(Clone)]
 pub struct ComposerAuthProvider {
     project_id: String,
     environment_name: String,
@@ -50,9 +49,5 @@ impl AuthProvider for ComposerAuthProvider {
             .await
             .context("Failed to get GCP access token")?;
         Ok(request.bearer_auth(token.token))
-    }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
     }
 }

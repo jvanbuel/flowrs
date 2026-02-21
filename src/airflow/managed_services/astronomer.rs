@@ -203,7 +203,7 @@ impl fmt::Debug for AstronomerAuth {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AstronomerAuthProvider {
     api_token: String,
 }
@@ -221,10 +221,6 @@ impl AuthProvider for AstronomerAuthProvider {
     async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
         info!("🔑 Astronomer Auth");
         Ok(request.bearer_auth(&self.api_token))
-    }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
     }
 }
 

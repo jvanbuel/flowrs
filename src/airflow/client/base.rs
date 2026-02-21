@@ -10,7 +10,6 @@ use crate::airflow::config::AirflowConfig;
 
 /// Base HTTP client for Airflow API communication.
 /// Handles authentication and provides base request building functionality.
-#[derive(Clone)]
 pub struct BaseClient {
     pub client: reqwest::Client,
     pub config: AirflowConfig,

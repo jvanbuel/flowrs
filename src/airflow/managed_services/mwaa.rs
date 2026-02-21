@@ -177,7 +177,7 @@ pub struct MwaaAuth {
     pub environment_name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MwaaAuthProvider {
     token: MwaaTokenType,
     environment_name: String,
@@ -202,10 +202,6 @@ impl AuthProvider for MwaaAuthProvider {
             }
             MwaaTokenType::JwtToken(token) => Ok(request.bearer_auth(token)),
         }
-    }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
     }
 }
 

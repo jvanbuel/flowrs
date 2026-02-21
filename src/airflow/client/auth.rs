@@ -16,18 +16,11 @@ use crate::airflow::managed_services::mwaa::MwaaAuthProvider;
 #[async_trait]
 pub trait AuthProvider: Send + Sync {
     async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder>;
-    fn clone_box(&self) -> Box<dyn AuthProvider>;
-}
-
-impl Clone for Box<dyn AuthProvider> {
-    fn clone(&self) -> Self {
-        self.clone_box()
-    }
 }
 
 // --- Core (non-managed-service) providers ---
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BasicAuthProvider {
     username: String,
     password: String,
@@ -39,13 +32,9 @@ impl AuthProvider for BasicAuthProvider {
         info!("🔑 Basic Auth: {}", self.username);
         Ok(request.basic_auth(&self.username, Some(&self.password)))
     }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
-    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct StaticTokenProvider {
     token: String,
 }
@@ -56,13 +45,9 @@ impl AuthProvider for StaticTokenProvider {
         info!("🔑 Token Auth (static)");
         Ok(request.bearer_auth(self.token.trim()))
     }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
-    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct CommandTokenProvider {
     cmd: String,
 }
@@ -93,10 +78,6 @@ impl AuthProvider for CommandTokenProvider {
             .trim()
             .replace('"', "");
         Ok(request.bearer_auth(token))
-    }
-
-    fn clone_box(&self) -> Box<dyn AuthProvider> {
-        Box::new(self.clone())
     }
 }
 
@@ -192,15 +173,6 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("Token helper command failed"));
-    }
-
-    #[test]
-    fn test_clone_box() {
-        let provider: Box<dyn AuthProvider> = Box::new(BasicAuthProvider {
-            username: "user".to_string(),
-            password: "pass".to_string(),
-        });
-        let _cloned = provider.clone();
     }
 
     #[test]
