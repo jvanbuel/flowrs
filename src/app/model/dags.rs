@@ -6,7 +6,10 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{
+    Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
+    StatefulWidget, Table, Widget, Wrap,
+};
 use time::OffsetDateTime;
 
 use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
@@ -16,9 +19,11 @@ use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
-    BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
+    BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE, TABLE_HEADER_STYLE,
+    TEXT_PRIMARY, TITLE_STYLE,
 };
 
+use super::dagruns::DagCodeView;
 use super::popup::dags::DagPopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::{OpenItem, WorkerMessage};
@@ -31,6 +36,8 @@ pub struct DagModel {
     pub dag_stats: HashMap<DagId, Vec<DagStatistic>>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagPopUp>,
+    /// DAG source code viewer
+    pub dag_code: Option<DagCodeView>,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
 }
@@ -41,6 +48,7 @@ impl Default for DagModel {
             table: FilterableTable::new(),
             dag_stats: HashMap::new(),
             popup: Popup::None,
+            dag_code: None,
             ticks: 0,
             event_buffer: Vec::new(),
         }
@@ -72,6 +80,30 @@ impl DagModel {
             }
         }
         Some(messages)
+    }
+
+    /// Handle dag code viewer navigation
+    fn handle_dag_code_viewer(&mut self, key_code: KeyCode) -> KeyResult {
+        let Some(view) = self.dag_code.as_mut() else {
+            return KeyResult::Ignored;
+        };
+        match key_code {
+            KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
+                self.dag_code = None;
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                view.vertical_scroll = view.vertical_scroll.saturating_add(1);
+                view.vertical_scroll_state =
+                    view.vertical_scroll_state.position(view.vertical_scroll);
+            }
+            KeyCode::Up | KeyCode::Char('k') => {
+                view.vertical_scroll = view.vertical_scroll.saturating_sub(1);
+                view.vertical_scroll_state =
+                    view.vertical_scroll_state.position(view.vertical_scroll);
+            }
+            _ => {}
+        }
+        KeyResult::Consumed
     }
 
     /// Handle model-specific keys
@@ -116,6 +148,17 @@ impl DagModel {
                 } else {
                     self.popup
                         .show_error(vec!["No DAG selected to open in the browser".to_string()]);
+                    KeyResult::Consumed
+                }
+            }
+            KeyCode::Char('v') => {
+                if let Some(dag) = self.table.current() {
+                    KeyResult::ConsumedWith(vec![WorkerMessage::GetDagCode {
+                        dag_id: dag.dag_id.clone(),
+                    }])
+                } else {
+                    self.popup
+                        .show_error(vec!["No DAG selected to view code".to_string()]);
                     KeyResult::Consumed
                 }
             }
@@ -164,6 +207,7 @@ impl Model for DagModel {
                     .table
                     .handle_filter_key(key_event)
                     .or_else(|| self.popup.handle_dismiss(key_event.code))
+                    .or_else(|| self.handle_dag_code_viewer(key_event.code))
                     .or_else(|| {
                         self.table
                             .handle_navigation(key_event.code, &mut self.event_buffer)
@@ -260,6 +304,34 @@ impl Widget for &mut DagModel {
         .row_highlight_style(SELECTED_ROW_STYLE);
 
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
+
+        if let Some(view) = &mut self.dag_code {
+            let area = popup_area(area, 60, 90);
+
+            let popup = Block::default()
+                .border_type(BorderType::Rounded)
+                .borders(Borders::ALL)
+                .title(" DAG Code ")
+                .border_style(BORDER_STYLE)
+                .style(SURFACE_STYLE)
+                .title_style(TITLE_STYLE);
+
+            #[allow(clippy::cast_possible_truncation)]
+            let code_text = Paragraph::new(view.lines.clone())
+                .block(popup)
+                .style(DEFAULT_STYLE)
+                .wrap(Wrap { trim: false })
+                .scroll((view.vertical_scroll as u16, 0));
+
+            Clear.render(area, buf);
+            code_text.render(area, buf);
+
+            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(Some("↑"))
+                .end_symbol(Some("↓"));
+
+            scrollbar.render(area, buf, &mut view.vertical_scroll_state);
+        }
 
         // Render any active popup (error, commands, or custom)
         (&self.popup).render(area, buf);
