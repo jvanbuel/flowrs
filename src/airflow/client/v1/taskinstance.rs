@@ -4,7 +4,10 @@ use log::{debug, info};
 use reqwest::{Method, Response};
 
 use super::model;
-use crate::airflow::{model::common::TaskInstanceList, traits::TaskInstanceOperations};
+use crate::airflow::{
+    model::common::{TaskInstanceList, TaskTryGantt},
+    traits::TaskInstanceOperations,
+};
 
 use super::V1Client;
 
@@ -109,6 +112,31 @@ impl TaskInstanceOperations for V1Client {
             task_instances: all_task_instances.into_iter().map(Into::into).collect(),
             total_entries,
         })
+    }
+
+    async fn list_task_instance_tries(
+        &self,
+        dag_id: &str,
+        dag_run_id: &str,
+        task_id: &str,
+    ) -> Result<Vec<TaskTryGantt>> {
+        let response: Response = self
+            .base_api(
+                Method::GET,
+                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries"),
+            )
+            .await?
+            .send()
+            .await?
+            .error_for_status()?;
+
+        let tries: model::taskinstance::TaskInstanceTriesResponse = response.json().await?;
+        debug!(
+            "Fetched {} tries for task {task_id}",
+            tries.task_instances.len()
+        );
+
+        Ok(tries.task_instances.into_iter().map(Into::into).collect())
     }
 
     async fn mark_task_instance(

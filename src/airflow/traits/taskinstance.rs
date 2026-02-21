@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::airflow::model::common::TaskInstanceList;
+use crate::airflow::model::common::{TaskInstanceList, TaskTryGantt};
 
 /// Trait for Task Instance operations
 #[async_trait]
@@ -13,6 +13,14 @@ pub trait TaskInstanceOperations: Send + Sync {
     /// List all task instances across all DAG runs
     #[allow(unused)]
     async fn list_all_taskinstances(&self) -> Result<TaskInstanceList>;
+
+    /// List all tries for a specific task instance (for Gantt chart retry visualization)
+    async fn list_task_instance_tries(
+        &self,
+        dag_id: &str,
+        dag_run_id: &str,
+        task_id: &str,
+    ) -> Result<Vec<TaskTryGantt>>;
 
     /// Mark a task instance with a specific status
     async fn mark_task_instance(

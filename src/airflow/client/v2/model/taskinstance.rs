@@ -54,6 +54,29 @@ pub struct TaskInstance {
     pub dag_version: Option<DagVersion>,
 }
 
+/// Response model for a single task instance try from the tries endpoint.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TaskInstanceTryResponse {
+    pub task_id: String,
+    pub dag_id: String,
+    pub dag_run_id: String,
+    #[serde(with = "time::serde::iso8601::option")]
+    pub start_date: Option<OffsetDateTime>,
+    #[serde(with = "time::serde::iso8601::option")]
+    pub end_date: Option<OffsetDateTime>,
+    pub duration: Option<f64>,
+    pub state: Option<String>,
+    pub try_number: u32,
+    pub map_index: i64,
+}
+
+/// Response model for a collection of task instance tries.
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TaskInstanceTriesResponse {
+    pub task_instances: Vec<TaskInstanceTryResponse>,
+    pub total_entries: i64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Trigger {
     pub id: i64,
