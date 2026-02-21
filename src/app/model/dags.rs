@@ -3,13 +3,10 @@ use std::collections::HashMap;
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, BorderType, Borders, Clear, Paragraph, Row, Scrollbar, ScrollbarOrientation,
-    StatefulWidget, Table, Widget, Wrap,
-};
+use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
 use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
@@ -19,8 +16,7 @@ use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
-    BORDER_STYLE, DAG_ACTIVE, DEFAULT_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE, TABLE_HEADER_STYLE,
-    TEXT_PRIMARY, TITLE_STYLE,
+    BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
 };
 
 use super::dagruns::DagCodeView;
@@ -87,21 +83,8 @@ impl DagModel {
         let Some(view) = self.dag_code.as_mut() else {
             return KeyResult::Ignored;
         };
-        match key_code {
-            KeyCode::Esc | KeyCode::Char('q' | 'v') | KeyCode::Enter => {
-                self.dag_code = None;
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                view.vertical_scroll = view.vertical_scroll.saturating_add(1);
-                view.vertical_scroll_state =
-                    view.vertical_scroll_state.position(view.vertical_scroll);
-            }
-            KeyCode::Up | KeyCode::Char('k') => {
-                view.vertical_scroll = view.vertical_scroll.saturating_sub(1);
-                view.vertical_scroll_state =
-                    view.vertical_scroll_state.position(view.vertical_scroll);
-            }
-            _ => {}
+        if view.update(key_code) {
+            self.dag_code = None;
         }
         KeyResult::Consumed
     }
@@ -306,31 +289,7 @@ impl Widget for &mut DagModel {
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
         if let Some(view) = &mut self.dag_code {
-            let area = popup_area(area, 60, 90);
-
-            let popup = Block::default()
-                .border_type(BorderType::Rounded)
-                .borders(Borders::ALL)
-                .title(" DAG Code ")
-                .border_style(BORDER_STYLE)
-                .style(SURFACE_STYLE)
-                .title_style(TITLE_STYLE);
-
-            #[allow(clippy::cast_possible_truncation)]
-            let code_text = Paragraph::new(view.lines.clone())
-                .block(popup)
-                .style(DEFAULT_STYLE)
-                .wrap(Wrap { trim: false })
-                .scroll((view.vertical_scroll as u16, 0));
-
-            Clear.render(area, buf);
-            code_text.render(area, buf);
-
-            let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-                .begin_symbol(Some("↑"))
-                .end_symbol(Some("↓"));
-
-            scrollbar.render(area, buf, &mut view.vertical_scroll_state);
+            view.render(area, buf);
         }
 
         // Render any active popup (error, commands, or custom)
@@ -341,16 +300,6 @@ impl Widget for &mut DagModel {
             trigger_popup.render(area, buf);
         }
     }
-}
-
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
-#[allow(dead_code)]
-fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
-    let vertical = Layout::vertical([Constraint::Percentage(percent_y)]).flex(Flex::Center);
-    let horizontal = Layout::horizontal([Constraint::Percentage(percent_x)]).flex(Flex::Center);
-    let [area] = vertical.areas(area);
-    let [area] = horizontal.areas(area);
-    area
 }
 
 fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -> String {
