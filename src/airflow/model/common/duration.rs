@@ -128,7 +128,7 @@ mod tests {
             running: true,
         };
         let duration = calculate_duration(&entity).unwrap();
-        assert!(duration >= 59.0 && duration <= 62.0);
+        assert!((59.0..=62.0).contains(&duration));
     }
 
     #[test]
