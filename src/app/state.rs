@@ -286,7 +286,7 @@ impl App {
         };
 
         match message {
-            WorkerMessage::UpdateDagRuns { dag_id } => {
+            WorkerMessage::UpdateDagRuns { dag_id, .. } => {
                 self.nav_context = NavigationContext::Dag {
                     environment: env,
                     dag_id: dag_id.clone(),

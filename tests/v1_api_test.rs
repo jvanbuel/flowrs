@@ -68,7 +68,7 @@ async fn test_v1_list_dagruns() {
     let dag_list = client.list_dags().await.expect("Failed to list DAGs");
 
     if let Some(dag) = dag_list.dags.first() {
-        let result = client.list_dagruns(&dag.dag_id).await;
+        let result = client.list_dagruns(&dag.dag_id, &Default::default()).await;
         assert!(
             result.is_ok(),
             "Failed to list DAG runs: {:?}",
