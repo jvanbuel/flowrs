@@ -72,11 +72,16 @@ pub struct CommandTokenProvider {
 impl AuthProvider for CommandTokenProvider {
     async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
         info!("🔑 Token Auth (command): {}", self.cmd);
-        let output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(&self.cmd)
-            .output()
-            .context("Failed to run token helper command")?;
+        let cmd = self.cmd.clone();
+        let output = tokio::task::spawn_blocking(move || {
+            std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&cmd)
+                .output()
+                .context("Failed to run token helper command")
+        })
+        .await
+        .context("Token helper task panicked")??;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -89,10 +94,9 @@ impl AuthProvider for CommandTokenProvider {
             ));
         }
 
-        let token = String::from_utf8(output.stdout)
-            .context("Token helper returned invalid UTF-8")?
-            .trim()
-            .replace('"', "");
+        let token =
+            String::from_utf8(output.stdout).context("Token helper returned invalid UTF-8")?;
+        let token = token.trim().trim_matches('"');
         Ok(request.bearer_auth(token))
     }
 }
