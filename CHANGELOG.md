@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4](https://github.com/jvanbuel/flowrs/compare/v0.9.3...v0.9.4) - 2026-02-23
+
+### Other
+
+- *(deps)* bump strum from 0.27.2 to 0.28.0
+- *(deps)* bump throbber-widgets-tui from 0.10.0 to 0.11.0
+
 ## [0.9.3](https://github.com/jvanbuel/flowrs/compare/v0.9.2...v0.9.3) - 2026-02-21
 
 ### Added
