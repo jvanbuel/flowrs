@@ -11,7 +11,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 
 use crate::airflow::graph::{sort_task_instances, TaskGraph};
 use crate::airflow::model::common::{
-    calculate_duration, format_duration, DagRunId, GanttData, TaskId, TaskInstance,
+    calculate_duration, format_duration, DagId, DagRunId, GanttData, TaskId, TaskInstance,
     TaskInstanceState,
 };
 use crate::app::events::custom::FlowrsEvent;
@@ -33,9 +33,9 @@ pub struct TaskInstanceModel {
     pub popup: Popup<TaskInstancePopUp>,
     /// Gantt chart data computed from task instances and their tries
     pub gantt_data: GanttData,
-    /// Tracks which DAG run the cached `gantt_data` belongs to, so we can
-    /// invalidate it when the user navigates to a different run.
-    current_dag_run_id: Option<DagRunId>,
+    /// Tracks which DAG + run the cached `gantt_data` belongs to, so we can
+    /// invalidate it when the user navigates to a different DAG or run.
+    current_gantt_key: Option<(DagId, DagRunId)>,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
     pub task_graph: Option<TaskGraph>,
@@ -47,7 +47,7 @@ impl Default for TaskInstanceModel {
             table: FilterableTable::new(),
             popup: Popup::None,
             gantt_data: GanttData::default(),
-            current_dag_run_id: None,
+            current_gantt_key: None,
             ticks: 0,
             event_buffer: Vec::new(),
             task_graph: None,
@@ -60,13 +60,14 @@ impl TaskInstanceModel {
         Self::default()
     }
 
-    /// Notify the model which DAG run is now active.
-    /// Resets `gantt_data` when the run changes so cached retry history from a
-    /// previous run cannot leak into the new one.
-    pub fn set_dag_run_id(&mut self, dag_run_id: &DagRunId) {
-        if self.current_dag_run_id.as_ref() != Some(dag_run_id) {
+    /// Notify the model which DAG + run is now active.
+    /// Resets `gantt_data` when either the DAG or the run changes so cached
+    /// retry history cannot leak into a different context.
+    pub fn set_gantt_context(&mut self, dag_id: &DagId, dag_run_id: &DagRunId) {
+        let key = (dag_id.clone(), dag_run_id.clone());
+        if self.current_gantt_key.as_ref() != Some(&key) {
             self.gantt_data = GanttData::default();
-            self.current_dag_run_id = Some(dag_run_id.clone());
+            self.current_gantt_key = Some(key);
         }
     }
 
