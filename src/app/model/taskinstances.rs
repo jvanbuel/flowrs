@@ -64,15 +64,38 @@ impl TaskInstanceModel {
 
     /// Rebuild Gantt data from the current task instance list.
     /// Returns task IDs that have retries (`try_number` > 1) for fetching detailed tries.
+    ///
+    /// For tasks with retries, previously cached try history is preserved so the
+    /// Gantt chart does not flicker while fresh retry data is being fetched.
     pub fn rebuild_gantt(&mut self) -> Vec<TaskId> {
-        self.gantt_data = GanttData::from_task_instances(&self.table.all);
+        let mut new_gantt = GanttData::from_task_instances(&self.table.all);
+
+        // Collect retried task IDs and carry over cached retry data
         let mut seen = HashSet::new();
-        self.table
+        let retried: Vec<TaskId> = self
+            .table
             .all
             .iter()
             .filter(|ti| ti.try_number > 1 && seen.insert(ti.task_id.clone()))
             .map(|ti| ti.task_id.clone())
-            .collect()
+            .collect();
+
+        for task_id in &retried {
+            if let Some(cached_tries) = self.gantt_data.task_tries.get(task_id) {
+                // Only carry over if the cache has more tries than the fresh data
+                // (i.e. it already includes the detailed retry history)
+                let new_tries = new_gantt.task_tries.get(task_id);
+                if cached_tries.len() > new_tries.map_or(0, Vec::len) {
+                    new_gantt
+                        .task_tries
+                        .insert(task_id.clone(), cached_tries.clone());
+                }
+            }
+        }
+
+        new_gantt.recompute_window();
+        self.gantt_data = new_gantt;
+        retried
     }
 
     /// Mark a task instance with a new status (optimistic update)

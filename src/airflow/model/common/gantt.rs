@@ -80,7 +80,7 @@ impl GanttData {
     }
 
     /// Recalculate `window_start` and `window_end` from all tries.
-    fn recompute_window(&mut self) {
+    pub fn recompute_window(&mut self) {
         let mut min_start: Option<OffsetDateTime> = None;
         let mut max_end: Option<OffsetDateTime> = None;
         let mut any_running = false;
