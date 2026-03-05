@@ -278,15 +278,9 @@ impl Widget for &mut TaskInstanceModel {
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
 
-        // Calculate the width available for the Gantt column
+        // Calculate the width available for the Gantt column (capped at half the panel)
         let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
-        let fixed_columns_width: u16 = 10 + 5 + 5; // Duration + State + Tries
-        let task_id_width: u16 = 30;
-        let num_columns: u16 = 5;
-        let column_gaps: u16 = num_columns - 1; // ratatui default column_spacing = 1
-        let gantt_width = table_inner_width
-            .saturating_sub(fixed_columns_width + task_id_width + column_gaps)
-            .max(10) as usize;
+        let gantt_width = (table_inner_width / 2).max(10);
 
         let rows = self
             .table
@@ -306,18 +300,19 @@ impl Widget for &mut TaskInstanceModel {
                             .map_or(AirflowStateColor::None, AirflowStateColor::from),
                     )),
                     Line::from(item.try_number.to_string()),
-                    self.gantt_data.create_bar(&item.task_id, gantt_width),
+                    self.gantt_data
+                        .create_bar(&item.task_id, gantt_width.into()),
                 ])
                 .style(self.table.row_style(idx))
             });
         let t = Table::new(
             rows,
             &[
-                Constraint::Length(task_id_width), // Task ID
-                Constraint::Length(10),            // Duration
-                Constraint::Length(5),             // State
-                Constraint::Length(5),             // Tries
-                Constraint::Fill(1),               // Gantt chart (expands)
+                Constraint::Fill(1),             // Task ID (expands)
+                Constraint::Length(10),          // Duration
+                Constraint::Length(5),           // State
+                Constraint::Length(5),           // Tries
+                Constraint::Length(gantt_width), // Gantt chart (capped at half)
             ],
         )
         .header(header)
