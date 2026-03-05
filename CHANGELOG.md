@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.6](https://github.com/jvanbuel/flowrs/compare/v0.9.5...v0.9.6) - 2026-03-05
+
+### Fixed
+
+- give task instance names more room in TaskInstance panel
+
 ## [0.9.5](https://github.com/jvanbuel/flowrs/compare/v0.9.4...v0.9.5) - 2026-02-25
 
 ### Fixed
