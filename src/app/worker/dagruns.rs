@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use log::debug;
 
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
-use crate::airflow::traits::AirflowClient;
+use crate::airflow::traits::{AirflowClient, DagRunDateFilter};
 use crate::app::model::popup::dagruns::mark::MarkState;
 use crate::app::state::App;
 
@@ -16,8 +16,9 @@ pub async fn handle_update_dag_runs(
     client: &Arc<dyn AirflowClient>,
     dag_id: &DagId,
     env_name: &str,
+    date_filter: &DagRunDateFilter,
 ) {
-    let dag_runs = client.list_dagruns(dag_id).await;
+    let dag_runs = client.list_dagruns(dag_id, date_filter).await;
     let mut app = app.lock().unwrap();
     match dag_runs {
         Ok(dag_runs) => {
@@ -89,7 +90,8 @@ pub async fn handle_trigger_dag_run(
     match dag_run {
         Ok(()) => {
             // Refresh the dag runs list to show the newly triggered run
-            handle_update_dag_runs(app, client, dag_id, env_name).await;
+            handle_update_dag_runs(app, client, dag_id, env_name, &DagRunDateFilter::default())
+                .await;
         }
         Err(e) => {
             debug!("Error triggering dag_run: {e}");

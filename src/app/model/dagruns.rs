@@ -17,6 +17,7 @@ use time::format_description;
 use crate::airflow::model::common::{
     calculate_duration, format_duration, DagRun, DagRunId, DagRunState,
 };
+use crate::airflow::traits::DagRunDateFilter;
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
@@ -26,6 +27,7 @@ use crate::ui::theme::{
 use crate::ui::TIME_FORMAT;
 
 use super::popup::dagruns::commands::DAGRUN_COMMAND_POP_UP;
+use super::popup::dagruns::date_filter::DateFilterPopup;
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
 use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
@@ -40,6 +42,8 @@ pub struct DagRunModel {
     pub table: FilterableTable<DagRun>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagRunPopUp>,
+    /// Date range filter applied to API queries
+    pub date_filter: DagRunDateFilter,
     ticks: u32,
     event_buffer: Vec<KeyCode>,
 }
@@ -50,6 +54,7 @@ impl Default for DagRunModel {
             dag_code: None,
             table: FilterableTable::new(),
             popup: Popup::None,
+            date_filter: DagRunDateFilter::default(),
             ticks: 0,
             event_buffer: Vec::new(),
         }
@@ -236,6 +241,7 @@ impl DagRunModel {
             DagRunPopUp::Clear(p) => p.update(event, ctx),
             DagRunPopUp::Mark(p) => p.update(event, ctx),
             DagRunPopUp::Trigger(p) => p.update(event, ctx),
+            DagRunPopUp::DateFilter(p) => p.update(event, ctx),
         };
         debug!("Popup messages: {messages:?}");
 
@@ -244,11 +250,27 @@ impl DagRunModel {
                 key_event.code,
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
+                // If date filter was confirmed, apply the filter and trigger a refresh
+                let mut extra_messages = Vec::new();
+                if let DagRunPopUp::DateFilter(p) = custom_popup {
+                    if p.confirmed {
+                        self.date_filter = p.to_date_filter();
+                        if let Some(dag_id) = ctx.dag_id() {
+                            extra_messages.push(WorkerMessage::UpdateDagRuns {
+                                dag_id: dag_id.clone(),
+                                date_filter: self.date_filter.clone(),
+                            });
+                        }
+                    }
+                }
                 let exit_visual =
                     matches!(custom_popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
                 self.popup.close();
                 if exit_visual {
                     self.table.visual_anchor = None;
+                }
+                if !extra_messages.is_empty() {
+                    return Some(extra_messages);
                 }
             }
         }
@@ -282,6 +304,13 @@ impl DagRunModel {
                             )));
                     }
                 }
+                KeyResult::Consumed
+            }
+            KeyCode::Char('d') => {
+                self.popup
+                    .show_custom(DagRunPopUp::DateFilter(DateFilterPopup::new(
+                        &self.date_filter,
+                    )));
                 KeyResult::Consumed
             }
             KeyCode::Char('?') => {
@@ -355,6 +384,7 @@ impl Model for DagRunModel {
                 let worker_messages = if let Some(dag_id) = ctx.dag_id() {
                     vec![WorkerMessage::UpdateDagRuns {
                         dag_id: dag_id.clone(),
+                        date_filter: self.date_filter.clone(),
                     }]
                 } else {
                     Vec::default()
@@ -488,11 +518,28 @@ impl Widget for &mut DagRunModel {
         )
         .header(header)
         .block({
+            let date_filter_title =
+                if self.date_filter.start_date.is_some() || self.date_filter.end_date.is_some() {
+                    let start = self
+                        .date_filter
+                        .start_date
+                        .map_or_else(|| "..".to_string(), |d: time::Date| d.to_string());
+                    let end = self
+                        .date_filter
+                        .end_date
+                        .map_or_else(|| "..".to_string(), |d: time::Date| d.to_string());
+                    format!(" [{start} to {end}] ")
+                } else {
+                    String::new()
+                };
+
             let block = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(BORDER_STYLE)
-                .title(" Press <?> to see available commands ");
+                .title(format!(
+                    " Press <?> to see available commands{date_filter_title}"
+                ));
             if let Some(title) = self.table.status_title() {
                 block.title_bottom(title)
             } else {
@@ -514,6 +561,7 @@ impl Widget for &mut DagRunModel {
             Some(DagRunPopUp::Clear(popup)) => popup.render(area, buf),
             Some(DagRunPopUp::Mark(popup)) => popup.render(area, buf),
             Some(DagRunPopUp::Trigger(popup)) => popup.render(area, buf),
+            Some(DagRunPopUp::DateFilter(popup)) => popup.render(area, buf),
             None => {}
         }
     }

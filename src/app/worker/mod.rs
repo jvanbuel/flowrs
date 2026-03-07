@@ -5,6 +5,7 @@ use super::model::popup::dagruns::mark::MarkState;
 use super::model::popup::taskinstances::mark::MarkState as TaskMarkState;
 use super::state::App;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::traits::DagRunDateFilter;
 use anyhow::Result;
 use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
@@ -31,6 +32,7 @@ pub enum WorkerMessage {
     },
     UpdateDagRuns {
         dag_id: DagId,
+        date_filter: DagRunDateFilter,
     },
     UpdateTaskInstances {
         dag_id: DagId,
@@ -105,7 +107,7 @@ impl WorkerMessage {
     fn dedup_key(&self) -> Option<String> {
         match self {
             Self::UpdateDagsAndStats => Some("UpdateDagsAndStats".to_string()),
-            Self::UpdateDagRuns { dag_id } => Some(format!("UpdateDagRuns:{dag_id}")),
+            Self::UpdateDagRuns { dag_id, .. } => Some(format!("UpdateDagRuns:{dag_id}")),
             Self::UpdateTaskInstances { dag_id, dag_run_id } => {
                 Some(format!("UpdateTaskInstances:{dag_id}:{dag_run_id}"))
             }
@@ -228,8 +230,11 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             dags::handle_get_dag_code(&app, &client, &dag_id).await;
         }
         // DAG run operations
-        WorkerMessage::UpdateDagRuns { dag_id, .. } => {
-            dagruns::handle_update_dag_runs(&app, &client, &dag_id, &env_name).await;
+        WorkerMessage::UpdateDagRuns {
+            dag_id,
+            date_filter,
+        } => {
+            dagruns::handle_update_dag_runs(&app, &client, &dag_id, &env_name, &date_filter).await;
         }
         WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
             dagruns::handle_clear_dag_run(&app, &client, &dag_id, &dag_run_id).await;

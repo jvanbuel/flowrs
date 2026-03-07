@@ -31,7 +31,7 @@ futures = "0.3.32"
 google-cloud-auth = { version = "1.6.0", default-features = false, features = ["default-rustls-provider"] }
 inquire = "0.9.3"
 log = { version = "0.4.29", features = ["std"] }
-ratatui = { version = "0.30.0", features = ["unstable-widget-ref"] }
+ratatui = { version = "0.30.0", features = ["unstable-widget-ref", "widget-calendar"] }
 regex = "1.12.3"
 reqwest = { version = "0.12.28", features = ["json", "rustls-tls"] }
 serde = { version = "1.0.228", features = ["derive"] }
