@@ -1,4 +1,5 @@
 use crossterm::event::KeyCode;
+use unicode_width::UnicodeWidthStr;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Position, Rect},
@@ -498,11 +499,11 @@ fn highlight_line(line: &str, query: &str, is_current: bool) -> Line<'static> {
 }
 
 /// Number of visual (wrapped) rows a single line occupies at the given width.
-fn wrapped_line_count(line_byte_len: usize, wrap_width: usize) -> usize {
-    if line_byte_len == 0 {
+fn wrapped_line_count(display_width: usize, wrap_width: usize) -> usize {
+    if display_width == 0 {
         1
     } else {
-        line_byte_len.div_ceil(wrap_width)
+        display_width.div_ceil(wrap_width)
     }
 }
 
@@ -513,7 +514,7 @@ fn source_line_to_wrapped(content: &str, source_line: usize, wrap_width: usize) 
     content
         .lines()
         .take(source_line)
-        .map(|line| wrapped_line_count(line.len(), wrap_width))
+        .map(|line| wrapped_line_count(line.width(), wrap_width))
         .sum()
 }
 
@@ -523,7 +524,7 @@ fn total_wrapped_lines(content: &str, wrap_width: usize) -> usize {
     }
     content
         .lines()
-        .map(|line| wrapped_line_count(line.len(), wrap_width))
+        .map(|line| wrapped_line_count(line.width(), wrap_width))
         .sum()
 }
 
@@ -686,7 +687,7 @@ impl Widget for &mut LogModel {
             #[allow(clippy::cast_possible_truncation)]
             {
                 self.search_cursor_position = Some(Position {
-                    x: search_area.x + 1 + query.len() as u16,
+                    x: search_area.x + 1 + query.width() as u16,
                     y: search_area.y,
                 });
             }
@@ -788,6 +789,37 @@ mod tests {
         let long = "x".repeat(160);
         let content = format!("{long}\nshort");
         assert_eq!(source_line_to_wrapped(&content, 1, 80), 2);
+    }
+
+    #[test]
+    fn test_wrapped_line_count_cjk() {
+        // CJK characters are 2 display cells each; "中文" = 4 cells wide
+        assert_eq!(wrapped_line_count("中文".width(), 4), 1);
+        // "中文中" = 6 cells, wraps to 2 rows at width 4
+        assert_eq!(wrapped_line_count("中文中".width(), 4), 2);
+    }
+
+    #[test]
+    fn test_wrapped_line_count_emoji() {
+        // "👍" = 2 display cells
+        assert_eq!(wrapped_line_count("👍".width(), 2), 1);
+        assert_eq!(wrapped_line_count("👍👍👍".width(), 4), 2);
+    }
+
+    #[test]
+    fn test_source_line_to_wrapped_multibyte() {
+        // "中文中文中" = 10 display cells, wraps to 2 rows at width 8
+        let content = "中文中文中\nshort";
+        assert_eq!(source_line_to_wrapped(content, 1, 8), 2);
+    }
+
+    #[test]
+    fn test_highlight_line_multibyte() {
+        let line = highlight_line("café latte", "café", false);
+        assert_eq!(line.spans.len(), 2);
+        assert_eq!(line.spans[0].content, "café");
+        assert_eq!(line.spans[0].style, SEARCH_HIGHLIGHT_STYLE);
+        assert_eq!(line.spans[1].content, " latte");
     }
 
     #[test]
