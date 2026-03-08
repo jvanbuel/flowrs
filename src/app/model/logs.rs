@@ -597,8 +597,9 @@ impl Widget for &mut LogModel {
             let inner_width = chunks[1].width.saturating_sub(3) as usize;
             let wrapped_total = total_wrapped_lines(&log.content, inner_width);
 
-            // SourceLine needs conversion to wrapped offset; normalize to Manual
-            // so subsequent j/k presses use the correct coordinate space.
+            // Intentional mutation: SourceLine (set by search n/N) is in source-line
+            // coordinates. We convert it to a wrapped-line offset and normalize to
+            // Manual so that subsequent j/k navigation operates in wrapped-offset space.
             let scroll_pos = match &self.scroll_mode {
                 ScrollMode::Following => wrapped_total.saturating_sub(1),
                 ScrollMode::Manual { position } => *position,
