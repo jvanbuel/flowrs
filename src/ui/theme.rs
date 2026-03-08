@@ -149,6 +149,24 @@ pub const BUTTON_SELECTED: Style = Style {
     sub_modifier: Modifier::empty(),
 };
 
+// Search highlight — emerald underline for all matches
+pub const SEARCH_HIGHLIGHT_STYLE: Style = Style {
+    fg: Some(ACCENT),
+    bg: None,
+    underline_color: Some(ACCENT),
+    add_modifier: Modifier::UNDERLINED,
+    sub_modifier: Modifier::empty(),
+};
+
+// Search current match — full line highlight with emerald/teal background
+pub const SEARCH_CURRENT_LINE_STYLE: Style = Style {
+    fg: Some(TEXT_PRIMARY),
+    bg: Some(SELECTED_BG),
+    underline_color: None,
+    add_modifier: Modifier::BOLD,
+    sub_modifier: Modifier::empty(),
+};
+
 // Border colors
 pub const BORDER_DEFAULT: Color = PURPLE_DIM;
 pub const BORDER_SELECTED: Color = ACCENT;
