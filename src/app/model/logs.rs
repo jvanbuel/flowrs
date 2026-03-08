@@ -111,6 +111,13 @@ impl LogModel {
         Self::default()
     }
 
+    fn current_log(&self) -> Option<&Log> {
+        if self.all.is_empty() {
+            return None;
+        }
+        self.all.get(self.current % self.all.len())
+    }
+
     /// Reset scroll to follow mode (used when navigating to a new context)
     pub fn reset_scroll(&mut self) {
         self.scroll_mode = ScrollMode::Following;
@@ -120,39 +127,35 @@ impl LogModel {
     /// will automatically track the bottom at render time.
     pub fn update_logs(&mut self, logs: Vec<Log>) {
         self.all = logs;
-        if let SearchMode::Active {
-            query,
-            match_lines,
-            current_match,
-        } = &mut self.search
-        {
-            if let Some(log) = self.all.get(self.current % self.all.len().max(1)) {
-                *match_lines = compute_matches(&log.content, query);
-                if *current_match >= match_lines.len() {
-                    *current_match = match_lines.len().saturating_sub(1);
-                }
-            }
-        }
+        self.refresh_matches(false);
     }
 
     /// Returns the total number of lines in the current log content
     fn current_line_count(&self) -> usize {
-        let Some(log) = self.all.get(self.current % self.all.len().max(1)) else {
-            return 0;
-        };
-        log.content.lines().count()
+        self.current_log()
+            .map_or(0, |log| log.content.lines().count())
     }
 
-    fn recompute_search_for_current_tab(&mut self) {
+    /// Recompute search matches for the current log tab.
+    /// When `reset_position` is true, the current match resets to 0 (e.g. tab switch).
+    /// When false, the current match is clamped to remain valid (e.g. log refresh).
+    fn refresh_matches(&mut self, reset_position: bool) {
         if let SearchMode::Active {
             query,
             match_lines,
             current_match,
         } = &mut self.search
         {
-            if let Some(log) = self.all.get(self.current % self.all.len().max(1)) {
-                *match_lines = compute_matches(&log.content, query);
+            let idx = if self.all.is_empty() {
+                return;
+            } else {
+                self.current % self.all.len()
+            };
+            *match_lines = compute_matches(&self.all[idx].content, query);
+            if reset_position {
                 *current_match = 0;
+            } else if *current_match >= match_lines.len() {
+                *current_match = match_lines.len().saturating_sub(1);
             }
         }
     }
@@ -164,12 +167,10 @@ impl LogModel {
                 self.search = SearchMode::Inactive;
                 return;
             }
-            let match_lines = if let Some(log) = self.all.get(self.current % self.all.len().max(1))
-            {
-                compute_matches(&log.content, &query)
-            } else {
-                vec![]
-            };
+            let match_lines = self
+                .current_log()
+                .map(|log| compute_matches(&log.content, &query))
+                .unwrap_or_default();
             if let Some(&first) = match_lines.first() {
                 self.scroll_mode = ScrollMode::SourceLine { line: first };
             }
@@ -261,7 +262,7 @@ impl Model for LogModel {
                     }
                     return (None, vec![]);
                 }
-                // Clear pending 'g' on any key that is not 'g' to ensure gg requires consecutive presses
+                // Search input mode consumes all keys
                 if let SearchMode::Input { query } = &mut self.search {
                     match key.code {
                         KeyCode::Enter => {
@@ -303,7 +304,7 @@ impl Model for LogModel {
                     KeyCode::Char('l') | KeyCode::Right => {
                         if !self.all.is_empty() && self.current < self.all.len() - 1 {
                             self.current += 1;
-                            self.recompute_search_for_current_tab();
+                            self.refresh_matches(true);
                         }
                     }
                     KeyCode::Char('h') | KeyCode::Left => {
@@ -312,7 +313,7 @@ impl Model for LogModel {
                             return (Some(FlowrsEvent::Key(*key)), vec![]);
                         }
                         self.current -= 1;
-                        self.recompute_search_for_current_tab();
+                        self.refresh_matches(true);
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
                         let line_count = self.current_line_count();
@@ -332,7 +333,7 @@ impl Model for LogModel {
                         };
                     }
                     KeyCode::Char('o') => {
-                        if self.all.get(self.current % self.all.len()).is_some() {
+                        if self.current_log().is_some() {
                             if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
                                 (ctx.dag_id(), ctx.dag_run_id(), ctx.task_id())
                             {
@@ -403,10 +404,7 @@ fn compute_matches(content: &str, query: &str) -> Vec<usize> {
 }
 
 fn highlight_line(line: &str, query: &str, is_current: bool) -> Line<'static> {
-    let lower_line = line.to_lowercase();
     let lower_query = query.to_lowercase();
-    let mut spans = Vec::new();
-    let mut last_end = 0;
     let match_style = if is_current {
         SEARCH_CURRENT_LINE_STYLE
     } else {
@@ -418,29 +416,93 @@ fn highlight_line(line: &str, query: &str, is_current: bool) -> Line<'static> {
         DEFAULT_STYLE
     };
 
-    for (start, _) in lower_line.match_indices(&lower_query) {
-        if start > last_end {
+    // Build a mapping from char index to byte offset in the original line,
+    // and a lowercased char vector for safe case-insensitive matching.
+    let chars: Vec<char> = line.chars().collect();
+    let lower_chars: Vec<char> = chars.iter().flat_map(|c| c.to_lowercase()).collect();
+    let query_chars: Vec<char> = lower_query.chars().collect();
+
+    // Find all char-index matches of the query in the lowercased char sequence.
+    let mut match_ranges: Vec<(usize, usize)> = Vec::new();
+    if !query_chars.is_empty() {
+        let mut i = 0;
+        while i + query_chars.len() <= lower_chars.len() {
+            if lower_chars[i..i + query_chars.len()] == query_chars[..] {
+                match_ranges.push((i, i + query_chars.len()));
+                i += query_chars.len(); // non-overlapping
+            } else {
+                i += 1;
+            }
+        }
+    }
+
+    if match_ranges.is_empty() {
+        return Line::styled(line.to_string(), text_style);
+    }
+
+    // Map lowercased char indices back to byte offsets in the original string.
+    // Each original char may map to 1+ lowercased chars.
+    let mut orig_to_lower: Vec<usize> = Vec::with_capacity(chars.len() + 1);
+    let mut lower_idx = 0;
+    for &c in &chars {
+        orig_to_lower.push(lower_idx);
+        lower_idx += c.to_lowercase().count();
+    }
+    orig_to_lower.push(lower_idx); // sentinel for end
+
+    // Build byte-offset pairs in the original string for each match.
+    let byte_offsets: Vec<usize> = chars
+        .iter()
+        .scan(0usize, |offset, c| {
+            let current = *offset;
+            *offset += c.len_utf8();
+            Some(current)
+        })
+        .collect();
+    let line_byte_len = line.len();
+
+    let orig_char_for_lower = |lower_idx: usize| -> usize {
+        match orig_to_lower.binary_search(&lower_idx) {
+            Ok(i) => i,
+            Err(i) => i.saturating_sub(1),
+        }
+    };
+
+    let mut spans = Vec::new();
+    let mut last_orig_byte = 0;
+    for &(lo_start, lo_end) in &match_ranges {
+        let orig_start = orig_char_for_lower(lo_start);
+        let orig_end = orig_char_for_lower(lo_end);
+        let byte_start = byte_offsets.get(orig_start).copied().unwrap_or(line_byte_len);
+        let byte_end = byte_offsets.get(orig_end).copied().unwrap_or(line_byte_len);
+
+        if byte_start > last_orig_byte {
             spans.push(Span::styled(
-                line[last_end..start].to_string(),
+                line[last_orig_byte..byte_start].to_string(),
                 text_style,
             ));
         }
         spans.push(Span::styled(
-            line[start..start + query.len()].to_string(),
+            line[byte_start..byte_end].to_string(),
             match_style,
         ));
-        last_end = start + query.len();
+        last_orig_byte = byte_end;
     }
-    if last_end < line.len() {
+    if last_orig_byte < line_byte_len {
         spans.push(Span::styled(
-            line[last_end..].to_string(),
+            line[last_orig_byte..].to_string(),
             text_style,
         ));
     }
-    if spans.is_empty() {
-        Line::styled(line.to_string(), text_style)
+    Line::from(spans)
+}
+
+/// Number of visual (wrapped) rows a single line occupies at the given width.
+fn wrapped_line_count(line_byte_len: usize, wrap_width: usize) -> usize {
+    if line_byte_len == 0 {
+        1
     } else {
-        Line::from(spans)
+        line_byte_len.div_ceil(wrap_width)
     }
 }
 
@@ -451,14 +513,7 @@ fn source_line_to_wrapped(content: &str, source_line: usize, wrap_width: usize) 
     content
         .lines()
         .take(source_line)
-        .map(|line| {
-            let len = line.len();
-            if len == 0 {
-                1
-            } else {
-                (len + wrap_width - 1) / wrap_width
-            }
-        })
+        .map(|line| wrapped_line_count(line.len(), wrap_width))
         .sum()
 }
 
@@ -468,34 +523,19 @@ fn total_wrapped_lines(content: &str, wrap_width: usize) -> usize {
     }
     content
         .lines()
-        .map(|line| {
-            let len = line.len();
-            if len == 0 {
-                1
-            } else {
-                (len + wrap_width - 1) / wrap_width
-            }
-        })
+        .map(|line| wrapped_line_count(line.len(), wrap_width))
         .sum()
 }
 
-fn build_content(
+fn build_highlighted_content(
     content: &str,
-    search: &SearchMode,
+    query: &str,
     current_match_line: Option<usize>,
 ) -> Text<'static> {
     let mut text = Text::default();
-    let query = search.query();
-
     for (i, line_str) in content.lines().enumerate() {
-        if let Some(q) = query {
-            if !q.is_empty() {
-                let is_current = current_match_line == Some(i);
-                text.push_line(highlight_line(line_str, q, is_current));
-                continue;
-            }
-        }
-        text.push_line(Line::raw(line_str.to_string()));
+        let is_current = current_match_line == Some(i);
+        text.push_line(highlight_line(line_str, query, is_current));
     }
     text
 }
@@ -552,19 +592,19 @@ impl Widget for &mut LogModel {
         };
 
         if let Some(log) = self.all.get(self.current % self.all.len()) {
-            let current_match_line = self.search.current_match_line();
-            let content = build_content(&log.content, &self.search, current_match_line);
-
             // Content area inner width (subtract 2 for left+right borders, 1 for scrollbar)
             let inner_width = chunks[1].width.saturating_sub(3) as usize;
             let wrapped_total = total_wrapped_lines(&log.content, inner_width);
 
-            // SourceLine needs conversion to wrapped offset; Manual is already in wrapped lines
+            // SourceLine needs conversion to wrapped offset; normalize to Manual
+            // so subsequent j/k presses use the correct coordinate space.
             let scroll_pos = match &self.scroll_mode {
                 ScrollMode::Following => wrapped_total.saturating_sub(1),
                 ScrollMode::Manual { position } => *position,
                 ScrollMode::SourceLine { line } => {
-                    source_line_to_wrapped(&log.content, *line, inner_width)
+                    let pos = source_line_to_wrapped(&log.content, *line, inner_width);
+                    self.scroll_mode = ScrollMode::Manual { position: pos };
+                    pos
                 }
             };
             self.vertical_scroll_state = self
@@ -597,6 +637,17 @@ impl Widget for &mut LogModel {
                 }
             };
 
+            // Only build highlighted text when search is active; otherwise use
+            // a zero-allocation borrowed Text from the raw content.
+            let owned_content;
+            let content: Text<'_> = if let Some(q) = self.search.query() {
+                let current_match_line = self.search.current_match_line();
+                owned_content = build_highlighted_content(&log.content, q, current_match_line);
+                owned_content
+            } else {
+                Text::raw(&log.content)
+            };
+
             #[allow(clippy::cast_possible_truncation)]
             let paragraph = Paragraph::new(content)
                 .block(
@@ -608,7 +659,7 @@ impl Widget for &mut LogModel {
                         .border_style(BORDER_STYLE)
                         .title_style(TITLE_STYLE),
                 )
-                .wrap(Wrap { trim: true })
+                .wrap(Wrap { trim: false })
                 .style(DEFAULT_STYLE)
                 .scroll((scroll_pos as u16, 0));
 
