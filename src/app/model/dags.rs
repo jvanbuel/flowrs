@@ -35,6 +35,7 @@ pub struct DagModel {
     /// DAG source code viewer
     pub dag_code: Option<DagCodeView>,
     ticks: u32,
+    poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
 }
 
@@ -46,14 +47,18 @@ impl Default for DagModel {
             popup: Popup::None,
             dag_code: None,
             ticks: 0,
+            poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
         }
     }
 }
 
 impl DagModel {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(poll_tick_multiplier: u32) -> Self {
+        Self {
+            poll_tick_multiplier,
+            ..Self::default()
+        }
     }
 
     /// Handle model-specific popup (returns messages from popup)
@@ -171,7 +176,7 @@ impl Model for DagModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if !self.ticks.is_multiple_of(10) {
+                if !self.ticks.is_multiple_of(self.poll_tick_multiplier) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 (

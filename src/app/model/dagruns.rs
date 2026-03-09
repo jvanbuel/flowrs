@@ -41,6 +41,7 @@ pub struct DagRunModel {
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagRunPopUp>,
     ticks: u32,
+    poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
 }
 
@@ -51,6 +52,7 @@ impl Default for DagRunModel {
             table: FilterableTable::new(),
             popup: Popup::None,
             ticks: 0,
+            poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
         }
     }
@@ -136,8 +138,11 @@ impl DagCodeView {
 }
 
 impl DagRunModel {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(poll_tick_multiplier: u32) -> Self {
+        Self {
+            poll_tick_multiplier,
+            ..Self::default()
+        }
     }
 
     /// Create a text-based duration gauge line.
@@ -349,7 +354,7 @@ impl Model for DagRunModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if !self.ticks.is_multiple_of(10) {
+                if !self.ticks.is_multiple_of(self.poll_tick_multiplier) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 let worker_messages = if let Some(dag_id) = ctx.dag_id() {
@@ -580,7 +585,7 @@ mod tests {
     #[test]
     fn test_sort_dag_runs_by_logical_date() {
         // Create test DAG runs with different states and dates
-        let mut model = DagRunModel::new();
+        let mut model = DagRunModel::default();
 
         // Oldest run: completed (has both logical_date and start_date)
         let oldest_run = DagRun {
@@ -634,7 +639,7 @@ mod tests {
 
     #[test]
     fn test_sort_dag_runs_fallback_to_start_date() {
-        let mut model = DagRunModel::new();
+        let mut model = DagRunModel::default();
 
         // Run with only start_date (logical_date is None)
         let run_with_start = DagRun {
@@ -670,7 +675,7 @@ mod tests {
 
     #[test]
     fn test_filter_and_sort_dag_runs_with_prefix() {
-        let mut model = DagRunModel::new();
+        let mut model = DagRunModel::default();
 
         let run_manual = DagRun {
             dag_id: "test_dag".into(),

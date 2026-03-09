@@ -157,15 +157,17 @@ impl App {
             None => NavigationContext::None,
         };
 
+        let poll_tick_multiplier = config.poll_tick_multiplier();
+
         Self {
             config,
             environment_state: EnvironmentStateContainer::new(),
             nav_context,
-            dags: DagModel::new(),
+            dags: DagModel::new(poll_tick_multiplier),
             configs: ConfigModel::new_with_errors(&servers, errors),
-            dagruns: DagRunModel::new(),
-            task_instances: TaskInstanceModel::new(),
-            logs: LogModel::new(),
+            dagruns: DagRunModel::new(poll_tick_multiplier),
+            task_instances: TaskInstanceModel::new(poll_tick_multiplier),
+            logs: LogModel::new(poll_tick_multiplier),
             active_panel: if has_active_server {
                 Panel::Dag
             } else {
