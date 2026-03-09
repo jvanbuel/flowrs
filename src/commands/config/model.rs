@@ -7,6 +7,20 @@ use strum::EnumIter;
 use url::Url;
 
 #[derive(Parser, Debug)]
+#[clap(args_conflicts_with_subcommands = true)]
+pub struct ConfigArgs {
+    #[clap(subcommand)]
+    pub command: Option<ConfigCommand>,
+
+    /// API poll interval in milliseconds (minimum 500)
+    #[clap(long)]
+    pub poll_interval_ms: Option<u64>,
+
+    #[clap(short, long)]
+    pub file: Option<String>,
+}
+
+#[derive(Parser, Debug)]
 pub enum ConfigCommand {
     Add(AddCommand),
     #[clap(alias = "rm")]
@@ -16,6 +30,42 @@ pub enum ConfigCommand {
     List(ListCommand),
     Enable(ManagedServiceCommand),
     Disable(ManagedServiceCommand),
+}
+
+impl ConfigArgs {
+    pub async fn run(&self) -> Result<()> {
+        match &self.command {
+            Some(cmd) => cmd.run().await,
+            None => self.run_global_settings(),
+        }
+    }
+
+    fn run_global_settings(&self) -> Result<()> {
+        use std::path::PathBuf;
+
+        use crate::airflow::config::FlowrsConfig;
+
+        let path = self.file.as_ref().map(PathBuf::from);
+        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+
+        let has_changes = self.poll_interval_ms.is_some();
+
+        if !has_changes {
+            println!("poll_interval_ms = {}", config.poll_interval_ms);
+            return Ok(());
+        }
+
+        if let Some(value) = self.poll_interval_ms {
+            if value < 500 {
+                anyhow::bail!("poll_interval_ms must be at least 500 (got {value})");
+            }
+            config.poll_interval_ms = value;
+            config.write_to_file()?;
+            println!("poll_interval_ms set to {value}");
+        }
+
+        Ok(())
+    }
 }
 
 impl ConfigCommand {

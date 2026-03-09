@@ -18,7 +18,7 @@ mod ui;
 
 use airflow::config::paths::ConfigPaths;
 use anyhow::Result;
-use commands::config::model::ConfigCommand;
+use commands::config::model::ConfigArgs;
 use commands::run::RunCommand;
 
 pub static CONFIG_PATHS: LazyLock<ConfigPaths> = LazyLock::new(ConfigPaths::resolve);
@@ -33,8 +33,7 @@ struct FlowrsApp {
 #[derive(Parser)]
 enum FlowrsCommand {
     Run(RunCommand),
-    #[clap(subcommand)]
-    Config(ConfigCommand),
+    Config(ConfigArgs),
 }
 
 impl FlowrsApp {

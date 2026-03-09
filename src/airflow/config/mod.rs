@@ -62,6 +62,13 @@ pub struct GccConfig {
     pub projects: Option<Vec<String>>,
 }
 
+const TICK_RATE_MS: u64 = 200;
+const MIN_POLL_INTERVAL_MS: u64 = 500;
+
+const fn default_poll_interval_ms() -> u64 {
+    2000
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct FlowrsConfig {
     #[serde(default)]
@@ -69,6 +76,10 @@ pub struct FlowrsConfig {
     #[serde(default)]
     pub managed_services: Vec<ManagedService>,
     pub active_server: Option<String>,
+    /// API poll interval in milliseconds. Controls how often the TUI refreshes
+    /// data from the Airflow API. Minimum 500ms, default 2000ms.
+    #[serde(default = "default_poll_interval_ms")]
+    pub poll_interval_ms: u64,
     #[serde(default)]
     pub gcc: Option<GccConfig>,
     #[serde(skip_serializing)]
@@ -134,9 +145,28 @@ impl FlowrsConfig {
             servers: Vec::new(),
             managed_services: Vec::new(),
             active_server: None,
+            poll_interval_ms: default_poll_interval_ms(),
             gcc: None,
             path: Some(CONFIG_PATHS.write_path.clone()),
         }
+    }
+
+    /// Compute the tick multiplier for API polling based on `poll_interval_ms`.
+    /// Clamps values below the minimum and logs a warning.
+    pub fn poll_tick_multiplier(&self) -> u32 {
+        let interval = if self.poll_interval_ms < MIN_POLL_INTERVAL_MS {
+            log::warn!(
+                "poll_interval_ms ({}) is below minimum ({}), clamping",
+                self.poll_interval_ms,
+                MIN_POLL_INTERVAL_MS
+            );
+            MIN_POLL_INTERVAL_MS
+        } else {
+            self.poll_interval_ms
+        };
+        #[allow(clippy::cast_possible_truncation)]
+        let multiplier = (interval / TICK_RATE_MS) as u32;
+        multiplier.max(1)
     }
 
     pub fn from_file(config_path: Option<&PathBuf>) -> Result<Self> {
@@ -310,6 +340,7 @@ mod tests {
 
     const TEST_CONFIG_CONVEYOR: &str = r#"
 managed_services = ["Conveyor"]
+poll_interval_ms = 2000
 
 [[servers]]
 name = "bla"
@@ -344,6 +375,7 @@ password = "airflow"
             }],
             managed_services: vec![ManagedService::Conveyor],
             active_server: None,
+            poll_interval_ms: default_poll_interval_ms(),
             gcc: None,
             path: None,
         };
@@ -369,5 +401,49 @@ password = "airflow"
 
         let config = config.unwrap();
         assert_eq!(config.path.unwrap(), CONFIG_PATHS.read_path);
+    }
+
+    #[test]
+    fn test_poll_interval_ms_default() {
+        let config = FlowrsConfig::parse_toml(TEST_CONFIG).unwrap();
+        assert_eq!(config.poll_interval_ms, 2000);
+        assert_eq!(config.poll_tick_multiplier(), 10);
+    }
+
+    #[test]
+    fn test_poll_interval_ms_custom() {
+        let toml = r#"
+poll_interval_ms = 5000
+
+[[servers]]
+name = "test"
+endpoint = "http://localhost:8080"
+
+[servers.auth.Basic]
+username = "airflow"
+password = "airflow"
+"#;
+        let config = FlowrsConfig::parse_toml(toml).unwrap();
+        assert_eq!(config.poll_interval_ms, 5000);
+        assert_eq!(config.poll_tick_multiplier(), 25);
+    }
+
+    #[test]
+    fn test_poll_interval_ms_clamped_to_minimum() {
+        let toml = r#"
+poll_interval_ms = 100
+
+[[servers]]
+name = "test"
+endpoint = "http://localhost:8080"
+
+[servers.auth.Basic]
+username = "airflow"
+password = "airflow"
+"#;
+        let config = FlowrsConfig::parse_toml(toml).unwrap();
+        assert_eq!(config.poll_interval_ms, 100);
+        // Should clamp to 500ms minimum → 500/200 = 2
+        assert_eq!(config.poll_tick_multiplier(), 2);
     }
 }

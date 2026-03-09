@@ -37,6 +37,7 @@ pub struct TaskInstanceModel {
     /// invalidate it when the user navigates to a different DAG or run.
     current_gantt_key: Option<(DagId, DagRunId)>,
     ticks: u32,
+    poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
     pub task_graph: Option<TaskGraph>,
 }
@@ -49,6 +50,7 @@ impl Default for TaskInstanceModel {
             gantt_data: GanttData::default(),
             current_gantt_key: None,
             ticks: 0,
+            poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
             task_graph: None,
         }
@@ -56,8 +58,11 @@ impl Default for TaskInstanceModel {
 }
 
 impl TaskInstanceModel {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(poll_tick_multiplier: u32) -> Self {
+        Self {
+            poll_tick_multiplier,
+            ..Self::default()
+        }
     }
 
     /// Notify the model which DAG + run is now active.
@@ -229,7 +234,7 @@ impl Model for TaskInstanceModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if !self.ticks.is_multiple_of(10) {
+                if !self.ticks.is_multiple_of(self.poll_tick_multiplier) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 if let (Some(dag_id), Some(dag_run_id)) = (ctx.dag_id(), ctx.dag_run_id()) {

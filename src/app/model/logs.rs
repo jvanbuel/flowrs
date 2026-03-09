@@ -50,20 +50,38 @@ impl ScrollMode {
     }
 }
 
-#[derive(Default)]
 pub struct LogModel {
     pub all: Vec<Log>,
     pub current: usize,
     pub error_popup: Option<ErrorPopup>,
     ticks: u32,
+    poll_tick_multiplier: u32,
     scroll_mode: ScrollMode,
     vertical_scroll_state: ScrollbarState,
     pending_g: bool,
 }
 
+impl Default for LogModel {
+    fn default() -> Self {
+        Self {
+            all: Vec::new(),
+            current: 0,
+            error_popup: None,
+            ticks: 0,
+            poll_tick_multiplier: 10,
+            scroll_mode: ScrollMode::default(),
+            vertical_scroll_state: ScrollbarState::default(),
+            pending_g: false,
+        }
+    }
+}
+
 impl LogModel {
-    pub fn new() -> Self {
-        Self::default() // ScrollMode defaults to Following
+    pub fn new(poll_tick_multiplier: u32) -> Self {
+        Self {
+            poll_tick_multiplier,
+            ..Self::default()
+        }
     }
 
     /// Reset scroll to follow mode (used when navigating to a new context)
@@ -95,7 +113,7 @@ impl Model for LogModel {
         match event {
             FlowrsEvent::Tick => {
                 self.ticks += 1;
-                if !self.ticks.is_multiple_of(10) {
+                if !self.ticks.is_multiple_of(self.poll_tick_multiplier) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
                 if let (Some(dag_id), Some(dag_run_id), Some(task_id), Some(task_try)) = (
