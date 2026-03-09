@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0](https://github.com/jvanbuel/flowrs/compare/v0.9.6...v0.10.0) - 2026-03-09
+
+### Added
+
+- add configurable API poll interval with CLI support
+
+### Other
+
+- *(deps)* bump webbrowser from 1.1.0 to 1.2.0
+- *(deps)* bump toml from 1.0.4+spec-1.1.0 to 1.0.6+spec-1.1.0
+
 ## [0.9.6](https://github.com/jvanbuel/flowrs/compare/v0.9.5...v0.9.6) - 2026-03-05
 
 ### Fixed
