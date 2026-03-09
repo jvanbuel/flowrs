@@ -46,7 +46,7 @@ time = { version = "0.3.47", features = [
 ] }
 throbber-widgets-tui = "0.11.0"
 tokio = { version = "1.49.0", features = ["rt-multi-thread", "sync", "macros"] }
-toml = "1.0.1"
+toml = "1.0.6"
 unicode-width = "0.2.0"
 url = "2.5.7"
 webbrowser = "1.1.0"
