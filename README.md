@@ -16,7 +16,6 @@ Flowrs is a TUI application for [Apache Airflow](https://airflow.apache.org/). I
 You can install `flowrs` via Homebrew if you're on macOS / Linux / WSL2:
 
 ```
-brew tap jvanbuel/flowrs
 brew install flowrs
 ```
 
@@ -55,4 +54,4 @@ If you're self-hosting an Airflow instance, or your favorite managed service is 
 
 This creates an entry in your configuration file at `$XDG_CONFIG_HOME/flowrs/config.toml` (following the XDG Base Directory Specification, which defaults to `~/.config/flowrs/config.toml`). For backwards compatibility, flowrs also reads from `~/.flowrs` if the XDG location doesn't exist. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` configuration screen.
 
-Only basic authentication and bearer token authentication are supported. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
+Flowrs supports authenticating with HTTP Basic Auth or using bearer tokens. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
