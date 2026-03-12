@@ -1,6 +1,6 @@
 use crate::app::state::{App, Panel};
 use crate::ui::tabs::{TabBar, TAB_BAR_HEIGHT};
-use crate::ui::theme::{HEADER_BG, HEADER_FG, TEXT_PRIMARY};
+use crate::ui::theme::{HEADER_BG, HEADER_FG, SURFACE_STYLE, TEXT_PRIMARY};
 use init_screen::render_init_screen;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::style::{Modifier, Style};
@@ -24,6 +24,10 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         render_init_screen(f, app.ticks);
         return;
     }
+
+    // Fill the entire frame with the dark surface background so the app
+    // looks correct even when running in a light-mode terminal.
+    f.render_widget(Block::default().style(SURFACE_STYLE), f.area());
 
     // Split area vertically: header (1 line), tab bar (3 lines), panel (remaining)
     let [top_line, tab_area, panel_area] = Layout::vertical([
