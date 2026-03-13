@@ -1,6 +1,6 @@
-use flowrs_config::ManagedService;
 use anyhow::Result;
 use clap::Parser;
+use flowrs_config::ManagedService;
 use inquire::validator::Validation;
 use strum::Display;
 use strum::EnumIter;

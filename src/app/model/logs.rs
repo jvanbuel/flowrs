@@ -13,10 +13,7 @@ use ratatui::{
 use flowrs_airflow_model::model::common::{Log, OpenItem};
 
 use crate::{
-    app::{
-        events::custom::FlowrsEvent,
-        worker::WorkerMessage,
-    },
+    app::{events::custom::FlowrsEvent, worker::WorkerMessage},
     ui::theme::{ACCENT, BORDER_STYLE, DEFAULT_STYLE, TITLE_STYLE},
 };
 

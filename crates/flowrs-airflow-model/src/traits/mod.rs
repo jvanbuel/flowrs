@@ -12,9 +12,19 @@ pub use log::LogOperations;
 pub use task::TaskOperations;
 pub use taskinstance::TaskInstanceOperations;
 
-use flowrs_config::AirflowVersion;
 use crate::model::common::OpenItem;
 use anyhow::Result;
+
+/// Airflow version enum (temporary local copy).
+/// The canonical definition lives in `flowrs_airflow::config::AirflowVersion`.
+/// This local copy exists only to break a dependency cycle; it will be removed
+/// when the model crate is dissolved into flowrs-tui (Task 4).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum AirflowVersion {
+    #[default]
+    V2,
+    V3,
+}
 
 /// Super-trait combining all Airflow API operations.
 ///

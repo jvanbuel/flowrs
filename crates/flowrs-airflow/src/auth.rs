@@ -1,5 +1,32 @@
 use serde::{Deserialize, Serialize};
 
+// --- Core auth types ---
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum AirflowAuth {
+    Basic(BasicAuth),
+    Token(TokenSource),
+    Conveyor,
+    Mwaa(MwaaAuth),
+    Astronomer(AstronomerAuth),
+    Composer(ComposerAuth),
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct BasicAuth {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum TokenSource {
+    Command { cmd: String },
+    Static { token: String },
+}
+
+// --- Managed service auth data ---
+
 /// MWAA authentication token type
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MwaaTokenType {

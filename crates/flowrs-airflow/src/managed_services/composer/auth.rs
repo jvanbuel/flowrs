@@ -1,1 +1,1 @@
-pub use flowrs_config::managed_auth::ComposerAuth;
+pub use crate::auth::ComposerAuth;

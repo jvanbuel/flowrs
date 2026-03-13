@@ -11,7 +11,6 @@ pub use static_token::StaticTokenProvider;
 use async_trait::async_trait;
 use reqwest::RequestBuilder;
 
-use flowrs_config::{AirflowAuth, BasicAuth, TokenSource};
 #[cfg(feature = "astronomer")]
 use crate::managed_services::astronomer::AstronomerAuthProvider;
 #[cfg(feature = "composer")]
@@ -20,6 +19,7 @@ use crate::managed_services::composer::ComposerAuthProvider;
 use crate::managed_services::conveyor::ConveyorAuthProvider;
 #[cfg(feature = "mwaa")]
 use crate::managed_services::mwaa::MwaaAuthProvider;
+use crate::auth::{AirflowAuth, BasicAuth, TokenSource};
 
 /// Authentication provider trait for Airflow API requests.
 ///

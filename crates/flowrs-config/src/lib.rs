@@ -3,66 +3,22 @@
 #![allow(clippy::missing_panics_doc)]
 #![allow(clippy::must_use_candidate)]
 
-pub mod managed_auth;
+pub mod auth;
 pub mod paths;
+pub mod server;
 
-use std::fmt::{Display, Formatter};
+// Re-export all public types at crate root for ergonomic imports
+pub use auth::{AirflowAuth, BasicAuth, TokenSource};
+pub use paths::ConfigPaths;
+pub use server::{AirflowConfig, AirflowVersion, GccConfig, ManagedService};
+
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 
-use clap::ValueEnum;
+use anyhow::Result;
 use log::info;
 use serde::{Deserialize, Serialize};
-use strum::EnumIter;
-
-use anyhow::Result;
-use paths::ConfigPaths;
-
-use managed_auth::{AstronomerAuth, ComposerAuth, MwaaAuth};
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
-pub enum AirflowVersion {
-    #[default]
-    V2,
-    V3,
-}
-
-impl AirflowVersion {
-    pub const fn api_path(&self) -> &str {
-        match self {
-            Self::V2 => "api/v1",
-            Self::V3 => "api/v2",
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, ValueEnum, EnumIter)]
-pub enum ManagedService {
-    Conveyor,
-    Mwaa,
-    Astronomer,
-    Gcc,
-}
-
-impl Display for ManagedService {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Conveyor => write!(f, "Conveyor"),
-            Self::Mwaa => write!(f, "MWAA"),
-            Self::Astronomer => write!(f, "Astronomer"),
-            Self::Gcc => write!(f, "Google Cloud Composer"),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub struct GccConfig {
-    pub regions: Vec<String>,
-    /// GCP project IDs to search for Composer environments.
-    /// `None` means search all accessible projects.
-    pub projects: Option<Vec<String>>,
-}
 
 const TICK_RATE_MS: u64 = 200;
 const MIN_POLL_INTERVAL_MS: u64 = 500;
@@ -86,46 +42,6 @@ pub struct FlowrsConfig {
     pub gcc: Option<GccConfig>,
     #[serde(skip_serializing)]
     pub path: Option<PathBuf>,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct AirflowConfig {
-    pub name: String,
-    pub endpoint: String,
-    pub auth: AirflowAuth,
-    pub managed: Option<ManagedService>,
-    #[serde(default)]
-    pub version: AirflowVersion,
-    /// Request timeout in seconds. Defaults to 30 seconds if not specified.
-    #[serde(default = "default_timeout")]
-    pub timeout_secs: u64,
-}
-
-const fn default_timeout() -> u64 {
-    30
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub enum AirflowAuth {
-    Basic(BasicAuth),
-    Token(TokenSource),
-    Conveyor,
-    Mwaa(MwaaAuth),
-    Astronomer(AstronomerAuth),
-    Composer(ComposerAuth),
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct BasicAuth {
-    pub username: String,
-    pub password: String,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(untagged)]
-pub enum TokenSource {
-    Command { cmd: String },
-    Static { token: String },
 }
 
 impl FlowrsConfig {
@@ -272,6 +188,8 @@ password = "airflow"
 
     #[test]
     fn test_write_config_conveyor() {
+        use server::default_timeout;
+
         let config = FlowrsConfig {
             servers: vec![AirflowConfig {
                 name: "bla".to_string(),

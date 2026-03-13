@@ -6,7 +6,7 @@ use std::fmt;
 use std::time::Duration;
 
 use super::auth::{create_auth_provider, AuthProvider};
-use flowrs_config::AirflowConfig;
+use crate::config::AirflowConfig;
 
 /// Base HTTP client for Airflow API communication.
 /// Handles authentication and provides base request building functionality.

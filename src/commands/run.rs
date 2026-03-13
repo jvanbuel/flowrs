@@ -8,12 +8,12 @@ use crossterm::event::{DisableFocusChange, EnableFocusChange};
 use crossterm::ExecutableCommand;
 use log::{info, LevelFilter, Log, Metadata, Record};
 
-use flowrs_config::FlowrsConfig;
-use flowrs_airflow::managed_services::expand::expand_managed_services;
 use crate::app::run_app;
 use crate::app::state::App;
 use crate::CONFIG_PATHS;
 use anyhow::Result;
+use flowrs_airflow::managed_services::expand::{expand_managed_services, ManagedServiceConfig};
+use flowrs_config::FlowrsConfig;
 
 struct FileLogger {
     file: Mutex<File>,
@@ -61,8 +61,18 @@ impl RunCommand {
 
         // Read config file
         let path = self.file.as_ref().map(PathBuf::from);
-        let config = FlowrsConfig::from_file(path.as_ref(), &CONFIG_PATHS)?;
-        let (config, errors) = expand_managed_services(config).await?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &CONFIG_PATHS)?;
+        let ms_config = ManagedServiceConfig {
+            services: config.managed_services.clone(),
+            gcc_regions: config
+                .gcc
+                .as_ref()
+                .map(|c| c.regions.clone())
+                .unwrap_or_default(),
+            gcc_projects: config.gcc.as_ref().and_then(|c| c.projects.clone()),
+        };
+        let (new_servers, errors) = expand_managed_services(ms_config).await?;
+        config.extend_servers(new_servers);
 
         // Generate warnings for legacy config conflict (only when no explicit --file)
         let mut warnings = Vec::new();

@@ -125,4 +125,3 @@ impl TimeBounded for DagRun {
         self.state == DagRunState::Running || self.state == DagRunState::Queued
     }
 }
-

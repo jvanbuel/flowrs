@@ -1,7 +1,7 @@
 use anyhow::Result;
 use log::info;
 
-use flowrs_config::{FlowrsConfig, ManagedService};
+use crate::config::{AirflowConfig, ManagedService};
 
 #[cfg(feature = "astronomer")]
 use super::astronomer::get_astronomer_environment_servers;
@@ -12,33 +12,38 @@ use super::conveyor::get_conveyor_environment_servers;
 #[cfg(feature = "mwaa")]
 use super::mwaa::get_mwaa_environment_servers;
 
-/// Expands the config by resolving managed services and adding their servers.
-/// This is an async function that should be called after `from_file`/`from_str`
-/// when you need to resolve managed service environments.
-/// Returns a tuple of (config, errors) where errors contains any non-fatal errors encountered.
+/// Configuration for managed service expansion, decomposed from FlowrsConfig
+/// so that flowrs-airflow does not depend on the config crate.
+pub struct ManagedServiceConfig {
+    pub services: Vec<ManagedService>,
+    pub gcc_regions: Vec<String>,
+    pub gcc_projects: Option<Vec<String>>,
+}
+
+/// Expands managed services by resolving their environments and returning server configs.
+/// Returns a tuple of (new servers, errors) where errors contains any non-fatal errors encountered.
 pub async fn expand_managed_services(
-    #[allow(unused_mut)] mut config: FlowrsConfig,
-) -> Result<(FlowrsConfig, Vec<String>)> {
+    #[allow(unused_variables)] config: ManagedServiceConfig,
+) -> Result<(Vec<AirflowConfig>, Vec<String>)> {
+    let mut all_servers = Vec::new();
     let mut all_errors = Vec::new();
 
-    if config.managed_services.is_empty() {
-        return Ok((config, all_errors));
+    if config.services.is_empty() {
+        return Ok((all_servers, all_errors));
     }
 
-    let services = config.managed_services.clone();
-    for service in services {
+    for service in &config.services {
         match service {
             ManagedService::Conveyor => {
                 #[cfg(feature = "conveyor")]
                 {
                     let conveyor_servers = get_conveyor_environment_servers()?;
-                    config.extend_servers(conveyor_servers);
+                    all_servers.extend(conveyor_servers);
                 }
                 #[cfg(not(feature = "conveyor"))]
                 {
                     all_errors.push(
-                        "Conveyor support not compiled. Enable the 'conveyor' feature."
-                            .to_string(),
+                        "Conveyor support not compiled. Enable the 'conveyor' feature.".to_string(),
                     );
                 }
             }
@@ -46,13 +51,12 @@ pub async fn expand_managed_services(
                 #[cfg(feature = "mwaa")]
                 {
                     let mwaa_servers = get_mwaa_environment_servers().await?;
-                    config.extend_servers(mwaa_servers);
+                    all_servers.extend(mwaa_servers);
                 }
                 #[cfg(not(feature = "mwaa"))]
                 {
-                    all_errors.push(
-                        "MWAA support not compiled. Enable the 'mwaa' feature.".to_string(),
-                    );
+                    all_errors
+                        .push("MWAA support not compiled. Enable the 'mwaa' feature.".to_string());
                 }
             }
             ManagedService::Astronomer => {
@@ -60,7 +64,7 @@ pub async fn expand_managed_services(
                 {
                     let (astronomer_servers, errors) = get_astronomer_environment_servers().await;
                     all_errors.extend(errors);
-                    config.extend_servers(astronomer_servers);
+                    all_servers.extend(astronomer_servers);
                 }
                 #[cfg(not(feature = "astronomer"))]
                 {
@@ -73,22 +77,15 @@ pub async fn expand_managed_services(
             ManagedService::Gcc => {
                 #[cfg(feature = "composer")]
                 {
-                    let configured_regions: Vec<String> = config
-                        .gcc
-                        .as_ref()
-                        .map(|c| c.regions.clone())
-                        .unwrap_or_default();
+                    let configured_regions = config.gcc_regions.clone();
 
                     let regions = if configured_regions.is_empty() {
-                        let default_region =
-                            tokio::task::spawn_blocking(get_gcloud_default_region)
-                                .await
-                                .ok()
-                                .flatten();
+                        let default_region = tokio::task::spawn_blocking(get_gcloud_default_region)
+                            .await
+                            .ok()
+                            .flatten();
                         if let Some(region) = default_region {
-                            info!(
-                                "No [gcc] regions configured, using gcloud default: {region}"
-                            );
+                            info!("No [gcc] regions configured, using gcloud default: {region}");
                             vec![region]
                         } else {
                             all_errors.push(
@@ -106,19 +103,15 @@ pub async fn expand_managed_services(
                     };
 
                     let project_ids = config
-                        .gcc
+                        .gcc_projects
                         .as_ref()
-                        .and_then(|c| c.projects.as_ref())
                         .filter(|p| !p.is_empty());
 
-                    match get_composer_environment_servers(
-                        &regions,
-                        project_ids.map(Vec::as_slice),
-                    )
-                    .await
+                    match get_composer_environment_servers(&regions, project_ids.map(Vec::as_slice))
+                        .await
                     {
                         Ok(composer_servers) => {
-                            config.extend_servers(composer_servers);
+                            all_servers.extend(composer_servers);
                         }
                         Err(e) => {
                             log::error!("Failed to get Composer environments: {e}");
@@ -137,9 +130,9 @@ pub async fn expand_managed_services(
         }
     }
     info!(
-        "Expanded config: servers={}, errors={}",
-        config.servers.len(),
+        "Expanded managed services: servers={}, errors={}",
+        all_servers.len(),
         all_errors.len()
     );
-    Ok((config, all_errors))
+    Ok((all_servers, all_errors))
 }
