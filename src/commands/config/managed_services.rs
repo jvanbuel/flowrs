@@ -4,11 +4,11 @@ use inquire::{validator::Validation, MultiSelect, Select};
 use strum::IntoEnumIterator;
 
 use super::model::ManagedServiceCommand;
-use flowrs_config::{FlowrsConfig, GccConfig, ManagedService};
+use anyhow::Result;
 use flowrs_airflow::managed_services::composer::{
     get_gcloud_default_region, ComposerClient, GCP_REGIONS,
 };
-use anyhow::Result;
+use flowrs_config::{FlowrsConfig, GccConfig, ManagedService};
 
 impl ManagedServiceCommand {
     pub async fn run(&self) -> Result<()> {

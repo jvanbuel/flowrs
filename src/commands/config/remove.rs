@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use inquire::Select;
 
 use super::model::RemoveCommand;
-use flowrs_config::FlowrsConfig;
 use anyhow::Result;
+use flowrs_config::FlowrsConfig;
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {

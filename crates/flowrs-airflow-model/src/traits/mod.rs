@@ -12,9 +12,9 @@ pub use log::LogOperations;
 pub use task::TaskOperations;
 pub use taskinstance::TaskInstanceOperations;
 
-use flowrs_config::AirflowVersion;
 use crate::model::common::OpenItem;
 use anyhow::Result;
+use flowrs_config::AirflowVersion;
 
 /// Super-trait combining all Airflow API operations.
 ///

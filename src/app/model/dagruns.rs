@@ -14,9 +14,6 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 use time::format_description;
 
-use flowrs_airflow_model::model::common::{
-    calculate_duration, format_duration, DagRun, DagRunId, DagRunState,
-};
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
@@ -24,6 +21,9 @@ use crate::ui::theme::{
     BORDER_STYLE, DEFAULT_STYLE, SELECTED_ROW_STYLE, SURFACE_STYLE, TABLE_HEADER_STYLE, TITLE_STYLE,
 };
 use crate::ui::TIME_FORMAT;
+use flowrs_airflow_model::model::common::{
+    calculate_duration, format_duration, DagRun, DagRunId, DagRunState,
+};
 
 use super::popup::dagruns::commands::DAGRUN_COMMAND_POP_UP;
 use super::popup::dagruns::trigger::TriggerDagRunPopUp;
@@ -31,8 +31,8 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{FilterableTable, KeyResult, Model, Popup};
-use flowrs_airflow_model::model::common::OpenItem;
 use crate::app::worker::WorkerMessage;
+use flowrs_airflow_model::model::common::OpenItem;
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
 pub struct DagRunModel {
@@ -552,9 +552,9 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flowrs_airflow_model::model::common::RunType;
     use crate::app::model::filter::Filterable;
     use crossterm::event::{KeyEvent, KeyModifiers};
+    use flowrs_airflow_model::model::common::RunType;
     use time::macros::datetime;
 
     #[test]

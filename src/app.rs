@@ -13,10 +13,7 @@ use flowrs_airflow_model::model::common::EnvironmentKey;
 
 use flowrs_airflow::create_client;
 
-use crate::{
-    ui::draw_ui,
-    CONFIG_PATHS,
-};
+use crate::{ui::draw_ui, CONFIG_PATHS};
 
 pub mod environment_state;
 pub mod events;

@@ -37,8 +37,7 @@ pub async fn expand_managed_services(
                 #[cfg(not(feature = "conveyor"))]
                 {
                     all_errors.push(
-                        "Conveyor support not compiled. Enable the 'conveyor' feature."
-                            .to_string(),
+                        "Conveyor support not compiled. Enable the 'conveyor' feature.".to_string(),
                     );
                 }
             }
@@ -50,9 +49,8 @@ pub async fn expand_managed_services(
                 }
                 #[cfg(not(feature = "mwaa"))]
                 {
-                    all_errors.push(
-                        "MWAA support not compiled. Enable the 'mwaa' feature.".to_string(),
-                    );
+                    all_errors
+                        .push("MWAA support not compiled. Enable the 'mwaa' feature.".to_string());
                 }
             }
             ManagedService::Astronomer => {
@@ -80,15 +78,12 @@ pub async fn expand_managed_services(
                         .unwrap_or_default();
 
                     let regions = if configured_regions.is_empty() {
-                        let default_region =
-                            tokio::task::spawn_blocking(get_gcloud_default_region)
-                                .await
-                                .ok()
-                                .flatten();
+                        let default_region = tokio::task::spawn_blocking(get_gcloud_default_region)
+                            .await
+                            .ok()
+                            .flatten();
                         if let Some(region) = default_region {
-                            info!(
-                                "No [gcc] regions configured, using gcloud default: {region}"
-                            );
+                            info!("No [gcc] regions configured, using gcloud default: {region}");
                             vec![region]
                         } else {
                             all_errors.push(
@@ -111,11 +106,8 @@ pub async fn expand_managed_services(
                         .and_then(|c| c.projects.as_ref())
                         .filter(|p| !p.is_empty());
 
-                    match get_composer_environment_servers(
-                        &regions,
-                        project_ids.map(Vec::as_slice),
-                    )
-                    .await
+                    match get_composer_environment_servers(&regions, project_ids.map(Vec::as_slice))
+                        .await
                     {
                         Ok(composer_servers) => {
                             config.extend_servers(composer_servers);

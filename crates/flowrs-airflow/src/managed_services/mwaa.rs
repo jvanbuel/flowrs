@@ -1,10 +1,10 @@
 use crate::client::auth::AuthProvider;
-use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
-use flowrs_config::managed_auth::{MwaaAuth, MwaaTokenType};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aws_config::BehaviorVersion;
 use aws_sdk_mwaa as mwaa;
+use flowrs_config::managed_auth::{MwaaAuth, MwaaTokenType};
+use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
 use log::info;
 use reqwest::RequestBuilder;
 use serde::Serialize;

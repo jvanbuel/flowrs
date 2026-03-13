@@ -1,6 +1,4 @@
 [workspace]
-# enable changelog updates
-changelog_update = true
 # update dependencies with `cargo update`
 dependencies_update = true
 # create tags for the releases
@@ -15,3 +13,17 @@ allow_dirty = false
 publish_allow_dirty = false
 # disable running `cargo-semver-checks`
 semver_check = false
+# disable changelog/publish by default for all crates
+changelog_update = false
+publish = false
+
+# Only flowrs-airflow gets published and has a changelog
+[[package]]
+name = "flowrs-airflow"
+publish = true
+changelog_update = true
+
+[[package]]
+name = "flowrs-tui"
+publish = true
+changelog_update = true

@@ -123,7 +123,6 @@ impl GanttData {
             _ => 0.0,
         }
     }
-
 }
 
 #[cfg(test)]

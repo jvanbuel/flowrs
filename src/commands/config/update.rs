@@ -5,8 +5,8 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
-use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
 use crate::commands::config::model::{validate_endpoint, ConfigOption};
+use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
 
 use anyhow::Result;
 

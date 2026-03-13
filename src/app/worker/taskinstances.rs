@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
-use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
-use flowrs_airflow_model::traits::AirflowClient;
 use crate::app::model::popup::taskinstances::mark::MarkState;
 use crate::app::state::App;
+use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
+use flowrs_airflow_model::traits::AirflowClient;
 
 /// Handle updating the list of task instances for a specific DAG run.
 ///

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use super::model::ListCommand;
-use flowrs_config::FlowrsConfig;
 use anyhow::Result;
+use flowrs_config::FlowrsConfig;
 
 impl ListCommand {
     pub fn run(&self) -> Result<()> {

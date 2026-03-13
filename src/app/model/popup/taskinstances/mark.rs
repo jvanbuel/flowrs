@@ -6,7 +6,6 @@ use ratatui::{
 };
 use strum::Display;
 
-use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::{
     app::{
         events::custom::FlowrsEvent,
@@ -18,6 +17,7 @@ use crate::{
         SURFACE_STYLE,
     },
 };
+use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 
 pub struct MarkTaskInstancePopup {
     pub dag_id: DagId,

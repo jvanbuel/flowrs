@@ -3,11 +3,11 @@
 //! This module centralizes all `Filterable` implementations, keeping them
 //! separate from the domain model definitions.
 
-use flowrs_config::AirflowConfig;
+use crate::impl_filterable;
 use flowrs_airflow_model::model::common::dag::Dag;
 use flowrs_airflow_model::model::common::dagrun::DagRun;
 use flowrs_airflow_model::model::common::taskinstance::TaskInstance;
-use crate::impl_filterable;
+use flowrs_config::AirflowConfig;
 
 impl_filterable! {
     Dag,
