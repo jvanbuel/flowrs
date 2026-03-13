@@ -4,7 +4,8 @@ use log::{debug, info};
 use reqwest::Method;
 
 use super::model;
-use crate::airflow::{model::common::DagList, traits::DagOperations};
+use crate::airflow::model::common::{Dag, DagList, Tag};
+use crate::airflow::traits::DagOperations;
 
 use super::V2Client;
 
@@ -66,7 +67,7 @@ impl DagOperations for V2Client {
         Ok(())
     }
 
-    async fn get_dag_code(&self, dag: &crate::airflow::model::common::Dag) -> Result<String> {
+    async fn get_dag_code(&self, dag: &Dag) -> Result<String> {
         let r = self
             .base_api(Method::GET, &format!("dagSources/{}", dag.dag_id))
             .await?
@@ -74,5 +75,56 @@ impl DagOperations for V2Client {
         let response = self.base.client.execute(r).await?.error_for_status()?;
         let dag_source: model::dag::DagSource = response.json().await?;
         Ok(dag_source.content)
+    }
+}
+
+// From trait implementations for v2 models
+impl From<model::dag::Dag> for Dag {
+    fn from(value: model::dag::Dag) -> Self {
+        Self {
+            dag_id: value.dag_id.into(),
+            dag_display_name: Some(value.dag_display_name),
+            description: value.description,
+            fileloc: value.fileloc,
+            is_paused: value.is_paused,
+            is_active: None,
+            has_import_errors: value.has_import_errors,
+            has_task_concurrency_limits: value.has_task_concurrency_limits,
+            last_parsed_time: value.last_parsed_time,
+            last_expired: value.last_expired,
+            max_active_tasks: value.max_active_tasks,
+            max_active_runs: value.max_active_runs,
+            next_dagrun_logical_date: value.next_dagrun_logical_date,
+            next_dagrun_create_after: value.next_dagrun_run_after,
+            next_dagrun_data_interval_start: value.next_dagrun_data_interval_start,
+            next_dagrun_data_interval_end: value.next_dagrun_data_interval_end,
+            owners: value.owners,
+            tags: value
+                .tags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
+            file_token: value.file_token,
+            timetable_description: value.timetable_description,
+        }
+    }
+}
+
+impl From<model::dag::DagList> for DagList {
+    fn from(value: model::dag::DagList) -> Self {
+        Self {
+            dags: value
+                .dags
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
+            total_entries: value.total_entries,
+        }
+    }
+}
+
+impl From<model::dag::Tag> for Tag {
+    fn from(value: model::dag::Tag) -> Self {
+        Self { name: value.name }
     }
 }

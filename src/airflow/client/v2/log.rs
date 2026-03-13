@@ -4,7 +4,8 @@ use log::debug;
 use reqwest::Method;
 
 use super::model;
-use crate::airflow::{model::common::Log, traits::LogOperations};
+use crate::airflow::model::common::Log;
+use crate::airflow::traits::LogOperations;
 
 use super::V2Client;
 
@@ -35,5 +36,15 @@ impl LogOperations for V2Client {
         let log = response.json::<model::log::Log>().await?;
         debug!("Parsed Log: {log:?}");
         Ok(log.into())
+    }
+}
+
+// From trait implementation for v2 log model
+impl From<model::log::Log> for Log {
+    fn from(value: model::log::Log) -> Self {
+        Self {
+            continuation_token: value.continuation_token,
+            content: value.content.to_string(),
+        }
     }
 }

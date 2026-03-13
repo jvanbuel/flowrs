@@ -4,9 +4,6 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use time::OffsetDateTime;
 
-use crate::airflow::client::v1;
-use crate::airflow::client::v2;
-
 use super::taskinstance::TaskInstanceState;
 use super::TaskId;
 use crate::ui::constants::AirflowStateColor;
@@ -210,30 +207,6 @@ impl GanttData {
         }
 
         Line::from(spans)
-    }
-}
-
-// From trait implementations for v1 try response models
-impl From<v1::model::taskinstance::TaskInstanceTryResponse> for TaskTryGantt {
-    fn from(value: v1::model::taskinstance::TaskInstanceTryResponse) -> Self {
-        Self {
-            try_number: value.try_number,
-            start_date: value.start_date,
-            end_date: value.end_date,
-            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
-        }
-    }
-}
-
-// From trait implementations for v2 try response models
-impl From<v2::model::taskinstance::TaskInstanceTryResponse> for TaskTryGantt {
-    fn from(value: v2::model::taskinstance::TaskInstanceTryResponse) -> Self {
-        Self {
-            try_number: value.try_number,
-            start_date: value.start_date,
-            end_date: value.end_date,
-            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
-        }
     }
 }
 

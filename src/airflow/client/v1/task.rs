@@ -4,7 +4,8 @@ use reqwest::Method;
 
 use super::model;
 use super::V1Client;
-use crate::airflow::{model::common::TaskList, traits::TaskOperations};
+use crate::airflow::model::common::{Task, TaskList};
+use crate::airflow::traits::TaskOperations;
 
 #[async_trait]
 impl TaskOperations for V1Client {
@@ -18,5 +19,23 @@ impl TaskOperations for V1Client {
 
         let task_collection: model::task::TaskCollectionResponse = response.json().await?;
         Ok(task_collection.into())
+    }
+}
+
+// From trait implementations for v1 models
+impl From<model::task::TaskResponse> for Task {
+    fn from(value: model::task::TaskResponse) -> Self {
+        Self {
+            task_id: value.task_id,
+            downstream_task_ids: value.downstream_task_ids,
+        }
+    }
+}
+
+impl From<model::task::TaskCollectionResponse> for TaskList {
+    fn from(value: model::task::TaskCollectionResponse) -> Self {
+        Self {
+            tasks: value.tasks.into_iter().map(Into::into).collect(),
+        }
     }
 }

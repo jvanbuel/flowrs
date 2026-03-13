@@ -4,10 +4,9 @@ use log::{debug, info};
 use reqwest::{Method, Response};
 
 use super::model;
-use crate::airflow::{
-    model::common::{TaskInstanceList, TaskTryGantt},
-    traits::TaskInstanceOperations,
-};
+use crate::airflow::model::common::taskinstance::TaskInstanceState;
+use crate::airflow::model::common::{TaskInstance, TaskInstanceList, TaskTryGantt};
+use crate::airflow::traits::TaskInstanceOperations;
 
 use super::V2Client;
 const PAGE_SIZE: usize = 100;
@@ -185,5 +184,58 @@ impl TaskInstanceOperations for V2Client {
             .error_for_status()?;
         debug!("{resp:?}");
         Ok(())
+    }
+}
+
+// From trait implementations for v2 models
+impl From<model::taskinstance::TaskInstance> for TaskInstance {
+    fn from(value: model::taskinstance::TaskInstance) -> Self {
+        Self {
+            task_id: value.task_id.into(),
+            dag_id: value.dag_id.into(),
+            dag_run_id: value.dag_run_id.into(),
+            logical_date: value.logical_date,
+            start_date: value.start_date,
+            end_date: value.end_date,
+            duration: value.duration,
+            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
+            try_number: value.try_number,
+            max_tries: value.max_tries,
+            map_index: value.map_index,
+            hostname: value.hostname,
+            unixname: value.unixname,
+            pool: value.pool,
+            pool_slots: value.pool_slots,
+            queue: value.queue,
+            priority_weight: value.priority_weight,
+            operator: value.operator,
+            queued_when: value.queued_when,
+            pid: value.pid,
+            note: value.note,
+        }
+    }
+}
+
+impl From<model::taskinstance::TaskInstanceList> for TaskInstanceList {
+    fn from(value: model::taskinstance::TaskInstanceList) -> Self {
+        Self {
+            task_instances: value
+                .task_instances
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
+            total_entries: value.total_entries,
+        }
+    }
+}
+
+impl From<model::taskinstance::TaskInstanceTryResponse> for TaskTryGantt {
+    fn from(value: model::taskinstance::TaskInstanceTryResponse) -> Self {
+        Self {
+            try_number: value.try_number,
+            start_date: value.start_date,
+            end_date: value.end_date,
+            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
+        }
     }
 }

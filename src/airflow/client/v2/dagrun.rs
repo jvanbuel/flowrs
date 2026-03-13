@@ -4,7 +4,9 @@ use log::debug;
 use reqwest::{Method, Response};
 
 use super::model;
-use crate::airflow::{model::common::DagRunList, traits::DagRunOperations};
+use crate::airflow::model::common::dagrun::{DagRunState, RunType};
+use crate::airflow::model::common::{DagRun, DagRunList};
+use crate::airflow::traits::DagRunOperations;
 
 use super::V2Client;
 
@@ -74,5 +76,38 @@ impl DagRunOperations for V2Client {
             .error_for_status()?;
         debug!("{resp:?}");
         Ok(())
+    }
+}
+
+// From trait implementations for v2 models
+impl From<model::dagrun::DagRun> for DagRun {
+    fn from(value: model::dagrun::DagRun) -> Self {
+        Self {
+            dag_id: value.dag_id.into(),
+            dag_run_id: value.dag_run_id.into(),
+            logical_date: value.logical_date,
+            data_interval_end: value.data_interval_end,
+            data_interval_start: value.data_interval_start,
+            end_date: value.end_date,
+            start_date: value.start_date,
+            last_scheduling_decision: value.last_scheduling_decision,
+            run_type: RunType::from(value.run_type.as_str()),
+            state: DagRunState::from(value.state.as_str()),
+            note: value.note,
+            external_trigger: None,
+        }
+    }
+}
+
+impl From<model::dagrun::DagRunList> for DagRunList {
+    fn from(value: model::dagrun::DagRunList) -> Self {
+        Self {
+            dag_runs: value
+                .dag_runs
+                .into_iter()
+                .map(std::convert::Into::into)
+                .collect(),
+            total_entries: value.total_entries,
+        }
     }
 }
