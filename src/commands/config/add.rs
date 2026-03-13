@@ -5,13 +5,11 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::AddCommand;
-use crate::{
-    airflow::config::{
-        AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenSource,
-    },
-    commands::config::model::{validate_endpoint, ConfigOption},
-};
+use crate::commands::config::model::{validate_endpoint, ConfigOption};
 use anyhow::{Context, Result};
+use flowrs_config::{
+    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenSource,
+};
 
 impl AddCommand {
     pub fn run(&self) -> Result<()> {
@@ -71,7 +69,7 @@ impl AddCommand {
         };
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         // If the user provided a custom path, override the config path so write_to_file
         // uses the user-specified location even if it didn't exist during from_file
@@ -84,7 +82,7 @@ impl AddCommand {
             .retain(|server| server.name != new_config.name && server.managed.is_none());
         config.servers.push(new_config);
 
-        config.write_to_file()?;
+        config.write_to_file(&crate::CONFIG_PATHS)?;
 
         println!("✅ Config added successfully!");
         Ok(())

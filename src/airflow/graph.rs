@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use crate::airflow::model::common::{Task, TaskInstance};
+use super::model::common::{Task, TaskInstance};
 
 /// Stores topological levels for each task, where tasks at the same level
 /// can execute in parallel (have the same dependency depth)
@@ -13,6 +13,7 @@ pub struct TaskGraph {
 impl TaskGraph {
     /// Build a `TaskGraph` from task definitions using level-based Kahn's algorithm.
     /// Tasks at the same dependency depth get the same level.
+    #[must_use]
     pub fn from_tasks(tasks: &[Task]) -> Self {
         if tasks.is_empty() {
             return Self::default();
@@ -78,6 +79,7 @@ impl TaskGraph {
     }
 
     /// Get the topological level of a task. Returns None if task not in graph.
+    #[must_use]
     pub fn level(&self, task_id: &str) -> Option<usize> {
         self.task_levels.get(task_id).copied()
     }

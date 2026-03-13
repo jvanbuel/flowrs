@@ -12,6 +12,7 @@ use throbber_widgets_tui::Throbber;
 
 pub mod common;
 pub mod constants;
+pub mod gantt;
 mod init_screen;
 pub mod tabs;
 pub mod theme;

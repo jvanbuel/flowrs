@@ -4,7 +4,7 @@ use log::debug;
 
 use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::airflow::traits::AirflowClient;
-use crate::app::model::popup::taskinstances::mark::MarkState;
+use crate::app::model::taskinstances::popup::mark::MarkState;
 use crate::app::state::App;
 
 /// Handle updating the list of task instances for a specific DAG run.

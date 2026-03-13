@@ -18,6 +18,6 @@ pub mod app;
 pub mod commands;
 pub mod ui;
 
-use airflow::config::paths::ConfigPaths;
+use flowrs_config::paths::ConfigPaths;
 
 pub static CONFIG_PATHS: LazyLock<ConfigPaths> = LazyLock::new(ConfigPaths::resolve);

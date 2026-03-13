@@ -9,12 +9,11 @@ use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
 use worker::{Dispatcher, WorkerMessage};
 
-use crate::{
-    airflow::{client::create_client, model::common::EnvironmentKey},
-    ui::draw_ui,
-};
+use crate::airflow::client::FlowrsClient;
+use crate::airflow::model::common::EnvironmentKey;
 
-pub mod environment_state;
+use crate::{ui::draw_ui, CONFIG_PATHS};
+
 pub mod events;
 pub mod model;
 pub mod state;
@@ -40,8 +39,8 @@ where
 
         // Initialize all environments with their clients
         for server_config in servers {
-            if let Ok(client) = create_client(&server_config) {
-                let env_data = environment_state::EnvironmentData::new(client);
+            if let Ok(client) = FlowrsClient::new(&server_config) {
+                let env_data = state::environment_state::EnvironmentData::new(Arc::new(client));
                 app.environment_state
                     .environments
                     .insert(EnvironmentKey::from(server_config.name.clone()), env_data);
@@ -152,7 +151,7 @@ where
                 // Handle other key events
                 match key.code {
                     KeyCode::Char('q') => {
-                        app.config.write_to_file()?;
+                        app.config.write_to_file(&CONFIG_PATHS)?;
                         return Ok(());
                     }
                     KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {

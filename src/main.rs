@@ -16,10 +16,10 @@ mod app;
 mod commands;
 mod ui;
 
-use airflow::config::paths::ConfigPaths;
 use anyhow::Result;
 use commands::config::model::ConfigArgs;
 use commands::run::RunCommand;
+use flowrs_config::paths::ConfigPaths;
 
 pub static CONFIG_PATHS: LazyLock<ConfigPaths> = LazyLock::new(ConfigPaths::resolve);
 

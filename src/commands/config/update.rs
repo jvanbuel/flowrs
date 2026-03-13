@@ -5,17 +5,15 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
-use crate::{
-    airflow::config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource},
-    commands::config::model::{validate_endpoint, ConfigOption},
-};
+use crate::commands::config::model::{validate_endpoint, ConfigOption};
+use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
 
 use anyhow::Result;
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         if config.servers.is_empty() {
             println!("❌ No servers found in config file");
@@ -76,7 +74,7 @@ impl UpdateCommand {
         }
 
         config.servers = servers;
-        config.write_to_file()?;
+        config.write_to_file(&crate::CONFIG_PATHS)?;
 
         println!("✅ Config updated successfully!");
         Ok(())

@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::airflow::client::v1;
-use crate::airflow::client::v2;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
@@ -125,71 +123,5 @@ impl TimeBounded for DagRun {
 
     fn is_running(&self) -> bool {
         self.state == DagRunState::Running || self.state == DagRunState::Queued
-    }
-}
-
-// From trait implementations for v1 models
-impl From<v1::model::dagrun::DAGRunResponse> for DagRun {
-    fn from(value: v1::model::dagrun::DAGRunResponse) -> Self {
-        Self {
-            dag_id: value.dag_id.into(),
-            dag_run_id: value.dag_run_id.unwrap_or_default().into(),
-            logical_date: value.logical_date,
-            data_interval_end: value.data_interval_end,
-            data_interval_start: value.data_interval_start,
-            end_date: value.end_date,
-            start_date: value.start_date,
-            last_scheduling_decision: value.last_scheduling_decision,
-            run_type: RunType::from(value.run_type.as_str()),
-            state: DagRunState::from(value.state.as_str()),
-            note: value.note,
-            external_trigger: Some(value.external_trigger),
-        }
-    }
-}
-
-impl From<v1::model::dagrun::DAGRunCollectionResponse> for DagRunList {
-    fn from(value: v1::model::dagrun::DAGRunCollectionResponse) -> Self {
-        Self {
-            dag_runs: value
-                .dag_runs
-                .into_iter()
-                .map(std::convert::Into::into)
-                .collect(),
-            total_entries: value.total_entries,
-        }
-    }
-}
-
-// From trait implementations for v2 models
-impl From<v2::model::dagrun::DagRun> for DagRun {
-    fn from(value: v2::model::dagrun::DagRun) -> Self {
-        Self {
-            dag_id: value.dag_id.into(),
-            dag_run_id: value.dag_run_id.into(),
-            logical_date: value.logical_date,
-            data_interval_end: value.data_interval_end,
-            data_interval_start: value.data_interval_start,
-            end_date: value.end_date,
-            start_date: value.start_date,
-            last_scheduling_decision: value.last_scheduling_decision,
-            run_type: RunType::from(value.run_type.as_str()),
-            state: DagRunState::from(value.state.as_str()),
-            note: value.note,
-            external_trigger: None,
-        }
-    }
-}
-
-impl From<v2::model::dagrun::DagRunList> for DagRunList {
-    fn from(value: v2::model::dagrun::DagRunList) -> Self {
-        Self {
-            dag_runs: value
-                .dag_runs
-                .into_iter()
-                .map(std::convert::Into::into)
-                .collect(),
-            total_entries: value.total_entries,
-        }
     }
 }

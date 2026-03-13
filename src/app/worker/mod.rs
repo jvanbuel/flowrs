@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
-use super::model::popup::dagruns::mark::MarkState;
-use super::model::popup::taskinstances::mark::MarkState as TaskMarkState;
+use super::model::dagruns::popup::mark::MarkState;
+use super::model::taskinstances::popup::mark::MarkState as TaskMarkState;
 use super::state::App;
-use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::model::common::{DagId, DagRunId, OpenItem, TaskId};
 use anyhow::Result;
 use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
@@ -72,30 +72,6 @@ pub enum WorkerMessage {
         dag_id: DagId,
     },
     OpenItem(OpenItem),
-}
-
-#[derive(Debug)]
-pub enum OpenItem {
-    Config(String),
-    Dag {
-        dag_id: DagId,
-    },
-    DagRun {
-        dag_id: DagId,
-        dag_run_id: DagRunId,
-    },
-    TaskInstance {
-        dag_id: DagId,
-        dag_run_id: DagRunId,
-        task_id: TaskId,
-    },
-    Log {
-        dag_id: DagId,
-        dag_run_id: DagRunId,
-        task_id: TaskId,
-        #[allow(dead_code)]
-        task_try: u32,
-    },
 }
 
 impl WorkerMessage {

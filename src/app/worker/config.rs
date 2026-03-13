@@ -2,8 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::EnvironmentKey;
-use crate::app::environment_state::EnvironmentData;
+use crate::app::state::environment_state::EnvironmentData;
 use crate::app::state::App;
 
 /// Handle configuration selection.
@@ -28,9 +29,9 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
 
     // Check if environment already exists, if not create it
     if !app.environment_state.environments.contains_key(&env_name) {
-        match crate::airflow::client::create_client(&selected_config) {
+        match FlowrsClient::new(&selected_config) {
             Ok(client) => {
-                let env_data = EnvironmentData::new(client);
+                let env_data = EnvironmentData::new(std::sync::Arc::new(client));
                 app.environment_state
                     .environments
                     .insert(env_name.clone(), env_data);

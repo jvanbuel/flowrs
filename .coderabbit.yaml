@@ -1,0 +1,10 @@
+reviews:
+  path_filters:
+    - "!**/*.lock"
+    - "!Cargo.toml"
+    - "!**/Cargo.toml"
+    - "!CLAUDE.md"
+    - "!.gitignore"
+    - "!release-plz.toml"
+    - "!.github/**"
+    - "!docs/**"

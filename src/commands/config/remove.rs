@@ -3,13 +3,13 @@ use std::path::PathBuf;
 use inquire::Select;
 
 use super::model::RemoveCommand;
-use crate::airflow::config::FlowrsConfig;
 use anyhow::Result;
+use flowrs_config::FlowrsConfig;
 
 impl RemoveCommand {
     pub fn run(&self) -> Result<()> {
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         let name = match self.name {
             None => Select::new(
@@ -26,7 +26,7 @@ impl RemoveCommand {
         config
             .servers
             .retain(|server| server.name != name && server.managed.is_none());
-        config.write_to_file()?;
+        config.write_to_file(&crate::CONFIG_PATHS)?;
 
         println!("✅ Config '{name}' removed successfully!");
         Ok(())

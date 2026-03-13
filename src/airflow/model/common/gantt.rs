@@ -1,15 +1,9 @@
 use std::collections::HashMap;
 
-use ratatui::style::{Color, Style};
-use ratatui::text::{Line, Span};
 use time::OffsetDateTime;
-
-use crate::airflow::client::v1;
-use crate::airflow::client::v2;
 
 use super::taskinstance::TaskInstanceState;
 use super::TaskId;
-use crate::ui::constants::AirflowStateColor;
 
 /// A single try/attempt of a task instance, with the fields needed for Gantt chart rendering.
 #[derive(Debug, Clone)]
@@ -38,9 +32,10 @@ impl GanttData {
     ///
     /// Note: tasks are keyed by [`TaskId`] only — `map_index` is not distinguished,
     /// so mapped task tries (e.g. from `expand_task`) are merged into a single bar
-    /// whose `char_colors` overwrite each other in [`Self::create_bar`]. This is
+    /// whose `char_colors` overwrite each other in the Gantt bar renderer. This is
     /// intentional for now; callers who need per-map-index bars should pre-group
     /// or provide distinct `TaskId` values.
+    #[must_use]
     pub fn from_task_instances(tasks: &[super::TaskInstance]) -> Self {
         if tasks.is_empty() {
             return Self::default();
@@ -115,7 +110,8 @@ impl GanttData {
     }
 
     /// Calculate the ratio (0.0 to 1.0) for a given timestamp within the window.
-    fn ratio(&self, time: OffsetDateTime) -> f64 {
+    #[must_use]
+    pub fn ratio(&self, time: OffsetDateTime) -> f64 {
         match (self.window_start, self.window_end) {
             (Some(start), Some(end)) => {
                 let total = (end - start).as_seconds_f64();
@@ -125,114 +121,6 @@ impl GanttData {
                 ((time - start).as_seconds_f64() / total).clamp(0.0, 1.0)
             }
             _ => 0.0,
-        }
-    }
-
-    /// Create a Gantt bar `Line` for a specific task, sized to `width` characters.
-    /// Each try renders as a colored segment; gaps between tries are empty.
-    pub fn create_bar(&self, task_id: &TaskId, width: usize) -> Line<'static> {
-        const FILLED_CHAR: &str = "▃";
-        const EMPTY_CHAR: &str = " ";
-
-        if width == 0 {
-            return Line::default();
-        }
-
-        let Some(tries) = self.task_tries.get(task_id) else {
-            return Line::from(EMPTY_CHAR.repeat(width));
-        };
-
-        if self.window_start.is_none() || self.window_end.is_none() {
-            return Line::from(EMPTY_CHAR.repeat(width));
-        }
-
-        // Build a per-character color map
-        // Each character position maps to either None (empty) or Some(Color)
-        let mut char_colors: Vec<Option<Color>> = vec![None; width];
-
-        for t in tries {
-            let Some(start) = t.start_date else {
-                continue;
-            };
-            let end = t.end_date.unwrap_or_else(OffsetDateTime::now_utc);
-
-            let start_ratio = self.ratio(start);
-            let end_ratio = self.ratio(end);
-
-            #[allow(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                clippy::cast_precision_loss
-            )]
-            let start_col = (start_ratio * width as f64).floor() as usize;
-            #[allow(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                clippy::cast_precision_loss
-            )]
-            let end_col = (end_ratio * width as f64)
-                .ceil()
-                .max(start_col as f64 + 1.0) as usize;
-            let end_col = end_col.min(width);
-
-            let color: Color = t
-                .state
-                .as_ref()
-                .map_or(AirflowStateColor::None, AirflowStateColor::from)
-                .into();
-
-            for slot in &mut char_colors[start_col..end_col] {
-                *slot = Some(color);
-            }
-        }
-
-        // Convert char_colors into spans by grouping consecutive same-color characters
-        let mut spans: Vec<Span<'static>> = Vec::new();
-        let mut i = 0;
-        while i < char_colors.len() {
-            let current_color = char_colors[i];
-            let mut count = 1;
-            while i + count < char_colors.len() && char_colors[i + count] == current_color {
-                count += 1;
-            }
-            match current_color {
-                Some(color) => {
-                    spans.push(Span::styled(
-                        FILLED_CHAR.repeat(count),
-                        Style::default().fg(color),
-                    ));
-                }
-                None => {
-                    spans.push(Span::raw(EMPTY_CHAR.repeat(count)));
-                }
-            }
-            i += count;
-        }
-
-        Line::from(spans)
-    }
-}
-
-// From trait implementations for v1 try response models
-impl From<v1::model::taskinstance::TaskInstanceTryResponse> for TaskTryGantt {
-    fn from(value: v1::model::taskinstance::TaskInstanceTryResponse) -> Self {
-        Self {
-            try_number: value.try_number,
-            start_date: value.start_date,
-            end_date: value.end_date,
-            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
-        }
-    }
-}
-
-// From trait implementations for v2 try response models
-impl From<v2::model::taskinstance::TaskInstanceTryResponse> for TaskTryGantt {
-    fn from(value: v2::model::taskinstance::TaskInstanceTryResponse) -> Self {
-        Self {
-            try_number: value.try_number,
-            start_date: value.start_date,
-            end_date: value.end_date,
-            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
         }
     }
 }
@@ -297,37 +185,6 @@ mod tests {
     }
 
     #[test]
-    fn test_bar_creation_single_task() {
-        let tasks = vec![make_task(
-            "task_1",
-            1,
-            Some(datetime!(2024-01-01 10:00:00 UTC)),
-            Some(datetime!(2024-01-01 11:00:00 UTC)),
-            Some(TaskInstanceState::Success),
-        )];
-        let gantt = GanttData::from_task_instances(&tasks);
-        let bar = gantt.create_bar(&"task_1".into(), 20);
-        // Single task spanning entire window should fill all 20 chars
-        let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
-        assert_eq!(total_chars, 20);
-    }
-
-    #[test]
-    fn test_bar_creation_missing_task() {
-        let tasks = vec![make_task(
-            "task_1",
-            1,
-            Some(datetime!(2024-01-01 10:00:00 UTC)),
-            Some(datetime!(2024-01-01 11:00:00 UTC)),
-            Some(TaskInstanceState::Success),
-        )];
-        let gantt = GanttData::from_task_instances(&tasks);
-        let bar = gantt.create_bar(&"nonexistent".into(), 20);
-        let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
-        assert_eq!(total_chars, 20);
-    }
-
-    #[test]
     fn test_multiple_tasks_window_spans() {
         let tasks = vec![
             make_task(
@@ -348,11 +205,6 @@ mod tests {
         let gantt = GanttData::from_task_instances(&tasks);
         assert_eq!(gantt.window_start, Some(datetime!(2024-01-01 10:00:00 UTC)));
         assert_eq!(gantt.window_end, Some(datetime!(2024-01-01 11:00:00 UTC)));
-
-        // task_1 should fill the first half
-        let bar = gantt.create_bar(&"task_1".into(), 20);
-        let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
-        assert_eq!(total_chars, 20);
     }
 
     #[test]

@@ -4,10 +4,8 @@
 use std::env;
 use std::sync::Arc;
 
-use flowrs_tui::airflow::client::create_client;
-use flowrs_tui::airflow::config::{
-    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource,
-};
+use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource};
+use flowrs_tui::airflow::client::FlowrsClient;
 use flowrs_tui::airflow::traits::AirflowClient;
 
 /// Check if we should run tests for a specific API version.
@@ -73,7 +71,8 @@ pub fn create_test_client() -> anyhow::Result<Arc<dyn AirflowClient>> {
         timeout_secs: 30,
     };
 
-    create_client(&config)
+    let client = FlowrsClient::new(&config)?;
+    Ok(Arc::new(client))
 }
 
 /// Create a test client for Airflow 3.x using JWT authentication
@@ -94,5 +93,6 @@ pub async fn create_test_client_v3() -> anyhow::Result<Arc<dyn AirflowClient>> {
         timeout_secs: 30,
     };
 
-    create_client(&config)
+    let client = FlowrsClient::new(&config)?;
+    Ok(Arc::new(client))
 }
