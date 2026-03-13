@@ -1,5 +1,9 @@
+#[cfg(feature = "astronomer")]
 pub mod astronomer;
+#[cfg(feature = "composer")]
 pub mod composer;
+#[cfg(feature = "conveyor")]
 pub mod conveyor;
 pub mod expand;
+#[cfg(feature = "mwaa")]
 pub mod mwaa;

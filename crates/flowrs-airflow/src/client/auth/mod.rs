@@ -12,9 +12,13 @@ use async_trait::async_trait;
 use reqwest::RequestBuilder;
 
 use flowrs_config::{AirflowAuth, BasicAuth, TokenSource};
+#[cfg(feature = "astronomer")]
 use crate::managed_services::astronomer::AstronomerAuthProvider;
+#[cfg(feature = "composer")]
 use crate::managed_services::composer::ComposerAuthProvider;
+#[cfg(feature = "conveyor")]
 use crate::managed_services::conveyor::ConveyorAuthProvider;
+#[cfg(feature = "mwaa")]
 use crate::managed_services::mwaa::MwaaAuthProvider;
 
 /// Authentication provider trait for Airflow API requests.
@@ -39,13 +43,35 @@ pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>>
         AirflowAuth::Token(TokenSource::Command { cmd }) => {
             Ok(Box::new(CommandTokenProvider { cmd: cmd.clone() }))
         }
+        #[cfg(feature = "conveyor")]
         AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider)),
+        #[cfg(not(feature = "conveyor"))]
+        AirflowAuth::Conveyor => {
+            anyhow::bail!("Conveyor support not compiled. Enable the 'conveyor' feature.")
+        }
+        #[cfg(feature = "mwaa")]
         AirflowAuth::Mwaa(mwaa_auth) => Ok(Box::new(MwaaAuthProvider::from(mwaa_auth))),
+        #[cfg(not(feature = "mwaa"))]
+        AirflowAuth::Mwaa(_) => {
+            anyhow::bail!("MWAA support not compiled. Enable the 'mwaa' feature.")
+        }
+        #[cfg(feature = "astronomer")]
         AirflowAuth::Astronomer(astro_auth) => {
             Ok(Box::new(AstronomerAuthProvider::from(astro_auth)))
         }
+        #[cfg(not(feature = "astronomer"))]
+        AirflowAuth::Astronomer(_) => {
+            anyhow::bail!("Astronomer support not compiled. Enable the 'astronomer' feature.")
+        }
+        #[cfg(feature = "composer")]
         AirflowAuth::Composer(composer_auth) => {
             Ok(Box::new(ComposerAuthProvider::new(composer_auth)?))
+        }
+        #[cfg(not(feature = "composer"))]
+        AirflowAuth::Composer(_) => {
+            anyhow::bail!(
+                "Google Cloud Composer support not compiled. Enable the 'composer' feature."
+            )
         }
     }
 }
