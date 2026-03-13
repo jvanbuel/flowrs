@@ -17,6 +17,7 @@ use crate::airflow::model::common::{
 use crate::app::events::custom::FlowrsEvent;
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
+use crate::ui::gantt::create_gantt_bar;
 use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
 
 use super::popup::taskinstances::clear::ClearTaskInstancePopup;
@@ -306,8 +307,7 @@ impl Widget for &mut TaskInstanceModel {
                             .map_or(AirflowStateColor::None, AirflowStateColor::from),
                     )),
                     Line::from(item.try_number.to_string()),
-                    self.gantt_data
-                        .create_bar(&item.task_id, gantt_width.into()),
+                    create_gantt_bar(&self.gantt_data, &item.task_id, gantt_width.into()),
                 ])
                 .style(self.table.row_style(idx))
             });
