@@ -23,11 +23,6 @@ publish = true
 changelog_update = true
 
 [[package]]
-name = "flowrs-config"
-publish = true
-changelog_update = false
-
-[[package]]
 name = "flowrs-tui"
 publish = true
 changelog_update = true
