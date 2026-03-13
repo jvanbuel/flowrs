@@ -2,7 +2,6 @@
 members = [
     ".",
     "crates/flowrs-config",
-    "crates/flowrs-airflow-model",
     "crates/flowrs-airflow",
 ]
 resolver = "2"
@@ -46,7 +45,6 @@ ansi-to-tui = { version = "8.0.1" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 flowrs-config = { path = "crates/flowrs-config" }
-flowrs-airflow-model = { path = "crates/flowrs-airflow-model" }
 flowrs-airflow = { path = "crates/flowrs-airflow" }
 chrono = { workspace = true }
 clap = { workspace = true }

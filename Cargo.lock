@@ -1157,17 +1157,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "flowrs-airflow-model"
-version = "0.10.1"
-dependencies = [
- "anyhow",
- "async-trait",
- "serde",
- "serde_json",
- "time",
-]
-
-[[package]]
 name = "flowrs-config"
 version = "0.10.1"
 dependencies = [
@@ -1193,7 +1182,6 @@ dependencies = [
  "crossterm",
  "dirs",
  "flowrs-airflow",
- "flowrs-airflow-model",
  "flowrs-config",
  "futures",
  "inquire",
