@@ -1,15 +1,11 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use reqwest::Method;
 
 use super::model;
 use super::V1Client;
-use flowrs_airflow_model::model::common::{Task, TaskList};
-use flowrs_airflow_model::traits::TaskOperations;
 
-#[async_trait]
-impl TaskOperations for V1Client {
-    async fn list_tasks(&self, dag_id: &str) -> Result<TaskList> {
+impl V1Client {
+    pub async fn fetch_tasks(&self, dag_id: &str) -> Result<model::task::TaskCollectionResponse> {
         let response = self
             .base_api(Method::GET, &format!("dags/{dag_id}/tasks"))
             .await?
@@ -18,24 +14,6 @@ impl TaskOperations for V1Client {
             .error_for_status()?;
 
         let task_collection: model::task::TaskCollectionResponse = response.json().await?;
-        Ok(task_collection.into())
-    }
-}
-
-// From trait implementations for v1 models
-impl From<model::task::TaskResponse> for Task {
-    fn from(value: model::task::TaskResponse) -> Self {
-        Self {
-            task_id: value.task_id,
-            downstream_task_ids: value.downstream_task_ids,
-        }
-    }
-}
-
-impl From<model::task::TaskCollectionResponse> for TaskList {
-    fn from(value: model::task::TaskCollectionResponse) -> Self {
-        Self {
-            tasks: value.tasks.into_iter().map(Into::into).collect(),
-        }
+        Ok(task_collection)
     }
 }

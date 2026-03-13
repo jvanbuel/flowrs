@@ -5,7 +5,7 @@ use super::model::popup::dagruns::mark::MarkState;
 use super::model::popup::taskinstances::mark::MarkState as TaskMarkState;
 use super::state::App;
 use anyhow::Result;
-use flowrs_airflow_model::model::common::{DagId, DagRunId, OpenItem, TaskId};
+use crate::airflow::model::common::{DagId, DagRunId, OpenItem, TaskId};
 use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 

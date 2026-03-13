@@ -14,8 +14,8 @@ use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::gantt::create_gantt_bar;
 use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
-use flowrs_airflow_model::graph::{sort_task_instances, TaskGraph};
-use flowrs_airflow_model::model::common::{
+use crate::airflow::graph::{sort_task_instances, TaskGraph};
+use crate::airflow::model::common::{
     calculate_duration, format_duration, DagId, DagRunId, GanttData, TaskId, TaskInstance,
     TaskInstanceState,
 };
@@ -25,7 +25,7 @@ use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::WorkerMessage;
-use flowrs_airflow_model::model::common::OpenItem;
+use crate::airflow::model::common::OpenItem;
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
 pub struct TaskInstanceModel {

@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use crate::app::model::dagruns::DagCodeView;
 use crate::app::state::{App, Panel};
-use flowrs_airflow_model::model::common::DagId;
-use flowrs_airflow_model::traits::AirflowClient;
+use crate::airflow::model::common::DagId;
+use crate::airflow::traits::AirflowClient;
 
 /// Handle updating DAGs and their statistics from the Airflow server.
 /// On cold start (empty cache), fetches DAGs first then stats sequentially so

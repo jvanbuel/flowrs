@@ -5,8 +5,8 @@ use log::debug;
 
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
-use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId};
-use flowrs_airflow_model::traits::AirflowClient;
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::traits::AirflowClient;
 
 /// Handle fetching task logs for all attempts of a task instance.
 ///

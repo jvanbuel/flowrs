@@ -1,14 +1,10 @@
 use std::sync::LazyLock;
 
 use anyhow::Result;
-use async_trait::async_trait;
 use regex::Regex;
 use reqwest::Method;
 
 use super::model;
-use flowrs_airflow_model::model::common::Log;
-use flowrs_airflow_model::traits::LogOperations;
-
 use super::V1Client;
 
 /// Compiled regex for parsing V1 log content (Python tuple format).
@@ -24,7 +20,7 @@ static V1_LOG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
 ///
 /// V1 Airflow logs come as serialized Python tuples: `[('host', 'log line\nmore')]`
 /// This extracts the log text, joins multiple tuples, and expands escaped newlines.
-fn parse_v1_log_content(content: &str) -> String {
+pub fn parse_v1_log_content(content: &str) -> String {
     let fragments: Vec<String> = V1_LOG_REGEX
         .captures_iter(content)
         .map(|cap| {
@@ -55,15 +51,14 @@ fn parse_v1_log_content(content: &str) -> String {
     }
 }
 
-#[async_trait]
-impl LogOperations for V1Client {
-    async fn get_task_logs(
+impl V1Client {
+    pub async fn fetch_task_logs(
         &self,
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
         task_try: u32,
-    ) -> Result<Log> {
+    ) -> Result<model::log::Log> {
         let response = self
             .base_api(
                 Method::GET,
@@ -78,17 +73,7 @@ impl LogOperations for V1Client {
             .await?
             .error_for_status()?;
         let log = response.json::<model::log::Log>().await?;
-        Ok(log.into())
-    }
-}
-
-// From trait implementation for v1 log model
-impl From<model::log::Log> for Log {
-    fn from(value: model::log::Log) -> Self {
-        Self {
-            continuation_token: value.continuation_token,
-            content: parse_v1_log_content(&value.content),
-        }
+        Ok(log)
     }
 }
 

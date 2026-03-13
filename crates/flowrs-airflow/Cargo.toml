@@ -15,7 +15,6 @@ astronomer = []
 composer = ["dep:google-cloud-auth", "dep:futures"]
 
 [dependencies]
-flowrs-airflow-model = { path = "../flowrs-airflow-model" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true }

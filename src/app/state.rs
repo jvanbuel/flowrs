@@ -4,7 +4,7 @@ use crate::app::environment_state::EnvironmentStateContainer;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
 use crate::app::model::popup::warning::WarningPopup;
-use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use flowrs_config::FlowrsConfig;
 use throbber_widgets_tui::ThrobberState;
 use time::format_description::BorrowedFormatItem;

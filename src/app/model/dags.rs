@@ -17,13 +17,13 @@ use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
     BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
 };
-use flowrs_airflow_model::model::common::{Dag, DagId, DagRunState, DagStatistic};
+use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
 
 use super::dagruns::DagCodeView;
 use super::popup::dags::DagPopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::app::worker::WorkerMessage;
-use flowrs_airflow_model::model::common::OpenItem;
+use crate::airflow::model::common::OpenItem;
 
 /// Model for the DAG panel, managing the list of DAGs and their filtering.
 pub struct DagModel {

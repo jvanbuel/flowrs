@@ -9,9 +9,8 @@ use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
 use worker::{Dispatcher, WorkerMessage};
 
-use flowrs_airflow_model::model::common::EnvironmentKey;
-
-use flowrs_airflow::create_client;
+use crate::airflow::client::FlowrsClient;
+use crate::airflow::model::common::EnvironmentKey;
 
 use crate::{ui::draw_ui, CONFIG_PATHS};
 
@@ -41,8 +40,8 @@ where
 
         // Initialize all environments with their clients
         for server_config in servers {
-            if let Ok(client) = create_client(&server_config) {
-                let env_data = environment_state::EnvironmentData::new(client);
+            if let Ok(client) = FlowrsClient::new(&server_config) {
+                let env_data = environment_state::EnvironmentData::new(Arc::new(client));
                 app.environment_state
                     .environments
                     .insert(EnvironmentKey::from(server_config.name.clone()), env_data);

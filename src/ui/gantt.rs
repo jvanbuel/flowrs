@@ -2,8 +2,8 @@ use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use time::OffsetDateTime;
 
-use flowrs_airflow_model::model::common::gantt::GanttData;
-use flowrs_airflow_model::model::common::TaskId;
+use crate::airflow::model::common::gantt::GanttData;
+use crate::airflow::model::common::TaskId;
 
 use super::constants::AirflowStateColor;
 
@@ -94,9 +94,9 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
 #[cfg(test)]
 mod tests {
     use super::*;
-    use flowrs_airflow_model::model::common::gantt::GanttData;
-    use flowrs_airflow_model::model::common::taskinstance::TaskInstanceState;
-    use flowrs_airflow_model::model::common::TaskInstance;
+    use crate::airflow::model::common::gantt::GanttData;
+    use crate::airflow::model::common::taskinstance::TaskInstanceState;
+    use crate::airflow::model::common::TaskInstance;
     use time::macros::datetime;
 
     fn make_task(

@@ -1,24 +1,18 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use log::{debug, info};
 use reqwest::{Method, Response};
 
 use super::model;
-use flowrs_airflow_model::model::common::taskinstance::TaskInstanceState;
-use flowrs_airflow_model::model::common::{TaskInstance, TaskInstanceList, TaskTryGantt};
-use flowrs_airflow_model::traits::TaskInstanceOperations;
-
 use super::V1Client;
 
 const PAGE_SIZE: usize = 100;
 
-#[async_trait]
-impl TaskInstanceOperations for V1Client {
-    async fn list_task_instances(
+impl V1Client {
+    pub async fn fetch_task_instances(
         &self,
         dag_id: &str,
         dag_run_id: &str,
-    ) -> Result<TaskInstanceList> {
+    ) -> Result<model::taskinstance::TaskInstanceCollectionResponse> {
         let mut all_task_instances = Vec::new();
         let mut offset = 0;
         let limit = PAGE_SIZE;
@@ -36,9 +30,7 @@ impl TaskInstanceOperations for V1Client {
                 .await?
                 .error_for_status()?;
 
-            let page: model::taskinstance::TaskInstanceCollectionResponse = response
-                .json::<model::taskinstance::TaskInstanceCollectionResponse>()
-                .await?;
+            let page: model::taskinstance::TaskInstanceCollectionResponse = response.json().await?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -62,13 +54,15 @@ impl TaskInstanceOperations for V1Client {
             total_entries
         );
 
-        Ok(TaskInstanceList {
-            task_instances: all_task_instances.into_iter().map(Into::into).collect(),
+        Ok(model::taskinstance::TaskInstanceCollectionResponse {
+            task_instances: all_task_instances,
             total_entries,
         })
     }
 
-    async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
+    pub async fn fetch_all_task_instances(
+        &self,
+    ) -> Result<model::taskinstance::TaskInstanceCollectionResponse> {
         let mut all_task_instances = Vec::new();
         let mut offset = 0;
         let limit = 100;
@@ -83,9 +77,7 @@ impl TaskInstanceOperations for V1Client {
                 .await?
                 .error_for_status()?;
 
-            let page: model::taskinstance::TaskInstanceCollectionResponse = response
-                .json::<model::taskinstance::TaskInstanceCollectionResponse>()
-                .await?;
+            let page: model::taskinstance::TaskInstanceCollectionResponse = response.json().await?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -107,18 +99,18 @@ impl TaskInstanceOperations for V1Client {
             total_entries
         );
 
-        Ok(TaskInstanceList {
-            task_instances: all_task_instances.into_iter().map(Into::into).collect(),
+        Ok(model::taskinstance::TaskInstanceCollectionResponse {
+            task_instances: all_task_instances,
             total_entries,
         })
     }
 
-    async fn list_task_instance_tries(
+    pub async fn fetch_task_instance_tries(
         &self,
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
-    ) -> Result<Vec<TaskTryGantt>> {
+    ) -> Result<model::taskinstance::TaskInstanceTriesResponse> {
         let response: Response = self
             .base_api(
                 Method::GET,
@@ -135,10 +127,10 @@ impl TaskInstanceOperations for V1Client {
             tries.task_instances.len()
         );
 
-        Ok(tries.task_instances.into_iter().map(Into::into).collect())
+        Ok(tries)
     }
 
-    async fn mark_task_instance(
+    pub async fn patch_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -159,7 +151,7 @@ impl TaskInstanceOperations for V1Client {
         Ok(())
     }
 
-    async fn clear_task_instance(
+    pub async fn post_clear_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -183,58 +175,5 @@ impl TaskInstanceOperations for V1Client {
             .error_for_status()?;
         debug!("{resp:?}");
         Ok(())
-    }
-}
-
-// From trait implementations for v1 models
-impl From<model::taskinstance::TaskInstanceResponse> for TaskInstance {
-    fn from(value: model::taskinstance::TaskInstanceResponse) -> Self {
-        Self {
-            task_id: value.task_id.into(),
-            dag_id: value.dag_id.into(),
-            dag_run_id: value.dag_run_id.into(),
-            logical_date: Some(value.execution_date),
-            start_date: value.start_date,
-            end_date: value.end_date,
-            duration: value.duration,
-            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
-            try_number: value.try_number,
-            max_tries: value.max_tries,
-            map_index: value.map_index,
-            hostname: Some(value.hostname),
-            unixname: Some(value.unixname),
-            pool: value.pool,
-            pool_slots: value.pool_slots,
-            queue: value.queue,
-            priority_weight: value.priority_weight,
-            operator: value.operator,
-            queued_when: value.queued_when,
-            pid: value.pid,
-            note: value.note,
-        }
-    }
-}
-
-impl From<model::taskinstance::TaskInstanceCollectionResponse> for TaskInstanceList {
-    fn from(value: model::taskinstance::TaskInstanceCollectionResponse) -> Self {
-        Self {
-            task_instances: value
-                .task_instances
-                .into_iter()
-                .map(std::convert::Into::into)
-                .collect(),
-            total_entries: value.total_entries,
-        }
-    }
-}
-
-impl From<model::taskinstance::TaskInstanceTryResponse> for TaskTryGantt {
-    fn from(value: model::taskinstance::TaskInstanceTryResponse) -> Self {
-        Self {
-            try_number: value.try_number,
-            start_date: value.start_date,
-            end_date: value.end_date,
-            state: value.state.map(|s| TaskInstanceState::from(s.as_str())),
-        }
     }
 }

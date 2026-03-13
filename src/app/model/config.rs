@@ -8,7 +8,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::WorkerMessage;
 use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
-use flowrs_airflow_model::model::common::OpenItem;
+use crate::airflow::model::common::OpenItem;
 use flowrs_config::AirflowConfig;
 
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;

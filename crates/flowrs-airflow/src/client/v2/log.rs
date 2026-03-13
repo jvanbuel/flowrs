@@ -1,23 +1,18 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use log::debug;
 use reqwest::Method;
 
 use super::model;
-use flowrs_airflow_model::model::common::Log;
-use flowrs_airflow_model::traits::LogOperations;
-
 use super::V2Client;
 
-#[async_trait]
-impl LogOperations for V2Client {
-    async fn get_task_logs(
+impl V2Client {
+    pub async fn fetch_task_logs(
         &self,
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
         task_try: u32,
-    ) -> Result<Log> {
+    ) -> Result<model::log::Log> {
         let response = self
             .base_api(
                 Method::GET,
@@ -35,16 +30,6 @@ impl LogOperations for V2Client {
         debug!("Response: {response:?}");
         let log = response.json::<model::log::Log>().await?;
         debug!("Parsed Log: {log:?}");
-        Ok(log.into())
-    }
-}
-
-// From trait implementation for v2 log model
-impl From<model::log::Log> for Log {
-    fn from(value: model::log::Log) -> Self {
-        Self {
-            continuation_token: value.continuation_token,
-            content: value.content.to_string(),
-        }
+        Ok(log)
     }
 }

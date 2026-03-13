@@ -1,18 +1,12 @@
 use anyhow::Result;
-use async_trait::async_trait;
 use log::debug;
 use reqwest::{Method, Response};
 
 use super::model;
-use flowrs_airflow_model::model::common::dagrun::{DagRunState, RunType};
-use flowrs_airflow_model::model::common::{DagRun, DagRunList};
-use flowrs_airflow_model::traits::DagRunOperations;
-
 use super::V1Client;
 
-#[async_trait]
-impl DagRunOperations for V1Client {
-    async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList> {
+impl V1Client {
+    pub async fn fetch_dagruns(&self, dag_id: &str) -> Result<model::dagrun::DAGRunCollectionResponse> {
         let response: Response = self
             .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))
             .await?
@@ -21,13 +15,11 @@ impl DagRunOperations for V1Client {
             .await?
             .error_for_status()?;
 
-        let dagruns: model::dagrun::DAGRunCollectionResponse = response
-            .json::<model::dagrun::DAGRunCollectionResponse>()
-            .await?;
-        Ok(dagruns.into())
+        let dagruns: model::dagrun::DAGRunCollectionResponse = response.json().await?;
+        Ok(dagruns)
     }
 
-    async fn list_all_dagruns(&self) -> Result<DagRunList> {
+    pub async fn fetch_all_dagruns(&self) -> Result<model::dagrun::DAGRunCollectionResponse> {
         let response: Response = self
             .base_api(Method::POST, "dags/~/dagRuns/list")
             .await?
@@ -35,13 +27,11 @@ impl DagRunOperations for V1Client {
             .send()
             .await?
             .error_for_status()?;
-        let dagruns: model::dagrun::DAGRunCollectionResponse = response
-            .json::<model::dagrun::DAGRunCollectionResponse>()
-            .await?;
-        Ok(dagruns.into())
+        let dagruns: model::dagrun::DAGRunCollectionResponse = response.json().await?;
+        Ok(dagruns)
     }
 
-    async fn mark_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()> {
+    pub async fn patch_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()> {
         self.base_api(
             Method::PATCH,
             &format!("dags/{dag_id}/dagRuns/{dag_run_id}"),
@@ -54,7 +44,7 @@ impl DagRunOperations for V1Client {
         Ok(())
     }
 
-    async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
+    pub async fn post_clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
         self.base_api(
             Method::POST,
             &format!("dags/{dag_id}/dagRuns/{dag_run_id}/clear"),
@@ -67,7 +57,7 @@ impl DagRunOperations for V1Client {
         Ok(())
     }
 
-    async fn trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()> {
+    pub async fn post_trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()> {
         // Somehow Airflow V1 API does not accept null for logical_date
         let body = logical_date.map_or_else(
             || serde_json::json!({}),
@@ -83,38 +73,5 @@ impl DagRunOperations for V1Client {
             .error_for_status()?;
         debug!("{resp:?}");
         Ok(())
-    }
-}
-
-// From trait implementations for v1 models
-impl From<model::dagrun::DAGRunResponse> for DagRun {
-    fn from(value: model::dagrun::DAGRunResponse) -> Self {
-        Self {
-            dag_id: value.dag_id.into(),
-            dag_run_id: value.dag_run_id.unwrap_or_default().into(),
-            logical_date: value.logical_date,
-            data_interval_end: value.data_interval_end,
-            data_interval_start: value.data_interval_start,
-            end_date: value.end_date,
-            start_date: value.start_date,
-            last_scheduling_decision: value.last_scheduling_decision,
-            run_type: RunType::from(value.run_type.as_str()),
-            state: DagRunState::from(value.state.as_str()),
-            note: value.note,
-            external_trigger: Some(value.external_trigger),
-        }
-    }
-}
-
-impl From<model::dagrun::DAGRunCollectionResponse> for DagRunList {
-    fn from(value: model::dagrun::DAGRunCollectionResponse) -> Self {
-        Self {
-            dag_runs: value
-                .dag_runs
-                .into_iter()
-                .map(std::convert::Into::into)
-                .collect(),
-            total_entries: value.total_entries,
-        }
     }
 }

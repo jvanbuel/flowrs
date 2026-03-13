@@ -1142,7 +1142,6 @@ dependencies = [
  "aws-sdk-mwaa",
  "clap",
  "dirs",
- "flowrs-airflow-model",
  "futures",
  "google-cloud-auth",
  "log",

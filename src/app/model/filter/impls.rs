@@ -4,9 +4,9 @@
 //! separate from the domain model definitions.
 
 use crate::impl_filterable;
-use flowrs_airflow_model::model::common::dag::Dag;
-use flowrs_airflow_model::model::common::dagrun::DagRun;
-use flowrs_airflow_model::model::common::taskinstance::TaskInstance;
+use crate::airflow::model::common::dag::Dag;
+use crate::airflow::model::common::dagrun::DagRun;
+use crate::airflow::model::common::taskinstance::TaskInstance;
 use flowrs_config::AirflowConfig;
 
 impl_filterable! {

@@ -17,7 +17,7 @@ use crate::{
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
 };
 
-use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId};
+use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 
 pub struct ClearTaskInstancePopup {
     pub dag_run_id: DagRunId,
