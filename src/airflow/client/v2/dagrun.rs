@@ -4,9 +4,9 @@ use log::debug;
 use reqwest::{Method, Response};
 
 use super::model;
-use crate::airflow::model::common::dagrun::{DagRunState, RunType};
-use crate::airflow::model::common::{DagRun, DagRunList};
-use crate::airflow::traits::DagRunOperations;
+use flowrs_airflow_model::model::common::dagrun::{DagRunState, RunType};
+use flowrs_airflow_model::model::common::{DagRun, DagRunList};
+use flowrs_airflow_model::traits::DagRunOperations;
 
 use super::V2Client;
 

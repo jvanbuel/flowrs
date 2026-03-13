@@ -13,7 +13,7 @@ pub use task::TaskOperations;
 pub use taskinstance::TaskInstanceOperations;
 
 use flowrs_config::AirflowVersion;
-use crate::airflow::model::common::OpenItem;
+use crate::model::common::OpenItem;
 use anyhow::Result;
 
 /// Super-trait combining all Airflow API operations.
@@ -34,6 +34,9 @@ pub trait AirflowClient:
 
     /// Build the appropriate web UI URL for opening an item in the browser.
     /// The URL structure differs between Airflow v2 and v3.
+    ///
+    /// # Errors
+    /// Returns an error if the URL cannot be constructed for the given item.
     #[allow(unused)]
     fn build_open_url(&self, item: &OpenItem) -> Result<String>;
 }

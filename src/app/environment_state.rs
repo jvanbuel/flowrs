@@ -1,12 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::airflow::{
-    model::common::{
-        Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
-    },
-    traits::AirflowClient as AirflowClientTrait,
+use flowrs_airflow_model::model::common::{
+    Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
 };
+use flowrs_airflow_model::traits::AirflowClient as AirflowClientTrait;
 
 /// Flat, request-keyed cache for a single Airflow environment.
 ///

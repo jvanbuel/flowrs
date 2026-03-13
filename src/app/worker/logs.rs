@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use futures::future::join_all;
 use log::debug;
 
-use crate::airflow::model::common::{DagId, DagRunId, TaskId};
-use crate::airflow::traits::AirflowClient;
+use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId};
+use flowrs_airflow_model::traits::AirflowClient;
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
 

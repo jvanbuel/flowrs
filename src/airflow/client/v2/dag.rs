@@ -4,8 +4,8 @@ use log::{debug, info};
 use reqwest::Method;
 
 use super::model;
-use crate::airflow::model::common::{Dag, DagList, Tag};
-use crate::airflow::traits::DagOperations;
+use flowrs_airflow_model::model::common::{Dag, DagList, Tag};
+use flowrs_airflow_model::traits::DagOperations;
 
 use super::V2Client;
 

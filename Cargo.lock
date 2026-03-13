@@ -1158,6 +1158,14 @@ version = "0.10.1"
 [[package]]
 name = "flowrs-airflow-model"
 version = "0.10.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "flowrs-config",
+ "serde",
+ "serde_json",
+ "time",
+]
 
 [[package]]
 name = "flowrs-config"
@@ -1185,6 +1193,7 @@ dependencies = [
  "clap",
  "crossterm",
  "dirs",
+ "flowrs-airflow-model",
  "flowrs-config",
  "futures",
  "google-cloud-auth",

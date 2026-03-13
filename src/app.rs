@@ -9,8 +9,10 @@ use ratatui::{prelude::Backend, Terminal};
 use state::{App, Panel};
 use worker::{Dispatcher, WorkerMessage};
 
+use flowrs_airflow_model::model::common::EnvironmentKey;
+
 use crate::{
-    airflow::{client::create_client, model::common::EnvironmentKey},
+    airflow::client::create_client,
     ui::draw_ui,
     CONFIG_PATHS,
 };

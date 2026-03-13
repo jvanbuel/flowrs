@@ -1,7 +1,7 @@
 use ratatui::style::Color;
 
-use crate::airflow::model::common::dagrun::DagRunState;
-use crate::airflow::model::common::taskinstance::TaskInstanceState;
+use flowrs_airflow_model::model::common::dagrun::DagRunState;
+use flowrs_airflow_model::model::common::taskinstance::TaskInstanceState;
 
 // Re-export from theme for backward compatibility
 pub use super::theme::DEFAULT_STYLE;

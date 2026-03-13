@@ -7,7 +7,7 @@ use anyhow::Result;
 use std::sync::Arc;
 
 use flowrs_config::{AirflowConfig, AirflowVersion};
-use crate::airflow::traits::AirflowClient;
+use flowrs_airflow_model::traits::AirflowClient;
 
 pub use base::BaseClient;
 pub use v1::V1Client;

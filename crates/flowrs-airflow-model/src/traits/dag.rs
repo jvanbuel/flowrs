@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::airflow::model::common::{Dag, DagList};
+use crate::model::common::{Dag, DagList};
 
 /// Trait for DAG operations
 #[async_trait]

@@ -45,6 +45,7 @@ formula = "flowrs"
 ansi-to-tui = { version = "8.0.1" }
 anyhow = { workspace = true }
 flowrs-config = { path = "crates/flowrs-config" }
+flowrs-airflow-model = { path = "crates/flowrs-airflow-model" }
 async-trait = { workspace = true }
 aws-config = { version = "1.8.11" }
 aws-sdk-mwaa = "1.99.0"

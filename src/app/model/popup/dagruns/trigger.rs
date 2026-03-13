@@ -17,7 +17,7 @@ use crate::{
     ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE},
 };
 
-use crate::airflow::model::common::DagId;
+use flowrs_airflow_model::model::common::DagId;
 
 pub struct TriggerDagRunPopUp {
     pub dag_id: DagId,

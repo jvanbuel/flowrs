@@ -6,8 +6,8 @@ use regex::Regex;
 use reqwest::Method;
 
 use super::model;
-use crate::airflow::model::common::Log;
-use crate::airflow::traits::LogOperations;
+use flowrs_airflow_model::model::common::Log;
+use flowrs_airflow_model::traits::LogOperations;
 
 use super::V1Client;
 

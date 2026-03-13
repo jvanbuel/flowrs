@@ -4,9 +4,9 @@ use log::{debug, info};
 use reqwest::{Method, Response};
 
 use super::model;
-use crate::airflow::model::common::taskinstance::TaskInstanceState;
-use crate::airflow::model::common::{TaskInstance, TaskInstanceList, TaskTryGantt};
-use crate::airflow::traits::TaskInstanceOperations;
+use flowrs_airflow_model::model::common::taskinstance::TaskInstanceState;
+use flowrs_airflow_model::model::common::{TaskInstance, TaskInstanceList, TaskTryGantt};
+use flowrs_airflow_model::traits::TaskInstanceOperations;
 
 use super::V1Client;
 

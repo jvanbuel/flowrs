@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
 use flowrs_config::FlowrsConfig;
-use crate::airflow::model::common::{DagId, DagRunId, TaskId};
+use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId};
 use crate::app::environment_state::EnvironmentStateContainer;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;

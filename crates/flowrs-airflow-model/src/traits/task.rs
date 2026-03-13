@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::airflow::model::common::TaskList;
+use crate::model::common::TaskList;
 
 /// Trait for task definition operations
 #[async_trait]

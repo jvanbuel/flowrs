@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::airflow::model::common::Log;
+use crate::model::common::Log;
 
 /// Trait for Log operations
 #[async_trait]

@@ -8,3 +8,12 @@ license = "MIT"
 repository = "https://github.com/jvanbuel/flowrs"
 
 [dependencies]
+flowrs-config = { path = "../flowrs-config" }
+anyhow.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+time.workspace = true
+
+[lints.clippy]
+pedantic = "warn"

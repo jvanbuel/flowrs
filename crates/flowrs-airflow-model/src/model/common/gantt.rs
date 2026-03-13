@@ -35,6 +35,7 @@ impl GanttData {
     /// whose `char_colors` overwrite each other in the Gantt bar renderer. This is
     /// intentional for now; callers who need per-map-index bars should pre-group
     /// or provide distinct `TaskId` values.
+    #[must_use]
     pub fn from_task_instances(tasks: &[super::TaskInstance]) -> Self {
         if tasks.is_empty() {
             return Self::default();
@@ -109,6 +110,7 @@ impl GanttData {
     }
 
     /// Calculate the ratio (0.0 to 1.0) for a given timestamp within the window.
+    #[must_use]
     pub fn ratio(&self, time: OffsetDateTime) -> f64 {
         match (self.window_start, self.window_end) {
             (Some(start), Some(end)) => {

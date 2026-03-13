@@ -14,7 +14,7 @@ use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 use time::format_description;
 
-use crate::airflow::model::common::{
+use flowrs_airflow_model::model::common::{
     calculate_duration, format_duration, DagRun, DagRunId, DagRunState,
 };
 use crate::app::events::custom::FlowrsEvent;
@@ -31,7 +31,7 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{FilterableTable, KeyResult, Model, Popup};
-use crate::airflow::model::common::OpenItem;
+use flowrs_airflow_model::model::common::OpenItem;
 use crate::app::worker::WorkerMessage;
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
@@ -552,7 +552,7 @@ fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::airflow::model::common::RunType;
+    use flowrs_airflow_model::model::common::RunType;
     use crate::app::model::filter::Filterable;
     use crossterm::event::{KeyEvent, KeyModifiers};
     use time::macros::datetime;

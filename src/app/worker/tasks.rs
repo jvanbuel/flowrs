@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
-use crate::airflow::graph::TaskGraph;
-use crate::airflow::traits::AirflowClient;
+use flowrs_airflow_model::graph::TaskGraph;
+use flowrs_airflow_model::traits::AirflowClient;
 use crate::app::state::App;
 
 /// Handle fetching task definitions and building the task graph

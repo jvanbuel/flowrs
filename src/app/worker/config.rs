@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
-use crate::airflow::model::common::EnvironmentKey;
+use flowrs_airflow_model::model::common::EnvironmentKey;
 use crate::app::environment_state::EnvironmentData;
 use crate::app::state::App;
 

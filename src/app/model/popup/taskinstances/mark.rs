@@ -6,7 +6,7 @@ use ratatui::{
 };
 use strum::Display;
 
-use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
+use flowrs_airflow_model::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::{
     app::{
         events::custom::FlowrsEvent,

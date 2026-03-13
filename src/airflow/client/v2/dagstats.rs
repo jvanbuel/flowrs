@@ -3,10 +3,10 @@ use async_trait::async_trait;
 use reqwest::Method;
 
 use super::model;
-use crate::airflow::model::common::dagrun::DagRunState;
-use crate::airflow::model::common::dagstats::{DagStatistic, DagStatistics};
-use crate::airflow::model::common::DagStatsResponse;
-use crate::airflow::traits::DagStatsOperations;
+use flowrs_airflow_model::model::common::dagrun::DagRunState;
+use flowrs_airflow_model::model::common::dagstats::{DagStatistic, DagStatistics};
+use flowrs_airflow_model::model::common::DagStatsResponse;
+use flowrs_airflow_model::traits::DagStatsOperations;
 
 use super::V2Client;
 

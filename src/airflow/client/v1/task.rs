@@ -4,8 +4,8 @@ use reqwest::Method;
 
 use super::model;
 use super::V1Client;
-use crate::airflow::model::common::{Task, TaskList};
-use crate::airflow::traits::TaskOperations;
+use flowrs_airflow_model::model::common::{Task, TaskList};
+use flowrs_airflow_model::traits::TaskOperations;
 
 #[async_trait]
 impl TaskOperations for V1Client {

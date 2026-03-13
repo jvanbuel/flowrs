@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use crate::airflow::model::common::DagId;
-use crate::airflow::traits::AirflowClient;
+use flowrs_airflow_model::model::common::DagId;
+use flowrs_airflow_model::traits::AirflowClient;
 use crate::app::model::dagruns::DagCodeView;
 use crate::app::state::{App, Panel};
 

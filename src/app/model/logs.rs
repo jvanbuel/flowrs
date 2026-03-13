@@ -10,8 +10,9 @@ use ratatui::{
     },
 };
 
+use flowrs_airflow_model::model::common::{Log, OpenItem};
+
 use crate::{
-    airflow::model::common::{Log, OpenItem},
     app::{
         events::custom::FlowrsEvent,
         worker::WorkerMessage,

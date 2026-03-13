@@ -2,9 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 
-use crate::airflow::traits::AirflowClient;
+use flowrs_airflow_model::traits::AirflowClient;
 use crate::app::state::App;
-use crate::airflow::model::common::OpenItem;
+use flowrs_airflow_model::model::common::OpenItem;
 
 /// Handle opening an item (DAG, DAG run, task instance, etc.) in the browser.
 pub fn handle_open_item(

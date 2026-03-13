@@ -1,7 +1,7 @@
 use anyhow::Result;
 use async_trait::async_trait;
 
-use crate::airflow::model::common::{TaskInstanceList, TaskTryGantt};
+use crate::model::common::{TaskInstanceList, TaskTryGantt};
 
 /// Trait for Task Instance operations
 #[async_trait]

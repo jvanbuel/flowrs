@@ -9,8 +9,8 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
-use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::{
+use flowrs_airflow_model::graph::{sort_task_instances, TaskGraph};
+use flowrs_airflow_model::model::common::{
     calculate_duration, format_duration, DagId, DagRunId, GanttData, TaskId, TaskInstance,
     TaskInstanceState,
 };
@@ -24,7 +24,7 @@ use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
-use crate::airflow::model::common::OpenItem;
+use flowrs_airflow_model::model::common::OpenItem;
 use crate::app::worker::WorkerMessage;
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
