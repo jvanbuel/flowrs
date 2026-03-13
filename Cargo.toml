@@ -44,7 +44,7 @@ formula = "flowrs"
 ansi-to-tui = { version = "8.0.1" }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
-flowrs-config = { path = "crates/flowrs-config" }
+flowrs-config = { path = "crates/flowrs-config", version = "0.10.1" }
 flowrs-airflow = { path = "crates/flowrs-airflow", version = "0.10.1" }
 chrono = { workspace = true }
 clap = { workspace = true }
