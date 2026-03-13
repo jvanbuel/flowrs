@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1](https://github.com/jvanbuel/flowrs/compare/v0.10.0...v0.10.1) - 2026-03-13
+
+### Fixed
+
+- asset-triggered DAGs appear with type 'unknown'
+
+### Other
+
+- Update the install instructions for Homebrew along with a few small proofreading edits.
+
 ## [0.10.0](https://github.com/jvanbuel/flowrs/compare/v0.9.6...v0.10.0) - 2026-03-09
 
 ### Added
