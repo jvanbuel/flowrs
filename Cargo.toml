@@ -47,7 +47,6 @@ anyhow = { workspace = true }
 flowrs-config = { path = "crates/flowrs-config" }
 flowrs-airflow-model = { path = "crates/flowrs-airflow-model" }
 flowrs-airflow = { path = "crates/flowrs-airflow" }
-async-trait = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true }
 crossterm = "0.29.0"
@@ -56,21 +55,18 @@ futures = "0.3.32"
 inquire = "0.9.3"
 log = { workspace = true }
 ratatui = { version = "0.30.0", features = ["unstable-widget-ref"] }
-serde = { workspace = true }
-serde_json = { workspace = true }
 strum = { workspace = true }
 syntect = "5.3.0"
 time = { workspace = true }
 throbber-widgets-tui = "0.11.0"
 tokio = { workspace = true }
-toml = { workspace = true }
 unicode-width = "0.2.0"
 url = "2.5.7"
 webbrowser = "1.2.0"
 
 [dev-dependencies]
-mockito = "1.7.1"
 reqwest = { workspace = true }
+serde_json = { workspace = true }
 
 [profile.release]
 opt-level = "z"
