@@ -1188,6 +1188,7 @@ version = "0.10.1"
 dependencies = [
  "ansi-to-tui",
  "anyhow",
+ "async-trait",
  "chrono",
  "clap",
  "crossterm",
@@ -1200,6 +1201,7 @@ dependencies = [
  "log",
  "ratatui",
  "reqwest 0.12.28",
+ "serde",
  "serde_json",
  "strum 0.28.0",
  "syntect",
