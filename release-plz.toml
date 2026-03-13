@@ -17,11 +17,15 @@ semver_check = false
 changelog_update = false
 publish = false
 
-# Only flowrs-airflow gets published and has a changelog
 [[package]]
 name = "flowrs-airflow"
 publish = true
 changelog_update = true
+
+[[package]]
+name = "flowrs-config"
+publish = true
+changelog_update = false
 
 [[package]]
 name = "flowrs-tui"
