@@ -9,6 +9,7 @@ use crossterm::ExecutableCommand;
 use log::{info, LevelFilter, Log, Metadata, Record};
 
 use crate::airflow::config::FlowrsConfig;
+use crate::airflow::managed_services::expand::expand_managed_services;
 use crate::app::run_app;
 use crate::app::state::App;
 use crate::CONFIG_PATHS;
@@ -60,9 +61,8 @@ impl RunCommand {
 
         // Read config file
         let path = self.file.as_ref().map(PathBuf::from);
-        let (config, errors) = FlowrsConfig::from_file(path.as_ref(), &CONFIG_PATHS)?
-            .expand_managed_services()
-            .await?;
+        let config = FlowrsConfig::from_file(path.as_ref(), &CONFIG_PATHS)?;
+        let (config, errors) = expand_managed_services(config).await?;
 
         // Generate warnings for legacy config conflict (only when no explicit --file)
         let mut warnings = Vec::new();
