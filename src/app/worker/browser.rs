@@ -4,7 +4,7 @@ use anyhow::Result;
 
 use crate::airflow::traits::AirflowClient;
 use crate::app::state::App;
-use crate::app::worker::OpenItem;
+use crate::airflow::model::common::OpenItem;
 
 /// Handle opening an item (DAG, DAG run, task instance, etc.) in the browser.
 pub fn handle_open_item(

@@ -22,7 +22,8 @@ use crate::ui::theme::{
 use super::dagruns::DagCodeView;
 use super::popup::dags::DagPopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
-use crate::app::worker::{OpenItem, WorkerMessage};
+use crate::airflow::model::common::OpenItem;
+use crate::app::worker::WorkerMessage;
 
 /// Model for the DAG panel, managing the list of DAGs and their filtering.
 pub struct DagModel {

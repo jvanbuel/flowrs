@@ -23,7 +23,8 @@ use super::popup::taskinstances::clear::ClearTaskInstancePopup;
 use super::popup::taskinstances::mark::MarkTaskInstancePopup;
 use super::popup::taskinstances::TaskInstancePopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
-use crate::app::worker::{OpenItem, WorkerMessage};
+use crate::airflow::model::common::OpenItem;
+use crate::app::worker::WorkerMessage;
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
 pub struct TaskInstanceModel {

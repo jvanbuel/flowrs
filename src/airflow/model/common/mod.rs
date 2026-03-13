@@ -4,6 +4,7 @@ pub mod dagstats;
 pub mod duration;
 pub mod gantt;
 pub mod log;
+pub mod open_item;
 pub mod task;
 pub mod taskinstance;
 
@@ -15,6 +16,7 @@ pub use dagstats::{DagStatistic, DagStatsResponse};
 pub use duration::{calculate_duration, format_duration};
 pub use gantt::{GanttData, TaskTryGantt};
 pub use log::Log;
+pub use open_item::OpenItem;
 pub use task::{Task, TaskList};
 pub use taskinstance::{TaskInstance, TaskInstanceList, TaskInstanceState};
 

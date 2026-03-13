@@ -11,10 +11,10 @@ use ratatui::{
 };
 
 use crate::{
-    airflow::model::common::Log,
+    airflow::model::common::{Log, OpenItem},
     app::{
         events::custom::FlowrsEvent,
-        worker::{OpenItem, WorkerMessage},
+        worker::WorkerMessage,
     },
     ui::theme::{ACCENT, BORDER_STYLE, DEFAULT_STYLE, TITLE_STYLE},
 };

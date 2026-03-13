@@ -31,7 +31,8 @@ use super::popup::dagruns::DagRunPopUp;
 use super::popup::popup_area;
 use super::popup::{dagruns::clear::ClearDagRunPopup, dagruns::mark::MarkDagRunPopup};
 use super::{FilterableTable, KeyResult, Model, Popup};
-use crate::app::worker::{OpenItem, WorkerMessage};
+use crate::airflow::model::common::OpenItem;
+use crate::app::worker::WorkerMessage;
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
 pub struct DagRunModel {

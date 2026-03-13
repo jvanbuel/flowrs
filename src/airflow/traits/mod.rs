@@ -13,7 +13,7 @@ pub use task::TaskOperations;
 pub use taskinstance::TaskInstanceOperations;
 
 use crate::airflow::config::AirflowVersion;
-use crate::app::worker::OpenItem;
+use crate::airflow::model::common::OpenItem;
 use anyhow::Result;
 
 /// Super-trait combining all Airflow API operations.

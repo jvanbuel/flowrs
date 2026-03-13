@@ -13,7 +13,7 @@ use url::{form_urlencoded, Url};
 
 use super::base::BaseClient;
 use crate::airflow::{config::AirflowVersion, traits::AirflowClient};
-use crate::app::worker::OpenItem;
+use crate::airflow::model::common::OpenItem;
 
 /// API v2 client implementation (for Airflow v3, uses /api/v2 endpoint)
 #[derive(Debug)]
