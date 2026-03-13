@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.10.1...flowrs-tui-v0.11.0) - 2026-03-13
+
+### Other
+
+- split into multiple crates ([#613](https://github.com/jvanbuel/flowrs/pull/613))
+
 ## [0.10.1](https://github.com/jvanbuel/flowrs/compare/v0.10.0...v0.10.1) - 2026-03-13
 
 ### Fixed
