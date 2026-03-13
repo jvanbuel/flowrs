@@ -12,6 +12,7 @@ use worker::{Dispatcher, WorkerMessage};
 use crate::{
     airflow::{client::create_client, model::common::EnvironmentKey},
     ui::draw_ui,
+    CONFIG_PATHS,
 };
 
 pub mod environment_state;
@@ -152,7 +153,7 @@ where
                 // Handle other key events
                 match key.code {
                     KeyCode::Char('q') => {
-                        app.config.write_to_file()?;
+                        app.config.write_to_file(&CONFIG_PATHS)?;
                         return Ok(());
                     }
                     KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {

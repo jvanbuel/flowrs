@@ -46,7 +46,7 @@ impl ConfigArgs {
         use crate::airflow::config::FlowrsConfig;
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         let has_changes = self.poll_interval_ms.is_some();
 
@@ -60,7 +60,7 @@ impl ConfigArgs {
                 anyhow::bail!("poll_interval_ms must be at least 500 (got {value})");
             }
             config.poll_interval_ms = value;
-            config.write_to_file()?;
+            config.write_to_file(&crate::CONFIG_PATHS)?;
             println!("poll_interval_ms set to {value}");
         }
 

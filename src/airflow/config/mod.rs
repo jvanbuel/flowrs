@@ -17,8 +17,8 @@ use super::managed_services::composer::{
 };
 use super::managed_services::conveyor::get_conveyor_environment_servers;
 use super::managed_services::mwaa::get_mwaa_environment_servers;
-use crate::CONFIG_PATHS;
 use anyhow::Result;
+use paths::ConfigPaths;
 
 use managed_auth::{AstronomerAuth, ComposerAuth, MwaaAuth};
 
@@ -129,12 +129,6 @@ pub enum TokenSource {
     Static { token: String },
 }
 
-impl Default for FlowrsConfig {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl FlowrsConfig {
     /// Creates a new `FlowrsConfig` with default values.
     ///
@@ -142,15 +136,15 @@ impl FlowrsConfig {
     /// - No servers configured
     /// - No managed services
     /// - No active server
-    /// - Default config file path
-    pub fn new() -> Self {
+    /// - Default config file path derived from the provided `ConfigPaths`
+    pub fn new(config_paths: &ConfigPaths) -> Self {
         Self {
             servers: Vec::new(),
             managed_services: Vec::new(),
             active_server: None,
             poll_interval_ms: default_poll_interval_ms(),
             gcc: None,
-            path: Some(CONFIG_PATHS.write_path.clone()),
+            path: Some(config_paths.write_path.clone()),
         }
     }
 
@@ -172,13 +166,13 @@ impl FlowrsConfig {
         multiplier.max(1)
     }
 
-    pub fn from_file(config_path: Option<&PathBuf>) -> Result<Self> {
+    pub fn from_file(config_path: Option<&PathBuf>, config_paths: &ConfigPaths) -> Result<Self> {
         let path = config_path
             .filter(|p| p.exists())
             .cloned()
             .unwrap_or_else(|| {
                 // No valid path was provided by the user, use the default read path
-                let default_path = CONFIG_PATHS.read_path.clone();
+                let default_path = config_paths.read_path.clone();
                 info!("Using configuration path: {}", default_path.display());
                 default_path
             });
@@ -296,11 +290,11 @@ impl FlowrsConfig {
         toml::to_string(self).map_err(std::convert::Into::into)
     }
 
-    pub fn write_to_file(&mut self) -> Result<()> {
+    pub fn write_to_file(&mut self, config_paths: &ConfigPaths) -> Result<()> {
         let path = self
             .path
             .clone()
-            .unwrap_or_else(|| CONFIG_PATHS.write_path.clone());
+            .unwrap_or_else(|| config_paths.write_path.clone());
 
         // Create parent directory if it doesn't exist (for XDG path)
         if let Some(parent) = path.parent() {
@@ -389,8 +383,9 @@ password = "airflow"
 
     #[test]
     fn non_existing_path() {
+        let config_paths = ConfigPaths::resolve();
         let path = PathBuf::from("non-existing.toml");
-        let config = FlowrsConfig::from_file(Some(&path));
+        let config = FlowrsConfig::from_file(Some(&path), &config_paths);
         assert!(config.is_ok());
 
         let config = config.unwrap();
@@ -399,11 +394,12 @@ password = "airflow"
 
     #[test]
     fn none_path() {
-        let config = FlowrsConfig::from_file(None);
+        let config_paths = ConfigPaths::resolve();
+        let config = FlowrsConfig::from_file(None, &config_paths);
         assert!(config.is_ok());
 
         let config = config.unwrap();
-        assert_eq!(config.path.unwrap(), CONFIG_PATHS.read_path);
+        assert_eq!(config.path.unwrap(), config_paths.read_path);
     }
 
     #[test]

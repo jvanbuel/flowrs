@@ -60,7 +60,7 @@ impl RunCommand {
 
         // Read config file
         let path = self.file.as_ref().map(PathBuf::from);
-        let (config, errors) = FlowrsConfig::from_file(path.as_ref())?
+        let (config, errors) = FlowrsConfig::from_file(path.as_ref(), &CONFIG_PATHS)?
             .expand_managed_services()
             .await?;
 

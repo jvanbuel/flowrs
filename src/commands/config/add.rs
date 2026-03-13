@@ -71,7 +71,7 @@ impl AddCommand {
         };
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         // If the user provided a custom path, override the config path so write_to_file
         // uses the user-specified location even if it didn't exist during from_file
@@ -84,7 +84,7 @@ impl AddCommand {
             .retain(|server| server.name != new_config.name && server.managed.is_none());
         config.servers.push(new_config);
 
-        config.write_to_file()?;
+        config.write_to_file(&crate::CONFIG_PATHS)?;
 
         println!("✅ Config added successfully!");
         Ok(())

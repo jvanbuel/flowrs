@@ -18,7 +18,7 @@ impl ManagedServiceCommand {
         };
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         let already_enabled = config.managed_services.contains(&managed_service);
         if already_enabled {
@@ -35,7 +35,7 @@ impl ManagedServiceCommand {
             config.managed_services.push(managed_service);
         }
 
-        config.write_to_file()?;
+        config.write_to_file(&crate::CONFIG_PATHS)?;
 
         if already_enabled {
             println!("✅ Managed service configuration updated successfully!");
@@ -52,7 +52,7 @@ impl ManagedServiceCommand {
         };
 
         let path = self.file.as_ref().map(PathBuf::from);
-        let mut config = FlowrsConfig::from_file(path.as_ref())?;
+        let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;
 
         if !config.managed_services.contains(&managed_service) {
             println!("Managed service already disabled!");
@@ -66,7 +66,7 @@ impl ManagedServiceCommand {
             config.gcc = None;
         }
 
-        config.write_to_file()?;
+        config.write_to_file(&crate::CONFIG_PATHS)?;
 
         println!("✅ Managed service disabled successfully!");
         Ok(())
