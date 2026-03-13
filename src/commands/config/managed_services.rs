@@ -4,7 +4,7 @@ use inquire::{validator::Validation, MultiSelect, Select};
 use strum::IntoEnumIterator;
 
 use super::model::ManagedServiceCommand;
-use crate::airflow::config::{FlowrsConfig, GccConfig, ManagedService};
+use flowrs_config::{FlowrsConfig, GccConfig, ManagedService};
 use crate::airflow::managed_services::composer::{
     get_gcloud_default_region, ComposerClient, GCP_REGIONS,
 };

@@ -1162,6 +1162,15 @@ version = "0.10.1"
 [[package]]
 name = "flowrs-config"
 version = "0.10.1"
+dependencies = [
+ "anyhow",
+ "clap",
+ "dirs",
+ "log",
+ "serde",
+ "strum 0.28.0",
+ "toml",
+]
 
 [[package]]
 name = "flowrs-tui"
@@ -1176,6 +1185,7 @@ dependencies = [
  "clap",
  "crossterm",
  "dirs",
+ "flowrs-config",
  "futures",
  "google-cloud-auth",
  "inquire",

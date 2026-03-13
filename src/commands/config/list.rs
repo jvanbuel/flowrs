@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::model::ListCommand;
-use crate::airflow::config::FlowrsConfig;
+use flowrs_config::FlowrsConfig;
 use anyhow::Result;
 
 impl ListCommand {

@@ -16,7 +16,7 @@ mod app;
 mod commands;
 mod ui;
 
-use airflow::config::paths::ConfigPaths;
+use flowrs_config::paths::ConfigPaths;
 use anyhow::Result;
 use commands::config::model::ConfigArgs;
 use commands::run::RunCommand;

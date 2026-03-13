@@ -11,7 +11,7 @@ pub use static_token::StaticTokenProvider;
 use async_trait::async_trait;
 use reqwest::RequestBuilder;
 
-use crate::airflow::config::{AirflowAuth, BasicAuth, TokenSource};
+use flowrs_config::{AirflowAuth, BasicAuth, TokenSource};
 use crate::airflow::managed_services::astronomer::AstronomerAuthProvider;
 use crate::airflow::managed_services::composer::ComposerAuthProvider;
 use crate::airflow::managed_services::conveyor::ConveyorAuthProvider;

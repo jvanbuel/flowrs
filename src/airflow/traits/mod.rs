@@ -12,7 +12,7 @@ pub use log::LogOperations;
 pub use task::TaskOperations;
 pub use taskinstance::TaskInstanceOperations;
 
-use crate::airflow::config::AirflowVersion;
+use flowrs_config::AirflowVersion;
 use crate::airflow::model::common::OpenItem;
 use anyhow::Result;
 

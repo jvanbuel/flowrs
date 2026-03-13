@@ -5,7 +5,7 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
-use crate::airflow::config::AirflowConfig;
+use flowrs_config::AirflowConfig;
 use crate::app::events::custom::FlowrsEvent;
 use crate::airflow::model::common::OpenItem;
 use crate::app::worker::WorkerMessage;
@@ -128,8 +128,8 @@ impl Widget for &mut ConfigModel {
                             .map_or_else(|| "None".to_string(), ToString::to_string),
                     ),
                     Line::from(match item.version {
-                        crate::airflow::config::AirflowVersion::V2 => "v2",
-                        crate::airflow::config::AirflowVersion::V3 => "v3",
+                        flowrs_config::AirflowVersion::V2 => "v2",
+                        flowrs_config::AirflowVersion::V3 => "v3",
                     }),
                 ])
                 .style(self.table.row_style(idx))

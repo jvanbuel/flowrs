@@ -1,5 +1,5 @@
 use crate::airflow::client::auth::AuthProvider;
-use crate::airflow::config::{AirflowAuth, AirflowConfig, ManagedService};
+use flowrs_config::{AirflowAuth, AirflowConfig, ManagedService};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use dirs::home_dir;
@@ -132,8 +132,8 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
         .iter()
         .map(|env| {
             let version = match env.airflow_version.as_str() {
-                "AirflowVersion_V3" => crate::airflow::config::AirflowVersion::V3,
-                _ => crate::airflow::config::AirflowVersion::V2,
+                "AirflowVersion_V3" => flowrs_config::AirflowVersion::V3,
+                _ => flowrs_config::AirflowVersion::V2,
             };
             AirflowConfig {
                 name: env.name.clone(),

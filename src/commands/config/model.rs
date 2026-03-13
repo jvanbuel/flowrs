@@ -1,4 +1,4 @@
-use crate::airflow::config::ManagedService;
+use flowrs_config::ManagedService;
 use anyhow::Result;
 use clap::Parser;
 use inquire::validator::Validation;
@@ -43,7 +43,7 @@ impl ConfigArgs {
     fn run_global_settings(&self) -> Result<()> {
         use std::path::PathBuf;
 
-        use crate::airflow::config::FlowrsConfig;
+        use flowrs_config::FlowrsConfig;
 
         let path = self.file.as_ref().map(PathBuf::from);
         let mut config = FlowrsConfig::from_file(path.as_ref(), &crate::CONFIG_PATHS)?;

@@ -1,7 +1,7 @@
 use anyhow::Result;
 use log::info;
 
-use crate::airflow::config::{FlowrsConfig, ManagedService};
+use flowrs_config::{FlowrsConfig, ManagedService};
 
 use super::astronomer::get_astronomer_environment_servers;
 use super::composer::{get_composer_environment_servers, get_gcloud_default_region};

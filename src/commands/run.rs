@@ -8,7 +8,7 @@ use crossterm::event::{DisableFocusChange, EnableFocusChange};
 use crossterm::ExecutableCommand;
 use log::{info, LevelFilter, Log, Metadata, Record};
 
-use crate::airflow::config::FlowrsConfig;
+use flowrs_config::FlowrsConfig;
 use crate::airflow::managed_services::expand::expand_managed_services;
 use crate::app::run_app;
 use crate::app::state::App;

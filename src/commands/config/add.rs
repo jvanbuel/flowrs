@@ -5,12 +5,8 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::AddCommand;
-use crate::{
-    airflow::config::{
-        AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenSource,
-    },
-    commands::config::model::{validate_endpoint, ConfigOption},
-};
+use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenSource};
+use crate::commands::config::model::{validate_endpoint, ConfigOption};
 use anyhow::{Context, Result};
 
 impl AddCommand {

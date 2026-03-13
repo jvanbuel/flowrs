@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use inquire::Select;
 
 use super::model::RemoveCommand;
-use crate::airflow::config::FlowrsConfig;
+use flowrs_config::FlowrsConfig;
 use anyhow::Result;
 
 impl RemoveCommand {

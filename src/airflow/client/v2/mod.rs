@@ -12,7 +12,8 @@ use reqwest::Method;
 use url::{form_urlencoded, Url};
 
 use super::base::BaseClient;
-use crate::airflow::{config::AirflowVersion, traits::AirflowClient};
+use flowrs_config::AirflowVersion;
+use crate::airflow::traits::AirflowClient;
 use crate::airflow::model::common::OpenItem;
 
 /// API v2 client implementation (for Airflow v3, uses /api/v2 endpoint)

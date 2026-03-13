@@ -6,7 +6,7 @@ use reqwest::header::AUTHORIZATION;
 use serde::Deserialize;
 use std::time::Duration;
 
-use crate::airflow::config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
+use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
 
 use super::auth::ComposerAuth;
 

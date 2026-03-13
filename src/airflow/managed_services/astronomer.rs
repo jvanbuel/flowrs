@@ -1,11 +1,11 @@
 use crate::airflow::client::auth::AuthProvider;
-use crate::airflow::config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
+use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
+use flowrs_config::managed_auth::AstronomerAuth;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use log::info;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::RequestBuilder;
-use crate::airflow::config::managed_auth::AstronomerAuth;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt;

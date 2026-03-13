@@ -6,7 +6,7 @@ pub mod v2;
 use anyhow::Result;
 use std::sync::Arc;
 
-use crate::airflow::config::{AirflowConfig, AirflowVersion};
+use flowrs_config::{AirflowConfig, AirflowVersion};
 use crate::airflow::traits::AirflowClient;
 
 pub use base::BaseClient;
