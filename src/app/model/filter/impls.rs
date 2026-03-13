@@ -24,7 +24,7 @@ impl_filterable! {
     primary: dag_run_id => |s: &DagRun| Some(s.dag_run_id.to_string()),
     fields: [
         state: enum["running", "success", "failed", "queued", "up_for_retry"] => |s: &DagRun| Some(s.state.to_string()),
-        run_type: enum["scheduled", "manual", "backfill", "dataset_triggered"] => |s: &DagRun| Some(s.run_type.to_string()),
+        run_type: enum["scheduled", "manual", "backfill", "dataset_triggered", "asset_triggered"] => |s: &DagRun| Some(s.run_type.to_string()),
     ]
 }
 

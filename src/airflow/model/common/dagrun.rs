@@ -57,6 +57,7 @@ pub enum RunType {
     Manual,
     Backfill,
     DatasetTriggered,
+    AssetTriggered,
     /// Catch-all for unknown/future run types returned by the API.
     #[default]
     #[serde(other)]
@@ -70,6 +71,7 @@ impl fmt::Display for RunType {
             Self::Manual => write!(f, "manual"),
             Self::Backfill => write!(f, "backfill"),
             Self::DatasetTriggered => write!(f, "dataset_triggered"),
+            Self::AssetTriggered => write!(f, "asset_triggered"),
             Self::Unknown => write!(f, "unknown"),
         }
     }
@@ -82,6 +84,7 @@ impl From<&str> for RunType {
             "manual" => Self::Manual,
             "backfill" => Self::Backfill,
             "dataset_triggered" => Self::DatasetTriggered,
+            "asset_triggered" => Self::AssetTriggered,
             _ => Self::Unknown,
         }
     }
