@@ -1,0 +1,10 @@
+[package]
+name = "flowrs-airflow-model"
+version = "0.10.1"
+edition = "2021"
+rust-version = "1.87.0"
+description = "Domain models and traits for the Airflow API"
+license = "MIT"
+repository = "https://github.com/jvanbuel/flowrs"
+
+[dependencies]

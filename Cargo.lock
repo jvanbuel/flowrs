@@ -1152,6 +1152,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "flowrs-airflow"
+version = "0.10.1"
+
+[[package]]
+name = "flowrs-airflow-model"
+version = "0.10.1"
+
+[[package]]
+name = "flowrs-config"
+version = "0.10.1"
+
+[[package]]
 name = "flowrs-tui"
 version = "0.10.1"
 dependencies = [
