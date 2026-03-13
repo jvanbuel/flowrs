@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/jvanbuel/flowrs"
 
 [dependencies]
-flowrs-airflow = { path = "../flowrs-airflow", default-features = false }
+flowrs-airflow = { path = "../flowrs-airflow", version = "0.10.1", default-features = false }
 anyhow.workspace = true
 clap.workspace = true
 dirs.workspace = true
