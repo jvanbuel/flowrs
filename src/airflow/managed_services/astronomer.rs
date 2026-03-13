@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use log::info;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::RequestBuilder;
+use crate::airflow::config::managed_auth::AstronomerAuth;
 use serde::{Deserialize, Serialize};
 use std::env;
 use std::fmt;
@@ -187,20 +188,6 @@ struct DeploymentsResponse {
     total_count: u32,
     offset: u32,
     limit: u32,
-}
-
-/// Astronomer authentication data including API token
-#[derive(Clone, Serialize, Deserialize)]
-pub struct AstronomerAuth {
-    pub api_token: String,
-}
-
-impl fmt::Debug for AstronomerAuth {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AstronomerAuth")
-            .field("api_token", &"***redacted***")
-            .finish()
-    }
 }
 
 pub struct AstronomerAuthProvider {

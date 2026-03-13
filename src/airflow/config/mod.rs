@@ -1,3 +1,4 @@
+pub mod managed_auth;
 pub mod paths;
 
 use std::fmt::{Display, Formatter};
@@ -12,12 +13,14 @@ use strum::EnumIter;
 
 use super::managed_services::astronomer::get_astronomer_environment_servers;
 use super::managed_services::composer::{
-    get_composer_environment_servers, get_gcloud_default_region, ComposerAuth,
+    get_composer_environment_servers, get_gcloud_default_region,
 };
 use super::managed_services::conveyor::get_conveyor_environment_servers;
 use super::managed_services::mwaa::get_mwaa_environment_servers;
 use crate::CONFIG_PATHS;
 use anyhow::Result;
+
+use managed_auth::{AstronomerAuth, ComposerAuth, MwaaAuth};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Default)]
 pub enum AirflowVersion {
@@ -108,8 +111,8 @@ pub enum AirflowAuth {
     Basic(BasicAuth),
     Token(TokenSource),
     Conveyor,
-    Mwaa(super::managed_services::mwaa::MwaaAuth),
-    Astronomer(super::managed_services::astronomer::AstronomerAuth),
+    Mwaa(MwaaAuth),
+    Astronomer(AstronomerAuth),
     Composer(ComposerAuth),
 }
 

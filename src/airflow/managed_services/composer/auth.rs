@@ -1,8 +1,1 @@
-use serde::{Deserialize, Serialize};
-
-/// Composer authentication data.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ComposerAuth {
-    pub project_id: String,
-    pub environment_name: String,
-}
+pub use crate::airflow::config::managed_auth::ComposerAuth;

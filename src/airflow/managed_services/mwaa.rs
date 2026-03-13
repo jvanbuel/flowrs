@@ -6,7 +6,9 @@ use aws_config::BehaviorVersion;
 use aws_sdk_mwaa as mwaa;
 use log::info;
 use reqwest::RequestBuilder;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
+
+use crate::airflow::config::managed_auth::{MwaaAuth, MwaaTokenType};
 
 /// MWAA client for managing authentication and environment discovery
 #[derive(Debug, Clone)]
@@ -159,22 +161,6 @@ pub struct MwaaEnvironment {
 pub struct MwaaWebToken {
     pub token: String,
     pub hostname: String,
-}
-
-/// MWAA authentication token type
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MwaaTokenType {
-    /// Session cookie for Airflow 2.x (uses Cookie header)
-    SessionCookie(String),
-    /// JWT token for Airflow 3.x (uses Bearer auth)
-    JwtToken(String),
-}
-
-/// MWAA authentication data
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MwaaAuth {
-    pub token: MwaaTokenType,
-    pub environment_name: String,
 }
 
 pub struct MwaaAuthProvider {
