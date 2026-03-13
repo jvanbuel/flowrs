@@ -8,3 +8,21 @@ license = "MIT"
 repository = "https://github.com/jvanbuel/flowrs"
 
 [dependencies]
+flowrs-config = { path = "../flowrs-config" }
+flowrs-airflow-model = { path = "../flowrs-airflow-model" }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+aws-config = "1.8.11"
+aws-sdk-mwaa = "1.99.0"
+dirs = { workspace = true }
+futures = "0.3.32"
+google-cloud-auth = { version = "1.6.0", default-features = false, features = ["default-rustls-provider"] }
+log = { workspace = true }
+regex = "1.12.3"
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+url = "2.5.7"

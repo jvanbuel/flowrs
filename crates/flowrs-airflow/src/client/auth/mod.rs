@@ -12,10 +12,10 @@ use async_trait::async_trait;
 use reqwest::RequestBuilder;
 
 use flowrs_config::{AirflowAuth, BasicAuth, TokenSource};
-use crate::airflow::managed_services::astronomer::AstronomerAuthProvider;
-use crate::airflow::managed_services::composer::ComposerAuthProvider;
-use crate::airflow::managed_services::conveyor::ConveyorAuthProvider;
-use crate::airflow::managed_services::mwaa::MwaaAuthProvider;
+use crate::managed_services::astronomer::AstronomerAuthProvider;
+use crate::managed_services::composer::ComposerAuthProvider;
+use crate::managed_services::conveyor::ConveyorAuthProvider;
+use crate::managed_services::mwaa::MwaaAuthProvider;
 
 /// Authentication provider trait for Airflow API requests.
 ///

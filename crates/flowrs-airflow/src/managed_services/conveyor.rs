@@ -1,4 +1,4 @@
-use crate::airflow::client::auth::AuthProvider;
+use crate::client::auth::AuthProvider;
 use flowrs_config::{AirflowAuth, AirflowConfig, ManagedService};
 use anyhow::{Context, Result};
 use async_trait::async_trait;

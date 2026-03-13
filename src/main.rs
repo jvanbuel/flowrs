@@ -11,7 +11,6 @@ use std::sync::LazyLock;
 use clap::Parser;
 use ui::constants::ASCII_LOGO;
 
-mod airflow;
 mod app;
 mod commands;
 mod ui;

@@ -9,7 +9,7 @@ use crossterm::ExecutableCommand;
 use log::{info, LevelFilter, Log, Metadata, Record};
 
 use flowrs_config::FlowrsConfig;
-use crate::airflow::managed_services::expand::expand_managed_services;
+use flowrs_airflow::managed_services::expand::expand_managed_services;
 use crate::app::run_app;
 use crate::app::state::App;
 use crate::CONFIG_PATHS;

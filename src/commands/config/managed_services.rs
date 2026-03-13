@@ -5,7 +5,7 @@ use strum::IntoEnumIterator;
 
 use super::model::ManagedServiceCommand;
 use flowrs_config::{FlowrsConfig, GccConfig, ManagedService};
-use crate::airflow::managed_services::composer::{
+use flowrs_airflow::managed_services::composer::{
     get_gcloud_default_region, ComposerClient, GCP_REGIONS,
 };
 use anyhow::Result;

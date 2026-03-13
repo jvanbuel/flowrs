@@ -28,7 +28,7 @@ pub fn handle_config_selected(app: &Arc<Mutex<App>>, idx: usize) -> Result<()> {
 
     // Check if environment already exists, if not create it
     if !app.environment_state.environments.contains_key(&env_name) {
-        match crate::airflow::client::create_client(&selected_config) {
+        match flowrs_airflow::create_client(&selected_config) {
             Ok(client) => {
                 let env_data = EnvironmentData::new(client);
                 app.environment_state

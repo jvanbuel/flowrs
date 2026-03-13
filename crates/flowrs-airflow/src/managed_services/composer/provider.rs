@@ -1,4 +1,4 @@
-use crate::airflow::client::auth::AuthProvider;
+use crate::client::auth::AuthProvider;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use google_cloud_auth::credentials::{AccessTokenCredentials, Builder};

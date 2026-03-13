@@ -8,13 +8,13 @@
 
 use std::env;
 
-use flowrs_tui::airflow::managed_services::astronomer::{
+use flowrs_airflow::managed_services::astronomer::{
     get_astronomer_environment_servers, AstronomerClient,
 };
-use flowrs_tui::airflow::managed_services::conveyor::{
+use flowrs_airflow::managed_services::conveyor::{
     get_conveyor_environment_servers, ConveyorClient,
 };
-use flowrs_tui::airflow::managed_services::mwaa::{get_mwaa_environment_servers, MwaaClient};
+use flowrs_airflow::managed_services::mwaa::{get_mwaa_environment_servers, MwaaClient};
 
 // ============================================================================
 // Conveyor Tests

@@ -11,8 +11,9 @@ use worker::{Dispatcher, WorkerMessage};
 
 use flowrs_airflow_model::model::common::EnvironmentKey;
 
+use flowrs_airflow::create_client;
+
 use crate::{
-    airflow::client::create_client,
     ui::draw_ui,
     CONFIG_PATHS,
 };

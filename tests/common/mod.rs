@@ -4,7 +4,7 @@
 use std::env;
 use std::sync::Arc;
 
-use flowrs_tui::airflow::client::create_client;
+use flowrs_airflow::create_client;
 use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource};
 use flowrs_airflow_model::traits::AirflowClient;
 

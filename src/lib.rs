@@ -13,7 +13,6 @@
 
 use std::sync::LazyLock;
 
-pub mod airflow;
 pub mod app;
 pub mod commands;
 pub mod ui;

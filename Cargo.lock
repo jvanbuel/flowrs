@@ -1154,6 +1154,26 @@ dependencies = [
 [[package]]
 name = "flowrs-airflow"
 version = "0.10.1"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "aws-config",
+ "aws-sdk-mwaa",
+ "dirs",
+ "flowrs-airflow-model",
+ "flowrs-config",
+ "futures",
+ "google-cloud-auth",
+ "log",
+ "regex",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "time",
+ "tokio",
+ "toml",
+ "url",
+]
 
 [[package]]
 name = "flowrs-airflow-model"
@@ -1187,21 +1207,18 @@ dependencies = [
  "ansi-to-tui",
  "anyhow",
  "async-trait",
- "aws-config",
- "aws-sdk-mwaa",
  "chrono",
  "clap",
  "crossterm",
  "dirs",
+ "flowrs-airflow",
  "flowrs-airflow-model",
  "flowrs-config",
  "futures",
- "google-cloud-auth",
  "inquire",
  "log",
  "mockito",
  "ratatui",
- "regex",
  "reqwest 0.12.28",
  "serde",
  "serde_json",

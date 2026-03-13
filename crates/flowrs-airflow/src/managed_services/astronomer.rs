@@ -1,4 +1,4 @@
-use crate::airflow::client::auth::AuthProvider;
+use crate::client::auth::AuthProvider;
 use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, ManagedService};
 use flowrs_config::managed_auth::AstronomerAuth;
 use anyhow::{Context, Result};
