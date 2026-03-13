@@ -5,7 +5,10 @@ use super::model;
 use super::V2Client;
 
 impl V2Client {
-    pub async fn fetch_dag_stats(&self, dag_ids: Vec<&str>) -> Result<model::dagstats::DagStatsResponse> {
+    pub async fn fetch_dag_stats(
+        &self,
+        dag_ids: Vec<&str>,
+    ) -> Result<model::dagstats::DagStatsResponse> {
         let response = self
             .base_api(Method::GET, "dagStats")
             .await?

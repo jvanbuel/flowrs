@@ -60,9 +60,7 @@ impl V2Client {
         })
     }
 
-    pub async fn fetch_all_task_instances(
-        &self,
-    ) -> Result<model::taskinstance::TaskInstanceList> {
+    pub async fn fetch_all_task_instances(&self) -> Result<model::taskinstance::TaskInstanceList> {
         let mut all_task_instances = Vec::new();
         let mut offset = 0;
         let limit = 100;

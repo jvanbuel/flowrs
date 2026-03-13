@@ -1,9 +1,9 @@
+use crate::auth::AirflowAuth;
 use crate::client::auth::AuthProvider;
+use crate::config::{AirflowConfig, ManagedService};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use dirs::home_dir;
-use crate::auth::AirflowAuth;
-use crate::config::{AirflowConfig, ManagedService};
 use log::info;
 use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};

@@ -56,7 +56,11 @@ impl V2Client {
         Ok(())
     }
 
-    pub async fn post_trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()> {
+    pub async fn post_trigger_dag_run(
+        &self,
+        dag_id: &str,
+        logical_date: Option<&str>,
+    ) -> Result<()> {
         let body = serde_json::json!({"logical_date": logical_date});
 
         let resp: Response = self

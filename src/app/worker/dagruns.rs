@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
-use crate::app::model::popup::dagruns::mark::MarkState;
-use crate::app::state::App;
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::airflow::traits::AirflowClient;
+use crate::app::model::popup::dagruns::mark::MarkState;
+use crate::app::state::App;
 
 /// Handle updating the list of DAG runs for a specific DAG.
 ///

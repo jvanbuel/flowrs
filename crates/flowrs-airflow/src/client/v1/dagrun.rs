@@ -6,7 +6,10 @@ use super::model;
 use super::V1Client;
 
 impl V1Client {
-    pub async fn fetch_dagruns(&self, dag_id: &str) -> Result<model::dagrun::DAGRunCollectionResponse> {
+    pub async fn fetch_dagruns(
+        &self,
+        dag_id: &str,
+    ) -> Result<model::dagrun::DAGRunCollectionResponse> {
         let response: Response = self
             .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))
             .await?
@@ -57,7 +60,11 @@ impl V1Client {
         Ok(())
     }
 
-    pub async fn post_trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()> {
+    pub async fn post_trigger_dag_run(
+        &self,
+        dag_id: &str,
+        logical_date: Option<&str>,
+    ) -> Result<()> {
         // Somehow Airflow V1 API does not accept null for logical_date
         let body = logical_date.map_or_else(
             || serde_json::json!({}),

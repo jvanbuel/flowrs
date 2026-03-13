@@ -5,10 +5,10 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 
+use crate::airflow::model::common::OpenItem;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::WorkerMessage;
 use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
-use crate::airflow::model::common::OpenItem;
 use flowrs_config::AirflowConfig;
 
 use super::popup::config::commands::CONFIG_COMMAND_POP_UP;

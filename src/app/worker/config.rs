@@ -3,9 +3,9 @@ use std::sync::{Arc, Mutex};
 use anyhow::Result;
 
 use crate::airflow::client::FlowrsClient;
+use crate::airflow::model::common::EnvironmentKey;
 use crate::app::environment_state::EnvironmentData;
 use crate::app::state::App;
-use crate::airflow::model::common::EnvironmentKey;
 
 /// Handle configuration selection.
 /// Creates a new client for the selected configuration if needed and sets it as active.

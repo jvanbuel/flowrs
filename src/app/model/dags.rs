@@ -9,6 +9,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
 
+use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::popup::dagruns::trigger::TriggerDagRunPopUp;
 use crate::app::model::popup::dags::commands::DAG_COMMAND_POP_UP;
@@ -17,13 +18,12 @@ use crate::ui::constants::AirflowStateColor;
 use crate::ui::theme::{
     BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
 };
-use crate::airflow::model::common::{Dag, DagId, DagRunState, DagStatistic};
 
 use super::dagruns::DagCodeView;
 use super::popup::dags::DagPopUp;
 use super::{FilterableTable, KeyResult, Model, Popup};
-use crate::app::worker::WorkerMessage;
 use crate::airflow::model::common::OpenItem;
+use crate::app::worker::WorkerMessage;
 
 /// Model for the DAG panel, managing the list of DAGs and their filtering.
 pub struct DagModel {

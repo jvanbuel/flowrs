@@ -102,10 +102,7 @@ pub async fn expand_managed_services(
                         configured_regions
                     };
 
-                    let project_ids = config
-                        .gcc_projects
-                        .as_ref()
-                        .filter(|p| !p.is_empty());
+                    let project_ids = config.gcc_projects.as_ref().filter(|p| !p.is_empty());
 
                     match get_composer_environment_servers(&regions, project_ids.map(Vec::as_slice))
                         .await

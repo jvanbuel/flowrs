@@ -3,10 +3,10 @@ use std::sync::{Arc, Mutex};
 use futures::future::join_all;
 use log::debug;
 
-use crate::app::model::popup::error::ErrorPopup;
-use crate::app::state::App;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::airflow::traits::AirflowClient;
+use crate::app::model::popup::error::ErrorPopup;
+use crate::app::state::App;
 
 /// Handle fetching task logs for all attempts of a task instance.
 ///

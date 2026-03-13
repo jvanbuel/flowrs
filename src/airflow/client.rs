@@ -5,10 +5,13 @@ use url::{form_urlencoded, Url};
 use flowrs_airflow::client::{BaseClient, V1Client, V2Client};
 use flowrs_airflow::{AirflowConfig, AirflowVersion};
 
-use super::model::common::*;
 use super::model::common::dagrun::{DagRunState, RunType};
 use super::model::common::dagstats::{DagStatistic, DagStatistics};
 use super::model::common::taskinstance::TaskInstanceState;
+use super::model::common::{
+    Dag, DagList, DagRun, DagRunList, DagStatsResponse, Log, OpenItem, Tag, Task, TaskInstance,
+    TaskInstanceList, TaskList, TaskTryGantt,
+};
 use super::traits::{
     AirflowClient, DagOperations, DagRunOperations, DagStatsOperations, LogOperations,
     TaskInstanceOperations, TaskOperations,
@@ -21,7 +24,7 @@ pub enum FlowrsClient {
 }
 
 impl FlowrsClient {
-    /// Create a new FlowrsClient from an AirflowConfig.
+    /// Create a new `FlowrsClient` from an `AirflowConfig`.
     pub fn new(config: &AirflowConfig) -> Result<Self> {
         let base = BaseClient::new(config.clone())?;
         match config.version {
@@ -346,9 +349,7 @@ fn v1_dag_collection_to_dag_list(
     }
 }
 
-fn v1_dagrun_to_dagrun(
-    value: flowrs_airflow::client::v1::model::dagrun::DAGRunResponse,
-) -> DagRun {
+fn v1_dagrun_to_dagrun(value: flowrs_airflow::client::v1::model::dagrun::DAGRunResponse) -> DagRun {
     DagRun {
         dag_id: value.dag_id.into(),
         dag_run_id: value.dag_run_id.unwrap_or_default().into(),
@@ -430,9 +431,7 @@ fn v1_task_instance_try_to_gantt(
     }
 }
 
-fn v1_task_to_task(
-    value: flowrs_airflow::client::v1::model::task::TaskResponse,
-) -> Task {
+fn v1_task_to_task(value: flowrs_airflow::client::v1::model::task::TaskResponse) -> Task {
     Task {
         task_id: value.task_id,
         downstream_task_ids: value.downstream_task_ids,

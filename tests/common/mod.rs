@@ -4,9 +4,9 @@
 use std::env;
 use std::sync::Arc;
 
+use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource};
 use flowrs_tui::airflow::client::FlowrsClient;
 use flowrs_tui::airflow::traits::AirflowClient;
-use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource};
 
 /// Check if we should run tests for a specific API version.
 /// Returns false if `TEST_AIRFLOW_URL` is not set (required for all API tests).

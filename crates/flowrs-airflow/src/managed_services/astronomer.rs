@@ -1,8 +1,8 @@
+use crate::auth::{AirflowAuth, AstronomerAuth};
 use crate::client::auth::AuthProvider;
+use crate::config::{AirflowConfig, AirflowVersion, ManagedService};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use crate::auth::{AirflowAuth, AstronomerAuth};
-use crate::config::{AirflowConfig, AirflowVersion, ManagedService};
 use log::info;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::RequestBuilder;

@@ -2,9 +2,9 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
-use crate::app::state::App;
 use crate::airflow::graph::TaskGraph;
 use crate::airflow::traits::AirflowClient;
+use crate::app::state::App;
 
 /// Handle fetching task definitions and building the task graph
 pub async fn handle_update_tasks(
