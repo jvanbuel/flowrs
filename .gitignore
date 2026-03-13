@@ -1,7 +1,7 @@
 target
 .flowrs
 flowrs
-logs
+/logs
 plugins
 dags/**
 .DS_Store

@@ -14,7 +14,6 @@ use crate::airflow::model::common::EnvironmentKey;
 
 use crate::{ui::draw_ui, CONFIG_PATHS};
 
-pub mod environment_state;
 pub mod events;
 pub mod model;
 pub mod state;
@@ -41,7 +40,7 @@ where
         // Initialize all environments with their clients
         for server_config in servers {
             if let Ok(client) = FlowrsClient::new(&server_config) {
-                let env_data = environment_state::EnvironmentData::new(Arc::new(client));
+                let env_data = state::environment_state::EnvironmentData::new(Arc::new(client));
                 app.environment_state
                     .environments
                     .insert(EnvironmentKey::from(server_config.name.clone()), env_data);

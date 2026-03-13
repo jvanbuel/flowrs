@@ -4,7 +4,7 @@ use log::debug;
 
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::airflow::traits::AirflowClient;
-use crate::app::model::popup::dagruns::mark::MarkState;
+use crate::app::model::dagruns::popup::mark::MarkState;
 use crate::app::state::App;
 
 /// Handle updating the list of DAG runs for a specific DAG.
