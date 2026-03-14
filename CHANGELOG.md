@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.11.0...flowrs-tui-v0.12.0) - 2026-03-14
+
+### Added
+
+- add dark/light theme support with auto-detection
+
 ## [0.11.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.10.1...flowrs-tui-v0.11.0) - 2026-03-13
 
 ### Other
