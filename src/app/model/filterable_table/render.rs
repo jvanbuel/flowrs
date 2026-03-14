@@ -4,7 +4,7 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 
 use crate::app::model::filter::Filterable;
-use crate::ui::theme::{ACCENT, ALT_ROW_STYLE, DEFAULT_STYLE, MARKED_STYLE};
+use crate::ui::theme::theme;
 
 use super::FilterableTable;
 
@@ -28,16 +28,17 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     ///
     /// Uses `MARKED_STYLE` for visually selected rows, alternating `DEFAULT_STYLE`/`ALT_ROW_STYLE` otherwise.
     pub fn row_style(&self, idx: usize) -> Style {
+        let t = theme();
         if self
             .visual_selection()
             .as_ref()
             .is_some_and(|r| r.contains(&idx))
         {
-            MARKED_STYLE
+            t.marked_style
         } else if idx.is_multiple_of(2) {
-            DEFAULT_STYLE
+            t.default_style
         } else {
-            ALT_ROW_STYLE
+            t.alt_row_style
         }
     }
 
@@ -51,25 +52,33 @@ impl<T: Filterable + Clone> FilterableTable<T> {
                 Span::raw(" -- VISUAL ("),
                 Span::styled(
                     format!("{}", self.visual_selection_count()),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(theme().accent)
+                        .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" selected) -- | "),
                 Span::styled(
                     format!("Filter: {filter} "),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(theme().accent)
+                        .add_modifier(Modifier::BOLD),
                 ),
             ])),
             (true, None) => Some(Line::from(vec![
                 Span::raw(" -- VISUAL ("),
                 Span::styled(
                     format!("{}", self.visual_selection_count()),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(theme().accent)
+                        .add_modifier(Modifier::BOLD),
                 ),
                 Span::raw(" selected) -- "),
             ])),
             (false, Some(filter)) => Some(Line::from(Span::styled(
                 format!(" Filter: {filter} "),
-                Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(theme().accent)
+                    .add_modifier(Modifier::BOLD),
             ))),
             (false, None) => None,
         }

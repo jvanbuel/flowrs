@@ -6,10 +6,7 @@ use ratatui::{
 
 use crate::{
     app::model::popup::{popup_area, themed_button},
-    ui::theme::{
-        BORDER_DEFAULT, BORDER_SELECTED, BORDER_STYLE, BUTTON_DEFAULT, BUTTON_SELECTED,
-        DEFAULT_STYLE, SURFACE_STYLE,
-    },
+    ui::theme::theme,
 };
 
 use super::clear::ClearDagRunPopup;
@@ -18,14 +15,15 @@ use super::trigger::TriggerDagRunPopUp;
 
 impl Widget for &mut TriggerDagRunPopUp {
     fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
         // Smaller popup: 40% width, auto height
         let area = popup_area(area, 40, 30);
 
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .border_style(BORDER_STYLE)
-            .style(SURFACE_STYLE);
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         // Use inner area for content layout to avoid overlapping the border
         let inner = popup_block.inner(area);
@@ -40,7 +38,7 @@ impl Widget for &mut TriggerDagRunPopUp {
         .areas(inner);
 
         let text = Paragraph::new("Trigger a new DAG Run?")
-            .style(DEFAULT_STYLE)
+            .style(t.default_style)
             .centered();
 
         let [_, yes, _, no, _] = Layout::horizontal([
@@ -65,14 +63,15 @@ impl Widget for &mut TriggerDagRunPopUp {
 
 impl Widget for &mut ClearDagRunPopup {
     fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
         // Smaller popup: 40% width, auto height
         let area = popup_area(area, 40, 30);
 
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .border_style(BORDER_STYLE)
-            .style(SURFACE_STYLE);
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         // Use inner area for content layout to avoid overlapping the border
         let inner = popup_block.inner(area);
@@ -91,7 +90,7 @@ impl Widget for &mut ClearDagRunPopup {
         } else {
             format!("Clear {} DAG Runs?", self.dag_run_ids.len())
         };
-        let text = Paragraph::new(message).style(DEFAULT_STYLE).centered();
+        let text = Paragraph::new(message).style(t.default_style).centered();
 
         let [_, yes, _, no, _] = Layout::horizontal([
             Constraint::Fill(1),
@@ -115,6 +114,7 @@ impl Widget for &mut ClearDagRunPopup {
 
 impl Widget for &mut MarkDagRunPopup {
     fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
         // Smaller popup: 35% width, auto height
         let area = popup_area(area, 35, 30);
 
@@ -130,11 +130,11 @@ impl Widget for &mut MarkDagRunPopup {
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .border_style(DEFAULT_STYLE)
-            .style(SURFACE_STYLE);
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         let text = Paragraph::new("Mark status as")
-            .style(DEFAULT_STYLE)
+            .style(t.default_style)
             .centered();
 
         let [_, success, _, failed, _, queued, _] = Layout::horizontal([
@@ -150,9 +150,9 @@ impl Widget for &mut MarkDagRunPopup {
 
         // Success button
         let (success_style, success_border) = if self.status == MarkState::Success {
-            (BUTTON_SELECTED, BORDER_SELECTED)
+            (t.button_selected, t.border_selected)
         } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
+            (t.button_default, t.border_default)
         };
         let success_btn = Paragraph::new("Success")
             .style(success_style)
@@ -166,9 +166,9 @@ impl Widget for &mut MarkDagRunPopup {
 
         // Failed button
         let (failed_style, failed_border) = if self.status == MarkState::Failed {
-            (BUTTON_SELECTED, BORDER_SELECTED)
+            (t.button_selected, t.border_selected)
         } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
+            (t.button_default, t.border_default)
         };
         let failed_btn = Paragraph::new("Failed")
             .style(failed_style)
@@ -182,9 +182,9 @@ impl Widget for &mut MarkDagRunPopup {
 
         // Queued button
         let (queued_style, queued_border) = if self.status == MarkState::Queued {
-            (BUTTON_SELECTED, BORDER_SELECTED)
+            (t.button_selected, t.border_selected)
         } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
+            (t.button_default, t.border_default)
         };
         let queued_btn = Paragraph::new("Queued")
             .style(queued_style)

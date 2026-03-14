@@ -6,26 +6,27 @@ use ratatui::widgets::{
 };
 
 use crate::app::model::popup::popup_area;
-use crate::ui::theme::{BORDER_STYLE, DEFAULT_STYLE, SURFACE_STYLE, TITLE_STYLE};
+use crate::ui::theme::theme;
 
 use super::DagCodeView;
 
 impl DagCodeView {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer) {
         let area = popup_area(area, 60, 90);
+        let t = theme();
 
         let popup = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .title(" DAG Code ")
-            .border_style(BORDER_STYLE)
-            .style(SURFACE_STYLE)
-            .title_style(TITLE_STYLE);
+            .border_style(t.border_style)
+            .style(t.surface_style)
+            .title_style(t.title_style);
 
         #[allow(clippy::cast_possible_truncation)]
         let code_text = Paragraph::new(self.lines.clone())
             .block(popup)
-            .style(DEFAULT_STYLE)
+            .style(t.default_style)
             .scroll((self.vertical_scroll as u16, 0));
 
         Clear.render(area, buf);

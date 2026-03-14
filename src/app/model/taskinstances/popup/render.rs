@@ -6,10 +6,7 @@ use ratatui::{
 
 use crate::{
     app::model::popup::{popup_area, themed_button},
-    ui::theme::{
-        BORDER_DEFAULT, BORDER_SELECTED, BORDER_STYLE, BUTTON_DEFAULT, BUTTON_SELECTED,
-        DEFAULT_STYLE, SURFACE_STYLE,
-    },
+    ui::theme::theme,
 };
 
 use super::clear::ClearTaskInstancePopup;
@@ -17,14 +14,15 @@ use super::mark::{MarkState, MarkTaskInstancePopup};
 
 impl Widget for &mut ClearTaskInstancePopup {
     fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
         // Smaller popup: 40% width, auto height
         let area = popup_area(area, 40, 30);
 
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .border_style(BORDER_STYLE)
-            .style(SURFACE_STYLE);
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         // Use inner area for content layout to avoid overlapping the border
         let inner = popup_block.inner(area);
@@ -43,7 +41,7 @@ impl Widget for &mut ClearTaskInstancePopup {
         } else {
             format!("Clear {} Task Instances?", self.task_ids.len())
         };
-        let text = Paragraph::new(message).style(DEFAULT_STYLE).centered();
+        let text = Paragraph::new(message).style(t.default_style).centered();
 
         let [_, yes, _, no, _] = Layout::horizontal([
             Constraint::Fill(1),
@@ -67,6 +65,7 @@ impl Widget for &mut ClearTaskInstancePopup {
 
 impl Widget for &mut MarkTaskInstancePopup {
     fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
         // Smaller popup: 35% width, auto height
         let area = popup_area(area, 35, 30);
 
@@ -82,11 +81,11 @@ impl Widget for &mut MarkTaskInstancePopup {
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .border_style(DEFAULT_STYLE)
-            .style(SURFACE_STYLE);
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         let text = Paragraph::new("Mark status as")
-            .style(DEFAULT_STYLE)
+            .style(t.default_style)
             .centered();
 
         let [_, success, _, failed, _, skipped, _] = Layout::horizontal([
@@ -102,9 +101,9 @@ impl Widget for &mut MarkTaskInstancePopup {
 
         // Success button
         let (success_style, success_border) = if self.status == MarkState::Success {
-            (BUTTON_SELECTED, BORDER_SELECTED)
+            (t.button_selected, t.border_selected)
         } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
+            (t.button_default, t.border_default)
         };
         let success_btn = Paragraph::new("Success")
             .style(success_style)
@@ -118,9 +117,9 @@ impl Widget for &mut MarkTaskInstancePopup {
 
         // Failed button
         let (failed_style, failed_border) = if self.status == MarkState::Failed {
-            (BUTTON_SELECTED, BORDER_SELECTED)
+            (t.button_selected, t.border_selected)
         } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
+            (t.button_default, t.border_default)
         };
         let failed_btn = Paragraph::new("Failed")
             .style(failed_style)
@@ -134,9 +133,9 @@ impl Widget for &mut MarkTaskInstancePopup {
 
         // Skipped button
         let (skipped_style, skipped_border) = if self.status == MarkState::Skipped {
-            (BUTTON_SELECTED, BORDER_SELECTED)
+            (t.button_selected, t.border_selected)
         } else {
-            (BUTTON_DEFAULT, BORDER_DEFAULT)
+            (t.button_default, t.border_default)
         };
         let skipped_btn = Paragraph::new("Skipped")
             .style(skipped_style)

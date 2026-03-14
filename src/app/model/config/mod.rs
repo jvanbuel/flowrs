@@ -8,7 +8,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 use crate::airflow::model::common::OpenItem;
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::WorkerMessage;
-use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
+use crate::ui::theme::theme;
 use flowrs_config::AirflowConfig;
 
 mod commands;
@@ -109,10 +109,11 @@ impl Model for ConfigModel {
 impl Widget for &mut ConfigModel {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let content_area = self.table.render_with_filter(area, buf);
+        let t = theme();
 
         let headers = ["Name", "Endpoint", "Managed", "Version"];
         let header_row = create_headers(headers);
-        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
+        let header = Row::new(header_row).style(t.table_header_style);
 
         let rows = self
             .table
@@ -151,7 +152,7 @@ impl Widget for &mut ConfigModel {
             let block = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
-                .border_style(BORDER_STYLE)
+                .border_style(t.border_style)
                 .title(" Press <?> to see available commands ");
             if let Some(title) = self.table.status_title() {
                 block.title_bottom(title)
@@ -159,7 +160,7 @@ impl Widget for &mut ConfigModel {
                 block
             }
         })
-        .row_highlight_style(SELECTED_ROW_STYLE);
+        .row_highlight_style(t.selected_row_style);
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 
         // Render any active popup (error or commands)

@@ -7,8 +7,7 @@ use ratatui::{
 };
 
 use super::{FilterState, FilterStateMachine};
-use crate::ui::constants::DEFAULT_STYLE;
-use crate::ui::theme::ACCENT;
+use crate::ui::theme::theme;
 
 impl FilterStateMachine {
     /// Render the filter widget and update cursor position
@@ -18,6 +17,7 @@ impl FilterStateMachine {
         }
 
         let (content, cursor_offset) = self.build_display_content();
+        let default_style = theme().default_style;
 
         let paragraph = Paragraph::new(content)
             .block(
@@ -25,9 +25,9 @@ impl FilterStateMachine {
                     .border_type(BorderType::Rounded)
                     .borders(Borders::ALL)
                     .title(self.title())
-                    .style(DEFAULT_STYLE),
+                    .style(default_style),
             )
-            .style(DEFAULT_STYLE);
+            .style(default_style);
 
         Widget::render(paragraph, area, buf);
 
@@ -71,7 +71,10 @@ impl FilterStateMachine {
                 if let Some(field) = self.primary_field() {
                     let field_prefix = format!("{field}: ");
                     cursor_offset += field_prefix.len() as u16;
-                    spans.push(Span::styled(field_prefix, Style::default().fg(ACCENT)));
+                    spans.push(Span::styled(
+                        field_prefix,
+                        Style::default().fg(theme().accent),
+                    ));
                 }
 
                 // Render typed text
@@ -112,7 +115,7 @@ impl FilterStateMachine {
                 }
 
                 // Render colon prefix
-                spans.push(Span::styled(":", Style::default().fg(ACCENT)));
+                spans.push(Span::styled(":", Style::default().fg(theme().accent)));
                 cursor_offset += 1;
 
                 // Render typed attribute name
@@ -123,7 +126,9 @@ impl FilterStateMachine {
                 }
                 spans.push(Span::styled(
                     typed.clone(),
-                    Style::default().fg(ACCENT).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(theme().accent)
+                        .add_modifier(Modifier::BOLD),
                 ));
 
                 // Render ghost text for attribute
@@ -160,7 +165,10 @@ impl FilterStateMachine {
                 {
                     cursor_offset += field_prefix.len() as u16;
                 }
-                spans.push(Span::styled(field_prefix, Style::default().fg(ACCENT)));
+                spans.push(Span::styled(
+                    field_prefix,
+                    Style::default().fg(theme().accent),
+                ));
 
                 // Render typed value
                 let typed = &autocomplete.typed;

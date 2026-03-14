@@ -7,7 +7,7 @@ use crate::airflow::model::common::{calculate_duration, format_duration};
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
 use crate::ui::gantt::create_gantt_bar;
-use crate::ui::theme::{BORDER_STYLE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE};
+use crate::ui::theme::theme;
 
 use super::popup::TaskInstancePopUp;
 use super::TaskInstanceModel;
@@ -15,10 +15,11 @@ use super::TaskInstanceModel;
 impl Widget for &mut TaskInstanceModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
         let content_area = self.table.render_with_filter(area, buffer);
+        let t = theme();
 
         let headers = ["Task ID", "Duration", "State", "Tries", "Gantt"];
         let header_row = create_headers(headers);
-        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
+        let header = Row::new(header_row).style(t.table_header_style);
 
         // Calculate the width available for the Gantt column (capped at half the panel)
         let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
@@ -61,7 +62,7 @@ impl Widget for &mut TaskInstanceModel {
             let block = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
-                .border_style(BORDER_STYLE)
+                .border_style(t.border_style)
                 .title(" Press <?> to see available commands ");
             if let Some(title) = self.table.status_title() {
                 block.title_bottom(title)
@@ -69,7 +70,7 @@ impl Widget for &mut TaskInstanceModel {
                 block
             }
         })
-        .row_highlight_style(SELECTED_ROW_STYLE);
+        .row_highlight_style(t.selected_row_style);
 
         StatefulWidget::render(t, content_area, buffer, &mut self.table.filtered.state);
 

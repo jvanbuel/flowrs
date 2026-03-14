@@ -6,7 +6,7 @@
 use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 use unicode_width::UnicodeWidthStr;
 
-use super::theme::{BORDER_STYLE, PURPLE, TEXT_PRIMARY};
+use super::theme::theme;
 
 /// Tab definition with label and icon
 pub struct Tab {
@@ -56,11 +56,12 @@ pub struct TabBar {
 
 impl TabBar {
     pub fn new(active: usize) -> Self {
+        let t = theme();
         Self {
             active,
-            active_style: Style::default().fg(TEXT_PRIMARY).bg(PURPLE),
-            inactive_style: Style::default().fg(TEXT_PRIMARY),
-            border_style: BORDER_STYLE,
+            active_style: Style::default().fg(t.header_fg).bg(t.purple),
+            inactive_style: Style::default().fg(t.text_primary),
+            border_style: t.border_style,
         }
     }
 }

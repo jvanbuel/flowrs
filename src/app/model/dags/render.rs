@@ -1,5 +1,5 @@
 use ratatui::layout::{Constraint, Rect};
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
 use time::OffsetDateTime;
@@ -7,9 +7,7 @@ use time::OffsetDateTime;
 use crate::airflow::model::common::DagRunState;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::theme::{
-    BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
-};
+use crate::ui::theme::theme;
 
 use super::popup::DagPopUp;
 use super::DagModel;
@@ -17,10 +15,11 @@ use super::DagModel;
 impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut ratatui::buffer::Buffer) {
         let content_area = self.table.render_with_filter(area, buf);
+        let theme = theme();
 
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
-        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
+        let header = Row::new(header_row).style(theme.table_header_style);
         let rows = self
             .table
             .filtered
@@ -30,9 +29,9 @@ impl Widget for &mut DagModel {
             .map(|(idx, item)| {
                 Row::new(vec![
                     if item.is_paused {
-                        Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
+                        Line::from(Span::styled("𖣘", Style::default().fg(theme.text_primary)))
                     } else {
-                        Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
+                        Line::from(Span::styled("𖣘", Style::default().fg(theme.dag_active)))
                     },
                     Line::from(Span::styled(
                         &*item.dag_id,
@@ -40,7 +39,7 @@ impl Widget for &mut DagModel {
                     )),
                     Line::from(item.owners.join(", ")),
                     Line::from(item.timetable_description.as_deref().unwrap_or("None"))
-                        .style(Style::default().fg(Color::LightYellow)),
+                        .style(Style::default().fg(theme.schedule_fg)),
                     Line::from(item.next_dagrun_create_after.map_or_else(
                         || "None".to_string(),
                         convert_datetimeoffset_to_human_readable_remaining_time,
@@ -68,7 +67,7 @@ impl Widget for &mut DagModel {
                 ])
                 .style(self.table.row_style(idx))
             });
-        let t = Table::new(
+        let table = Table::new(
             rows,
             &[
                 Constraint::Length(6),
@@ -84,7 +83,7 @@ impl Widget for &mut DagModel {
             let block = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
-                .border_style(BORDER_STYLE)
+                .border_style(theme.border_style)
                 .title(" Press <?> to see available commands ");
             if let Some(title) = self.table.status_title() {
                 block.title_bottom(title)
@@ -92,9 +91,9 @@ impl Widget for &mut DagModel {
                 block
             }
         })
-        .row_highlight_style(SELECTED_ROW_STYLE);
+        .row_highlight_style(theme.selected_row_style);
 
-        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
+        StatefulWidget::render(table, content_area, buf, &mut self.table.filtered.state);
 
         if let Some(view) = &mut self.dag_code {
             view.render(area, buf);
@@ -111,7 +110,10 @@ impl Widget for &mut DagModel {
 }
 
 fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -> String {
-    let now = OffsetDateTime::now_utc();
+    format_remaining_time(dt, OffsetDateTime::now_utc())
+}
+
+fn format_remaining_time(dt: OffsetDateTime, now: OffsetDateTime) -> String {
     let duration = dt.unix_timestamp() - now.unix_timestamp();
     #[allow(clippy::cast_sign_loss)]
     let duration = if duration < 0 { 0 } else { duration as u64 };
@@ -133,18 +135,19 @@ mod tests {
     use super::*;
 
     #[test]
-    // TODO: This is poor test... should make it deterministic
-    fn test_convert_datetimeoffset_to_human_readable_remaining_time() {
-        let now = OffsetDateTime::now_utc();
-        let dt = now + time::Duration::seconds(60);
-        assert_eq!(
-            convert_datetimeoffset_to_human_readable_remaining_time(dt),
-            "1m"
-        );
-        let dt = now + time::Duration::seconds(3600);
-        assert_eq!(
-            convert_datetimeoffset_to_human_readable_remaining_time(dt),
-            "1h 00m"
-        );
+    fn test_format_remaining_time() {
+        let now = OffsetDateTime::from_unix_timestamp(0).unwrap();
+        let cases = [
+            (30, "30s"),
+            (60, "1m"),
+            (90, "1m"),
+            (3600, "1h 00m"),
+            (3661, "1h 01m"),
+            (86400, "1d 00h 00m"),
+        ];
+        for (secs, expected) in cases {
+            let dt = now + time::Duration::seconds(secs);
+            assert_eq!(format_remaining_time(dt, now), expected, "secs={secs}");
+        }
     }
 }
