@@ -155,6 +155,134 @@ impl Theme {
         )
     }
 
+    /// Catppuccin Latte - the lightest Catppuccin flavor.
+    #[allow(clippy::similar_names)]
+    pub fn catppuccin_latte() -> Self {
+        let text_primary = Color::Rgb(76, 79, 105); // Text #4c4f69
+        let purple = Color::Rgb(136, 57, 239); // Mauve #8839ef
+        let purple_dim = Color::Rgb(124, 127, 147); // Overlay2 #7c7f93
+        let accent = Color::Rgb(23, 146, 153); // Teal #179299
+        let surface = Color::Rgb(204, 208, 218); // Surface0 #ccd0da
+        let header_bg = Color::Rgb(136, 57, 239); // Mauve #8839ef
+        let header_fg = Color::Rgb(239, 241, 245); // Base #eff1f5
+        let table_header_fg = Color::Rgb(92, 95, 119); // Subtext1 #5c5f77
+        let table_header_bg = Color::Rgb(188, 192, 204); // Surface1 #bcc0cc
+        let selected_bg = Color::Rgb(172, 176, 190); // Surface2 #acb0be
+        let marked_bg = Color::Rgb(220, 224, 232); // Crust #dce0e8
+        let alt_row_bg = Color::Rgb(230, 233, 239); // Mantle #e6e9ef
+
+        Self::build(
+            text_primary,
+            purple,
+            purple_dim,
+            accent,
+            surface,
+            header_bg,
+            header_fg,
+            table_header_fg,
+            table_header_bg,
+            selected_bg,
+            marked_bg,
+            alt_row_bg,
+        )
+    }
+
+    /// Catppuccin Frappé - subdued colors with a muted aesthetic.
+    #[allow(clippy::similar_names)]
+    pub fn catppuccin_frappe() -> Self {
+        let text_primary = Color::Rgb(198, 208, 245); // Text #c6d0f5
+        let purple = Color::Rgb(202, 158, 230); // Mauve #ca9ee6
+        let purple_dim = Color::Rgb(148, 156, 187); // Overlay2 #949cbb
+        let accent = Color::Rgb(129, 200, 190); // Teal #81c8be
+        let surface = Color::Rgb(65, 69, 89); // Surface0 #414559
+        let header_bg = Color::Rgb(202, 158, 230); // Mauve #ca9ee6
+        let header_fg = Color::Rgb(48, 52, 70); // Base #303446
+        let table_header_fg = Color::Rgb(181, 191, 226); // Subtext1 #b5bfe2
+        let table_header_bg = Color::Rgb(81, 87, 109); // Surface1 #51576d
+        let selected_bg = Color::Rgb(98, 104, 128); // Surface2 #626880
+        let marked_bg = Color::Rgb(115, 121, 148); // Overlay0 #737994
+        let alt_row_bg = Color::Rgb(41, 44, 60); // Mantle #292c3c
+
+        Self::build(
+            text_primary,
+            purple,
+            purple_dim,
+            accent,
+            surface,
+            header_bg,
+            header_fg,
+            table_header_fg,
+            table_header_bg,
+            selected_bg,
+            marked_bg,
+            alt_row_bg,
+        )
+    }
+
+    /// Catppuccin Macchiato - gentle colors for a soothing atmosphere.
+    #[allow(clippy::similar_names)]
+    pub fn catppuccin_macchiato() -> Self {
+        let text_primary = Color::Rgb(202, 211, 245); // Text #cad3f5
+        let purple = Color::Rgb(198, 160, 246); // Mauve #c6a0f6
+        let purple_dim = Color::Rgb(147, 154, 183); // Overlay2 #939ab7
+        let accent = Color::Rgb(139, 213, 202); // Teal #8bd5ca
+        let surface = Color::Rgb(54, 58, 79); // Surface0 #363a4f
+        let header_bg = Color::Rgb(198, 160, 246); // Mauve #c6a0f6
+        let header_fg = Color::Rgb(36, 39, 58); // Base #24273a
+        let table_header_fg = Color::Rgb(184, 192, 224); // Subtext1 #b8c0e0
+        let table_header_bg = Color::Rgb(73, 77, 100); // Surface1 #494d64
+        let selected_bg = Color::Rgb(91, 96, 120); // Surface2 #5b6078
+        let marked_bg = Color::Rgb(110, 115, 141); // Overlay0 #6e738d
+        let alt_row_bg = Color::Rgb(30, 32, 48); // Mantle #1e2030
+
+        Self::build(
+            text_primary,
+            purple,
+            purple_dim,
+            accent,
+            surface,
+            header_bg,
+            header_fg,
+            table_header_fg,
+            table_header_bg,
+            selected_bg,
+            marked_bg,
+            alt_row_bg,
+        )
+    }
+
+    /// Catppuccin Mocha - the darkest flavor with cozy, color-rich accents.
+    #[allow(clippy::similar_names)]
+    pub fn catppuccin_mocha() -> Self {
+        let text_primary = Color::Rgb(205, 214, 244); // Text #cdd6f4
+        let purple = Color::Rgb(203, 166, 247); // Mauve #cba6f7
+        let purple_dim = Color::Rgb(147, 153, 178); // Overlay2 #9399b2
+        let accent = Color::Rgb(148, 226, 213); // Teal #94e2d5
+        let surface = Color::Rgb(49, 50, 68); // Surface0 #313244
+        let header_bg = Color::Rgb(203, 166, 247); // Mauve #cba6f7
+        let header_fg = Color::Rgb(30, 30, 46); // Base #1e1e2e
+        let table_header_fg = Color::Rgb(186, 194, 222); // Subtext1 #bac2de
+        let table_header_bg = Color::Rgb(69, 71, 90); // Surface1 #45475a
+        let selected_bg = Color::Rgb(88, 91, 112); // Surface2 #585b70
+        let marked_bg = Color::Rgb(108, 112, 134); // Overlay0 #6c7086
+        let alt_row_bg = Color::Rgb(24, 24, 37); // Mantle #181825
+
+        Self::build(
+            text_primary,
+            purple,
+            purple_dim,
+            accent,
+            surface,
+            header_bg,
+            header_fg,
+            table_header_fg,
+            table_header_bg,
+            selected_bg,
+            marked_bg,
+            alt_row_bg,
+        )
+    }
+
     /// Build a theme from its color palette, deriving all styles.
     #[allow(clippy::too_many_arguments, clippy::similar_names)]
     fn build(
@@ -256,6 +384,22 @@ pub fn init_theme(mode: ThemeMode) {
         ThemeMode::Light => {
             log::info!("Using light theme (configured)");
             Theme::light()
+        }
+        ThemeMode::CatppuccinLatte => {
+            log::info!("Using Catppuccin Latte theme (configured)");
+            Theme::catppuccin_latte()
+        }
+        ThemeMode::CatppuccinFrappe => {
+            log::info!("Using Catppuccin Frappé theme (configured)");
+            Theme::catppuccin_frappe()
+        }
+        ThemeMode::CatppuccinMacchiato => {
+            log::info!("Using Catppuccin Macchiato theme (configured)");
+            Theme::catppuccin_macchiato()
+        }
+        ThemeMode::CatppuccinMocha => {
+            log::info!("Using Catppuccin Mocha theme (configured)");
+            Theme::catppuccin_mocha()
         }
     };
     THEME

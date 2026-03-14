@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Controls which theme is used. Serialized in the config file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum ThemeMode {
     /// Automatically detect terminal background (dark or light)
     #[default]
@@ -11,6 +11,14 @@ pub enum ThemeMode {
     Dark,
     /// Force light theme
     Light,
+    /// Catppuccin Latte (light)
+    CatppuccinLatte,
+    /// Catppuccin Frappé (medium-dark)
+    CatppuccinFrappe,
+    /// Catppuccin Macchiato (dark)
+    CatppuccinMacchiato,
+    /// Catppuccin Mocha (darkest)
+    CatppuccinMocha,
 }
 
 impl ThemeMode {
