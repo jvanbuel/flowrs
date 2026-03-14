@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.11.0...flowrs-tui-v0.11.1) - 2026-03-14
+## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.11.0...flowrs-tui-v0.12.0) - 2026-03-14
 
 ### Added
 
