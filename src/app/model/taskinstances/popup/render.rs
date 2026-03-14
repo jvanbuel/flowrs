@@ -81,7 +81,7 @@ impl Widget for &mut MarkTaskInstancePopup {
         let popup_block = Block::default()
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
-            .border_style(t.default_style)
+            .border_style(t.border_style)
             .style(t.surface_style);
 
         let text = Paragraph::new("Mark status as")

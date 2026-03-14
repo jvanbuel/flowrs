@@ -57,7 +57,7 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
             Span::styled(
                 format!(" {crumb} "),
                 Style::default()
-                    .fg(t.text_primary)
+                    .fg(t.header_fg)
                     .bg(t.header_bg)
                     .add_modifier(Modifier::ITALIC),
             ),

@@ -55,3 +55,17 @@ If you're self-hosting an Airflow instance, or your favorite managed service is 
 This creates an entry in your configuration file at `$XDG_CONFIG_HOME/flowrs/config.toml` (following the XDG Base Directory Specification, which defaults to `~/.config/flowrs/config.toml`). For backwards compatibility, flowrs also reads from `~/.flowrs` if the XDG location doesn't exist. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` configuration screen.
 
 Flowrs supports authenticating with HTTP Basic Auth or using bearer tokens. When selecting the bearer token option, you can either provide a static token or a command that generates a token.
+
+### Themes
+
+Flowrs ships with six themes, including four [Catppuccin](https://github.com/catppuccin/catppuccin) flavors. The active theme is configured with `flowrs config --theme <theme>`:
+
+| Theme | Description |
+|---|---|
+| `auto` | Detects your terminal background and picks dark or light (default) |
+| `dark` | Dark theme |
+| `light` | Light theme |
+| `catppuccin-latte` | Catppuccin Latte (light) |
+| `catppuccin-frappe` | Catppuccin Frappé (medium-dark) |
+| `catppuccin-macchiato` | Catppuccin Macchiato (dark) |
+| `catppuccin-mocha` | Catppuccin Mocha (darkest) |
