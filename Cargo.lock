@@ -624,6 +624,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "catppuccin"
+version = "2.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1be1bbab195d00e745c1788bed24ad8c30678c735d3d9e5bd0f87f9789433971"
+dependencies = [
+ "itertools",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "ratatui-core",
+ "serde",
+ "serde_json",
+ "syn 2.0.117",
+]
+
+[[package]]
 name = "cc"
 version = "1.2.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1177,6 +1193,7 @@ dependencies = [
  "ansi-to-tui",
  "anyhow",
  "async-trait",
+ "catppuccin",
  "chrono",
  "clap",
  "crossterm",

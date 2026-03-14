@@ -8,6 +8,7 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0.101"
+catppuccin = { version = "2.7.0", features = ["ratatui"] }
 async-trait = "0.1.89"
 chrono = "0.4.43"
 clap = { version = "^4.5", features = ["derive", "env"] }
@@ -43,6 +44,7 @@ formula = "flowrs"
 [dependencies]
 ansi-to-tui = { version = "8.0.1" }
 anyhow = { workspace = true }
+catppuccin = { workspace = true }
 async-trait = { workspace = true }
 flowrs-config = { path = "crates/flowrs-config", version = "0.10.1" }
 flowrs-airflow = { path = "crates/flowrs-airflow", version = "0.10.1" }

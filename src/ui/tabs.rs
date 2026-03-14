@@ -59,7 +59,7 @@ impl TabBar {
         let t = theme();
         Self {
             active,
-            active_style: Style::default().fg(t.text_primary).bg(t.purple),
+            active_style: Style::default().fg(t.header_fg).bg(t.purple),
             inactive_style: Style::default().fg(t.text_primary),
             border_style: t.border_style,
         }
