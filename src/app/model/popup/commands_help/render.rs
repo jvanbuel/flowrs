@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::app::model::popup::popup_area;
-use crate::ui::theme::TEXT_PRIMARY;
+use crate::ui::theme::theme;
 
 use super::CommandPopUp;
 
@@ -32,7 +32,7 @@ impl Widget for &CommandPopUp<'_> {
                     ),
                     Span::styled(
                         format!("{} - {}", c.name, c.description),
-                        Style::default().fg(TEXT_PRIMARY),
+                        Style::default().fg(theme().text_primary),
                     ),
                 ])
             })

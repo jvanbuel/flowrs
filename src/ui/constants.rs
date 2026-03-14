@@ -3,9 +3,6 @@ use ratatui::style::Color;
 use crate::airflow::model::common::dagrun::DagRunState;
 use crate::airflow::model::common::taskinstance::TaskInstanceState;
 
-// Re-export from theme for backward compatibility
-pub use super::theme::DEFAULT_STYLE;
-
 pub const ASCII_LOGO: &str = include_str!("logo/logo.ascii");
 
 pub const ROTATING_LOGO: [&str; 16] = [
@@ -41,16 +38,17 @@ pub enum AirflowStateColor {
 
 impl From<AirflowStateColor> for Color {
     fn from(state: AirflowStateColor) -> Self {
-        use super::theme;
+        use super::theme::theme;
+        let t = theme();
         match state {
-            AirflowStateColor::Success => theme::STATE_SUCCESS,
-            AirflowStateColor::Failed => theme::STATE_FAILED,
-            AirflowStateColor::Running => theme::STATE_RUNNING,
-            AirflowStateColor::Queued => theme::STATE_QUEUED,
-            AirflowStateColor::UpForRetry => theme::STATE_UP_FOR_RETRY,
-            AirflowStateColor::UpForReschedule => theme::STATE_UP_FOR_RESCHEDULE,
-            AirflowStateColor::Skipped => theme::STATE_SKIPPED,
-            AirflowStateColor::UpstreamFailed => theme::STATE_UPSTREAM_FAILED,
+            AirflowStateColor::Success => t.state_success,
+            AirflowStateColor::Failed => t.state_failed,
+            AirflowStateColor::Running => t.state_running,
+            AirflowStateColor::Queued => t.state_queued,
+            AirflowStateColor::UpForRetry => t.state_up_for_retry,
+            AirflowStateColor::UpForReschedule => t.state_up_for_reschedule,
+            AirflowStateColor::Skipped => t.state_skipped,
+            AirflowStateColor::UpstreamFailed => t.state_upstream_failed,
             AirflowStateColor::None => Self::Reset,
         }
     }

@@ -1,6 +1,6 @@
 use crate::app::state::{App, Panel};
 use crate::ui::tabs::{TabBar, TAB_BAR_HEIGHT};
-use crate::ui::theme::{HEADER_BG, HEADER_FG, TEXT_PRIMARY};
+use crate::ui::theme::theme;
 use init_screen::render_init_screen;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::style::{Modifier, Style};
@@ -26,6 +26,8 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         return;
     }
 
+    let t = theme();
+
     // Split area vertically: header (1 line), tab bar (3 lines), panel (remaining)
     let [top_line, tab_area, panel_area] = Layout::vertical([
         Constraint::Length(1),
@@ -35,7 +37,7 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     .areas(f.area());
 
     // First, fill the entire top line with header background
-    let header_bg_block = Block::default().style(Style::default().bg(HEADER_BG));
+    let header_bg_block = Block::default().style(Style::default().bg(t.header_bg));
     f.render_widget(header_bg_block, top_line);
 
     // Split top line horizontally to align throbber to the right
@@ -50,25 +52,25 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
         Line::from(vec![
             Span::styled(
                 format!(" Flowrs v{version} "),
-                Style::default().fg(HEADER_FG).bg(HEADER_BG),
+                Style::default().fg(t.header_fg).bg(t.header_bg),
             ),
             Span::styled(
                 format!(" {crumb} "),
                 Style::default()
-                    .fg(TEXT_PRIMARY)
-                    .bg(HEADER_BG)
+                    .fg(t.text_primary)
+                    .bg(t.header_bg)
                     .add_modifier(Modifier::ITALIC),
             ),
         ])
     } else {
         Line::from(Span::styled(
             format!(" Flowrs v{version} "),
-            Style::default().fg(HEADER_FG).bg(HEADER_BG),
+            Style::default().fg(t.header_fg).bg(t.header_bg),
         ))
     };
 
     f.render_widget(
-        Paragraph::new(header_line).style(Style::default().bg(HEADER_BG)),
+        Paragraph::new(header_line).style(Style::default().bg(t.header_bg)),
         app_info,
     );
 
@@ -76,7 +78,7 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     if app.loading {
         let throbber = Throbber::default()
             .label("Fetching data...")
-            .style(Style::default().fg(HEADER_FG).bg(HEADER_BG))
+            .style(Style::default().fg(t.header_fg).bg(t.header_bg))
             .throbber_set(throbber_widgets_tui::OGHAM_C);
         f.render_stateful_widget(throbber, throbber_area, &mut app.throbber_state);
     }

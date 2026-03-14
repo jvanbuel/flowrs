@@ -7,9 +7,7 @@ use time::OffsetDateTime;
 use crate::airflow::model::common::DagRunState;
 use crate::ui::common::create_headers;
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::theme::{
-    BORDER_STYLE, DAG_ACTIVE, SELECTED_ROW_STYLE, TABLE_HEADER_STYLE, TEXT_PRIMARY,
-};
+use crate::ui::theme::theme;
 
 use super::popup::DagPopUp;
 use super::DagModel;
@@ -17,10 +15,11 @@ use super::DagModel;
 impl Widget for &mut DagModel {
     fn render(self, area: Rect, buf: &mut ratatui::buffer::Buffer) {
         let content_area = self.table.render_with_filter(area, buf);
+        let t = theme();
 
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
-        let header = Row::new(header_row).style(TABLE_HEADER_STYLE);
+        let header = Row::new(header_row).style(t.table_header_style);
         let rows = self
             .table
             .filtered
@@ -30,9 +29,9 @@ impl Widget for &mut DagModel {
             .map(|(idx, item)| {
                 Row::new(vec![
                     if item.is_paused {
-                        Line::from(Span::styled("𖣘", Style::default().fg(TEXT_PRIMARY)))
+                        Line::from(Span::styled("𖣘", Style::default().fg(t.text_primary)))
                     } else {
-                        Line::from(Span::styled("𖣘", Style::default().fg(DAG_ACTIVE)))
+                        Line::from(Span::styled("𖣘", Style::default().fg(t.dag_active)))
                     },
                     Line::from(Span::styled(
                         &*item.dag_id,
@@ -84,7 +83,7 @@ impl Widget for &mut DagModel {
             let block = Block::default()
                 .border_type(BorderType::Rounded)
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
-                .border_style(BORDER_STYLE)
+                .border_style(t.border_style)
                 .title(" Press <?> to see available commands ");
             if let Some(title) = self.table.status_title() {
                 block.title_bottom(title)
@@ -92,7 +91,7 @@ impl Widget for &mut DagModel {
                 block
             }
         })
-        .row_highlight_style(SELECTED_ROW_STYLE);
+        .row_highlight_style(t.selected_row_style);
 
         StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
 

@@ -9,20 +9,22 @@ use ratatui::{
     },
 };
 
-use crate::ui::theme::{ACCENT, BORDER_STYLE, DEFAULT_STYLE, TITLE_STYLE};
+use crate::ui::theme::theme;
 
 use super::LogModel;
 
 impl Widget for &mut LogModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
+
         if self.all.is_empty() {
             Paragraph::new("No logs available")
-                .style(DEFAULT_STYLE)
+                .style(t.default_style)
                 .block(
                     Block::default()
                         .border_type(BorderType::Rounded)
                         .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
-                        .border_style(BORDER_STYLE),
+                        .border_style(t.border_style),
                 )
                 .render(area, buffer);
             return;
@@ -37,11 +39,11 @@ impl Widget for &mut LogModel {
                 Block::default()
                     .border_type(BorderType::Rounded)
                     .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
-                    .border_style(BORDER_STYLE),
+                    .border_style(t.border_style),
             )
             .select(self.current % self.all.len())
-            .highlight_style(Style::default().fg(ACCENT).add_modifier(Modifier::BOLD))
-            .style(DEFAULT_STYLE);
+            .highlight_style(Style::default().fg(t.accent).add_modifier(Modifier::BOLD))
+            .style(t.default_style);
 
         // Render the tabs
         tabs.render(area, buffer);
@@ -73,11 +75,11 @@ impl Widget for &mut LogModel {
                         } else {
                             " [F]ollow: OFF - press G to resume "
                         })
-                        .border_style(BORDER_STYLE)
-                        .title_style(TITLE_STYLE),
+                        .border_style(t.border_style)
+                        .title_style(t.title_style),
                 )
                 .wrap(Wrap { trim: true })
-                .style(DEFAULT_STYLE)
+                .style(t.default_style)
                 .scroll((scroll_pos as u16, 0));
 
             // Render the selected log's content

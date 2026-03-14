@@ -89,6 +89,9 @@ impl RunCommand {
             ));
         }
 
+        // Initialize theme before entering raw mode (detection requires terminal queries)
+        crate::ui::theme::init_theme(config.theme);
+
         // setup terminal (includes panic hooks) and run app
         let mut terminal = ratatui::init();
         std::io::stdout().execute(EnableFocusChange)?;

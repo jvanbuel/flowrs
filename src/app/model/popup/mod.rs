@@ -10,7 +10,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph, Widget},
 };
 
-use crate::ui::theme::{BORDER_DEFAULT, BORDER_SELECTED, BUTTON_DEFAULT, BUTTON_SELECTED};
+use crate::ui::theme::theme;
 
 use self::{commands_help::CommandPopUp, error::ErrorPopup};
 use super::KeyResult;
@@ -141,10 +141,11 @@ impl SelectedButton {
 
 /// Create a themed button with consistent styling across popups.
 pub fn themed_button(text: &str, selected: bool) -> Paragraph<'_> {
+    let t = theme();
     let (style, border_color) = if selected {
-        (BUTTON_SELECTED, BORDER_SELECTED)
+        (t.button_selected, t.border_selected)
     } else {
-        (BUTTON_DEFAULT, BORDER_DEFAULT)
+        (t.button_default, t.border_default)
     };
 
     Paragraph::new(text).style(style).centered().block(

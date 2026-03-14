@@ -6,11 +6,13 @@
 pub mod auth;
 pub mod paths;
 pub mod server;
+pub mod theme;
 
 // Re-export all public types at crate root for ergonomic imports
 pub use auth::{AirflowAuth, BasicAuth, TokenSource};
 pub use paths::ConfigPaths;
 pub use server::{AirflowConfig, AirflowVersion, GccConfig, ManagedService};
+pub use theme::ThemeMode;
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -38,6 +40,9 @@ pub struct FlowrsConfig {
     /// data from the Airflow API. Minimum 500ms, default 2000ms.
     #[serde(default = "default_poll_interval_ms")]
     pub poll_interval_ms: u64,
+    /// Theme mode: "auto" (detect terminal), "dark", or "light".
+    #[serde(default, skip_serializing_if = "ThemeMode::is_auto")]
+    pub theme: ThemeMode,
     #[serde(default)]
     pub gcc: Option<GccConfig>,
     #[serde(skip_serializing)]
@@ -58,6 +63,7 @@ impl FlowrsConfig {
             managed_services: Vec::new(),
             active_server: None,
             poll_interval_ms: default_poll_interval_ms(),
+            theme: ThemeMode::default(),
             gcc: None,
             path: Some(config_paths.write_path.clone()),
         }
@@ -205,6 +211,7 @@ password = "airflow"
             managed_services: vec![ManagedService::Conveyor],
             active_server: None,
             poll_interval_ms: default_poll_interval_ms(),
+            theme: ThemeMode::default(),
             gcc: None,
             path: None,
         };
