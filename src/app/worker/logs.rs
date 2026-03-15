@@ -26,8 +26,9 @@ pub async fn handle_update_task_logs(
         join_all((1..=task_try).map(|i| client.get_task_logs(dag_id, dag_run_id, task_id, i)))
             .await;
 
-    let mut app = app.lock().unwrap();
+    // Collect logs and errors outside the lock
     let mut collected_logs = Vec::new();
+    let mut errors = Vec::new();
     for log in logs {
         match log {
             Ok(log) => {
@@ -36,9 +37,15 @@ pub async fn handle_update_task_logs(
             }
             Err(e) => {
                 debug!("Error getting logs: {e}");
-                app.logs.error_popup = Some(ErrorPopup::from_strings(vec![e.to_string()]));
+                errors.push(e.to_string());
             }
         }
+    }
+
+    let mut app = app.lock().unwrap();
+
+    if !errors.is_empty() {
+        app.logs.error_popup = Some(ErrorPopup::from_strings(errors));
     }
 
     // Store logs in the originating environment, not the active one

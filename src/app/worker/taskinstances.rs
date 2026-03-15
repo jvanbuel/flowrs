@@ -5,6 +5,7 @@ use log::debug;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::taskinstances::popup::mark::MarkState;
+use crate::app::model::taskinstances::TaskInstanceModel;
 use crate::app::state::App;
 
 /// Handle updating the list of task instances for a specific DAG run.
@@ -22,7 +23,9 @@ pub async fn handle_update_task_instances(
     env_name: &str,
 ) {
     let task_instances = client.list_task_instances(dag_id, dag_run_id).await;
-    let retried_task_ids = {
+
+    // Extract data needed for gantt construction under a short lock, then build outside
+    let (task_instance_list, existing_gantt) = {
         let mut app = app.lock().unwrap();
         match task_instances {
             Ok(task_instances) => {
@@ -34,8 +37,10 @@ pub async fn handle_update_task_instances(
                 if app.environment_state.active_environment.as_deref() == Some(env_name) {
                     app.sync_panel(&crate::app::state::Panel::TaskInstance);
                 }
-                // Rebuild Gantt data from current task instances and collect retried task IDs
-                app.task_instances.rebuild_gantt()
+                // Snapshot data needed for gantt construction
+                let all = app.task_instances.table.all.clone();
+                let gantt = app.task_instances.gantt_data.clone();
+                (all, gantt)
             }
             Err(e) => {
                 log::error!("Error getting task instances: {e:?}");
@@ -44,6 +49,16 @@ pub async fn handle_update_task_instances(
             }
         }
     };
+
+    // Build gantt data outside the lock
+    let (new_gantt, retried_task_ids) =
+        TaskInstanceModel::build_gantt(&task_instance_list, &existing_gantt);
+
+    // Swap in the new gantt data under a brief lock
+    {
+        let mut app = app.lock().unwrap();
+        app.task_instances.gantt_data = new_gantt;
+    }
 
     // Fetch detailed tries for tasks that have retried (try_number > 1)
     if !retried_task_ids.is_empty() {
