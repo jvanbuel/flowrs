@@ -2,8 +2,6 @@ pub mod commands;
 pub mod popup;
 mod render;
 
-use std::collections::HashSet;
-
 use commands::TASK_COMMAND_POP_UP;
 use crossterm::event::KeyCode;
 use log::debug;
@@ -75,45 +73,6 @@ impl TaskInstanceModel {
         if let Some(graph) = &self.task_graph {
             sort_task_instances(&mut self.table.all, graph);
         }
-    }
-
-    /// Rebuild Gantt data from the current task instance list.
-    /// Returns task IDs that have retries (`try_number` > 1) for fetching detailed tries.
-    pub fn rebuild_gantt(&mut self) -> Vec<TaskId> {
-        let (new_gantt, retried) = Self::build_gantt(&self.table.all, &self.gantt_data);
-        self.gantt_data = new_gantt;
-        retried
-    }
-
-    /// Build Gantt data from task instances without requiring `&mut self`.
-    /// This allows building the gantt outside a lock and storing it later.
-    /// Returns the new gantt data and task IDs that have retries.
-    pub fn build_gantt(
-        task_instances: &[TaskInstance],
-        existing_gantt: &GanttData,
-    ) -> (GanttData, Vec<TaskId>) {
-        let mut new_gantt = GanttData::from_task_instances(task_instances);
-
-        let mut seen = HashSet::new();
-        let retried: Vec<TaskId> = task_instances
-            .iter()
-            .filter(|ti| ti.try_number > 1 && seen.insert(ti.task_id.clone()))
-            .map(|ti| ti.task_id.clone())
-            .collect();
-
-        for task_id in &retried {
-            if let Some(cached_tries) = existing_gantt.task_tries.get(task_id) {
-                let new_tries = new_gantt.task_tries.get(task_id);
-                if cached_tries.len() > new_tries.map_or(0, Vec::len) {
-                    new_gantt
-                        .task_tries
-                        .insert(task_id.clone(), cached_tries.clone());
-                }
-            }
-        }
-
-        new_gantt.recompute_window();
-        (new_gantt, retried)
     }
 
     /// Mark a task instance with a new status (optimistic update)
