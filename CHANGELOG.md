@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.0...flowrs-tui-v0.12.1) - 2026-03-15
+
+### Other
+
+- reduce mutex lock hold times in worker handlers ([#618](https://github.com/jvanbuel/flowrs/pull/618))
+
 ## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.11.0...flowrs-tui-v0.12.0) - 2026-03-14
 
 ### Added
