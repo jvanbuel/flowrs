@@ -5,6 +5,7 @@ use log::debug;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::taskinstances::popup::mark::MarkState;
+use crate::app::model::taskinstances::TaskInstanceModel;
 use crate::app::state::App;
 
 /// Handle updating the list of task instances for a specific DAG run.
@@ -22,27 +23,36 @@ pub async fn handle_update_task_instances(
     env_name: &str,
 ) {
     let task_instances = client.list_task_instances(dag_id, dag_run_id).await;
+
+    let task_instances = match task_instances {
+        Ok(task_instances) => task_instances.task_instances,
+        Err(e) => {
+            log::error!("Error getting task instances: {e:?}");
+            let mut app = app.lock().unwrap();
+            app.task_instances.popup.show_error(vec![e.to_string()]);
+            return;
+        }
+    };
+
+    // Snapshot existing gantt data for cache merging, then build new gantt outside the lock
+    let existing_gantt = {
+        let app = app.lock().unwrap();
+        app.task_instances.gantt_data.clone()
+    };
+    let (new_gantt, retried_task_ids) =
+        TaskInstanceModel::build_gantt(&task_instances, &existing_gantt);
+
+    // Store everything atomically under a single lock
     let retried_task_ids = {
         let mut app = app.lock().unwrap();
-        match task_instances {
-            Ok(task_instances) => {
-                // Replace task instances in the originating environment, not the active one
-                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                    env.replace_task_instances(dag_id, dag_run_id, task_instances.task_instances);
-                }
-                // Only sync panel data if this environment is still active
-                if app.environment_state.active_environment.as_deref() == Some(env_name) {
-                    app.sync_panel(&crate::app::state::Panel::TaskInstance);
-                }
-                // Rebuild Gantt data from current task instances and collect retried task IDs
-                app.task_instances.rebuild_gantt()
-            }
-            Err(e) => {
-                log::error!("Error getting task instances: {e:?}");
-                app.task_instances.popup.show_error(vec![e.to_string()]);
-                return;
-            }
+        if let Some(env) = app.environment_state.environments.get_mut(env_name) {
+            env.replace_task_instances(dag_id, dag_run_id, task_instances);
         }
+        if app.environment_state.active_environment.as_deref() == Some(env_name) {
+            app.sync_panel(&crate::app::state::Panel::TaskInstance);
+        }
+        app.task_instances.gantt_data = new_gantt;
+        retried_task_ids
     };
 
     // Fetch detailed tries for tasks that have retried (try_number > 1)
