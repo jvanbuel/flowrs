@@ -75,36 +75,32 @@ pub async fn handle_update_dags_and_stats(
             client.get_dag_stats(refs).await
         });
 
-        {
-            let mut app = app.lock().unwrap();
-            match dag_list_result {
-                Ok(dag_list) => {
-                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                        env.replace_dags(dag_list.dags);
-                    }
+        let mut app = app.lock().unwrap();
+
+        match dag_list_result {
+            Ok(dag_list) => {
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
+                    env.replace_dags(dag_list.dags);
                 }
-                Err(e) => {
-                    app.dags.popup.show_error(vec![e.to_string()]);
-                }
+            }
+            Err(e) => {
+                app.dags.popup.show_error(vec![e.to_string()]);
             }
         }
 
-        {
-            let mut app = app.lock().unwrap();
-            match dag_stats_result {
-                Ok(dag_stats) => {
-                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                        for dag_stats in dag_stats.dags {
-                            env.update_dag_stats(
-                                &DagId::from(dag_stats.dag_id.clone()),
-                                dag_stats.stats,
-                            );
-                        }
+        match dag_stats_result {
+            Ok(dag_stats) => {
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
+                    for dag_stats in dag_stats.dags {
+                        env.update_dag_stats(
+                            &DagId::from(dag_stats.dag_id.clone()),
+                            dag_stats.stats,
+                        );
                     }
                 }
-                Err(e) => {
-                    log::error!("Failed to fetch dag stats: {e}");
-                }
+            }
+            Err(e) => {
+                log::error!("Failed to fetch dag stats: {e}");
             }
         }
     }
