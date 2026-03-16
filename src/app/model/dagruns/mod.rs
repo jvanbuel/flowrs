@@ -29,6 +29,8 @@ pub struct DagRunModel {
     pub table: FilterableTable<DagRun>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagRunPopUp>,
+    /// Cached DAG params for the trigger popup
+    pub dag_params: Option<serde_json::Value>,
     ticks: u32,
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
@@ -40,6 +42,7 @@ impl Default for DagRunModel {
             dag_code: None,
             table: FilterableTable::new(),
             popup: Popup::None,
+            dag_params: None,
             ticks: 0,
             poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
@@ -183,6 +186,7 @@ impl DagRunModel {
                     self.popup
                         .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
                             dag_id.clone(),
+                            self.dag_params.as_ref(),
                         )));
                 }
                 KeyResult::Consumed

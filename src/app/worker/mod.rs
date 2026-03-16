@@ -67,6 +67,7 @@ pub enum WorkerMessage {
     },
     TriggerDagRun {
         dag_id: DagId,
+        conf: Option<serde_json::Value>,
     },
     UpdateTasks {
         dag_id: DagId,
@@ -221,8 +222,8 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         } => {
             dagruns::handle_mark_dag_run(&app, &client, &dag_id, &dag_run_id, status).await;
         }
-        WorkerMessage::TriggerDagRun { dag_id } => {
-            dagruns::handle_trigger_dag_run(&app, &client, &dag_id, &env_name).await;
+        WorkerMessage::TriggerDagRun { dag_id, conf } => {
+            dagruns::handle_trigger_dag_run(&app, &client, &dag_id, &env_name, conf).await;
         }
         // Task instance operations
         WorkerMessage::UpdateTaskInstances {
