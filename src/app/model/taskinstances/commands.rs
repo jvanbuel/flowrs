@@ -24,6 +24,11 @@ pub static TASK_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
             key_binding: "/",
             description: "Filter task instances",
         },
+        Command {
+            name: "DAG Graph",
+            key_binding: "d",
+            description: "Show DAG dependency graph",
+        },
     ];
 
     commands.append(&mut DefaultCommands::new().0);

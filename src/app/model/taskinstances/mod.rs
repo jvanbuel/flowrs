@@ -16,6 +16,7 @@ use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::airflow::model::common::OpenItem;
 use crate::app::worker::WorkerMessage;
 use popup::clear::ClearTaskInstancePopup;
+use popup::graph::DagGraphPopup;
 use popup::mark::MarkTaskInstancePopup;
 use popup::TaskInstancePopUp;
 
@@ -105,6 +106,7 @@ impl TaskInstanceModel {
         let (key_event, messages) = match custom_popup {
             TaskInstancePopUp::Clear(p) => p.update(event, ctx),
             TaskInstancePopUp::Mark(p) => p.update(event, ctx),
+            TaskInstancePopUp::Graph(p) => p.update(event, ctx),
         };
         debug!("Popup messages: {messages:?}");
 
@@ -164,6 +166,15 @@ impl TaskInstanceModel {
                 } else {
                     KeyResult::Consumed
                 }
+            }
+            KeyCode::Char('d') => {
+                if let Some(graph) = &self.task_graph {
+                    if !graph.is_empty() {
+                        let popup = DagGraphPopup::new(graph, &self.table.filtered.items);
+                        self.popup.show_custom(TaskInstancePopUp::Graph(popup));
+                    }
+                }
+                KeyResult::Consumed
             }
             KeyCode::Char('o') => {
                 if let Some(task_instance) = self.table.current() {

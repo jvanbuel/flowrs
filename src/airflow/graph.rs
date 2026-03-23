@@ -8,6 +8,8 @@ use super::model::common::{Task, TaskInstance};
 #[derive(Default, Debug, Clone)]
 pub struct TaskGraph {
     task_levels: HashMap<String, usize>,
+    downstream: HashMap<String, Vec<String>>,
+    max_level: usize,
 }
 
 impl TaskGraph {
@@ -75,13 +77,62 @@ impl TaskGraph {
             level += 1;
         }
 
-        Self { task_levels }
+        let max_level = task_levels.values().copied().max().unwrap_or(0);
+
+        // Store downstream edges (only for tasks that exist in the graph)
+        let mut downstream: HashMap<String, Vec<String>> = HashMap::new();
+        for task in tasks {
+            let edges: Vec<String> = task
+                .downstream_task_ids
+                .iter()
+                .filter(|id| task_levels.contains_key(id.as_str()))
+                .cloned()
+                .collect();
+            downstream.insert(task.task_id.clone(), edges);
+        }
+
+        Self {
+            task_levels,
+            downstream,
+            max_level,
+        }
     }
 
     /// Get the topological level of a task. Returns None if task not in graph.
     #[must_use]
     pub fn level(&self, task_id: &str) -> Option<usize> {
         self.task_levels.get(task_id).copied()
+    }
+
+    /// Get the maximum topological level in the graph.
+    #[must_use]
+    pub fn max_level(&self) -> usize {
+        self.max_level
+    }
+
+    /// Get downstream task IDs for a given task.
+    #[must_use]
+    pub fn downstream(&self, task_id: &str) -> &[String] {
+        self.downstream.get(task_id).map_or(&[], |v| v.as_slice())
+    }
+
+    /// Get all task IDs at a given level, sorted alphabetically.
+    #[must_use]
+    pub fn tasks_at_level(&self, level: usize) -> Vec<String> {
+        let mut tasks: Vec<String> = self
+            .task_levels
+            .iter()
+            .filter(|(_, &l)| l == level)
+            .map(|(id, _)| id.clone())
+            .collect();
+        tasks.sort();
+        tasks
+    }
+
+    /// Returns true if the graph has any tasks.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.task_levels.is_empty()
     }
 }
 
