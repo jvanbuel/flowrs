@@ -129,7 +129,7 @@ impl TaskGraph {
         tasks
     }
 
-    /// Returns true if the graph has any tasks.
+    /// Returns true if the graph contains no tasks.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.task_levels.is_empty()
