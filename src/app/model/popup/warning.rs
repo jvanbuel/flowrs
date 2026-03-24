@@ -39,7 +39,7 @@ impl Widget for &WarningPopup {
             )
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         Clear.render(popup_area, buf);
 

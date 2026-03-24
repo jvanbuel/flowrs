@@ -40,6 +40,8 @@ pub struct DagGraphPopup {
     pub scroll_y: u16,
     /// The content height of the graph in rows (used for popup sizing).
     pub content_height: u16,
+    /// The content width of the graph in columns (used for scroll clamping).
+    pub content_width: u16,
 }
 
 impl DagGraphPopup {
@@ -81,11 +83,15 @@ impl DagGraphPopup {
             x += w + HORIZONTAL_GAP;
         }
 
-        // Max tasks at any level (determines canvas height)
+        // Total content dimensions
         let max_tasks_at_level = levels.iter().map(Vec::len).max().unwrap_or(0) as u16;
         let content_height = 2 * MARGIN
             + max_tasks_at_level * NODE_HEIGHT
             + max_tasks_at_level.saturating_sub(1) * VERTICAL_SPACING;
+        let content_width = col_x
+            .last()
+            .zip(col_widths.last())
+            .map_or(0, |(&cx, &cw)| cx + cw + MARGIN);
 
         // Build nodes with positions, centering shorter columns vertically
         let mut nodes: Vec<GraphNode> = Vec::new();
@@ -134,6 +140,7 @@ impl DagGraphPopup {
             scroll_x: 0,
             scroll_y: 0,
             content_height,
+            content_width,
         }
     }
 
@@ -153,13 +160,13 @@ impl DagGraphPopup {
                     self.scroll_x = self.scroll_x.saturating_sub(SCROLL_STEP);
                 }
                 KeyCode::Right | KeyCode::Char('l') => {
-                    self.scroll_x += SCROLL_STEP;
+                    self.scroll_x = (self.scroll_x + SCROLL_STEP).min(self.content_width);
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
                     self.scroll_y = self.scroll_y.saturating_sub(SCROLL_STEP);
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    self.scroll_y += SCROLL_STEP;
+                    self.scroll_y = (self.scroll_y + SCROLL_STEP).min(self.content_height);
                 }
                 _ => {}
             }

@@ -21,7 +21,7 @@ impl Widget for &CommandPopUp<'_> {
             .title_style(t.title_style)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         Clear.render(popup_area, buf);
 

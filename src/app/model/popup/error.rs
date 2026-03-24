@@ -45,7 +45,7 @@ impl Widget for &ErrorPopup {
             .title_style(Style::default().fg(error_color).add_modifier(Modifier::BOLD))
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         Clear.render(popup_area, buf);
 
