@@ -20,7 +20,7 @@ impl DagCodeView {
             .borders(Borders::ALL)
             .title(" DAG Code ")
             .border_style(t.border_style)
-            .style(t.surface_style)
+            .style(t.default_style)
             .title_style(t.title_style);
 
         #[allow(clippy::cast_possible_truncation)]
