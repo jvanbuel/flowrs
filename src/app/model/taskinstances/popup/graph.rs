@@ -42,6 +42,8 @@ pub struct DagGraphPopup {
     pub content_height: u16,
     /// The content width of the graph in columns (used for scroll clamping).
     pub content_width: u16,
+    /// Last known viewport dimensions (set during render, used for scroll clamping).
+    viewport: (u16, u16),
 }
 
 impl DagGraphPopup {
@@ -141,7 +143,24 @@ impl DagGraphPopup {
             scroll_y: 0,
             content_height,
             content_width,
+            viewport: (0, 0),
         }
+    }
+
+    /// Store the viewport dimensions from the last render pass so scroll
+    /// clamping in [`update`] can prevent scrolling past the content.
+    pub fn set_viewport(&mut self, width: u16, height: u16) {
+        self.viewport = (width, height);
+    }
+
+    /// Maximum horizontal scroll offset that keeps the last column visible.
+    fn max_scroll_x(&self) -> u16 {
+        self.content_width.saturating_sub(self.viewport.0)
+    }
+
+    /// Maximum vertical scroll offset that keeps the last row visible.
+    fn max_scroll_y(&self) -> u16 {
+        self.content_height.saturating_sub(self.viewport.1)
     }
 
     /// Handle keyboard events (scrolling and dismiss).
@@ -160,13 +179,15 @@ impl DagGraphPopup {
                     self.scroll_x = self.scroll_x.saturating_sub(SCROLL_STEP);
                 }
                 KeyCode::Right | KeyCode::Char('l') => {
-                    self.scroll_x = (self.scroll_x + SCROLL_STEP).min(self.content_width);
+                    self.scroll_x =
+                        (self.scroll_x + SCROLL_STEP).min(self.max_scroll_x());
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
                     self.scroll_y = self.scroll_y.saturating_sub(SCROLL_STEP);
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    self.scroll_y = (self.scroll_y + SCROLL_STEP).min(self.content_height);
+                    self.scroll_y =
+                        (self.scroll_y + SCROLL_STEP).min(self.max_scroll_y());
                 }
                 _ => {}
             }

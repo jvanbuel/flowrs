@@ -183,11 +183,12 @@ impl Widget for &mut DagGraphPopup {
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         Clear.render(popup, buffer);
         let inner = block.inner(popup);
         block.render(popup, buffer);
+        self.set_viewport(inner.width, inner.height);
 
         let edge_style = Style::default().fg(t.border_default);
 
