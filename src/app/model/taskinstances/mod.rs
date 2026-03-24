@@ -170,7 +170,7 @@ impl TaskInstanceModel {
             KeyCode::Char('d') => {
                 if let Some(graph) = &self.task_graph {
                     if !graph.is_empty() {
-                        let popup = DagGraphPopup::new(graph, &self.table.filtered.items);
+                        let popup = DagGraphPopup::new(graph, &self.table.all);
                         self.popup.show_custom(TaskInstancePopUp::Graph(popup));
                     }
                 }
