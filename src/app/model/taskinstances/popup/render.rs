@@ -4,6 +4,7 @@ use ratatui::{
     style::Style,
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
 };
+use std::cmp::min;
 
 use crate::{
     app::model::popup::{popup_area, themed_button},
@@ -162,7 +163,19 @@ impl Widget for &mut DagGraphPopup {
     #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     fn render(self, area: Rect, buffer: &mut Buffer) {
         let t = theme();
-        let popup = popup_area(area, 90, 85);
+        // +2 for block borders, +1 for title bottom line
+        let needed_height = self.content_height + 3;
+        let max_height = area.height * 85 / 100;
+        let popup_height = min(needed_height, max_height);
+        let popup = {
+            let vertical =
+                Layout::vertical([Constraint::Length(popup_height)]).flex(Flex::Center);
+            let horizontal =
+                Layout::horizontal([Constraint::Percentage(90)]).flex(Flex::Center);
+            let [area] = vertical.areas(area);
+            let [area] = horizontal.areas(area);
+            area
+        };
 
         let block = Block::default()
             .title(" DAG Graph ")

@@ -38,6 +38,8 @@ pub struct DagGraphPopup {
     pub edges: Vec<(usize, usize)>,
     pub scroll_x: u16,
     pub scroll_y: u16,
+    /// The content height of the graph in rows (used for popup sizing).
+    pub content_height: u16,
 }
 
 impl DagGraphPopup {
@@ -81,6 +83,9 @@ impl DagGraphPopup {
 
         // Max tasks at any level (determines canvas height)
         let max_tasks_at_level = levels.iter().map(Vec::len).max().unwrap_or(0) as u16;
+        let content_height = 2 * MARGIN
+            + max_tasks_at_level * NODE_HEIGHT
+            + max_tasks_at_level.saturating_sub(1) * VERTICAL_SPACING;
 
         // Build nodes with positions, centering shorter columns vertically
         let mut nodes: Vec<GraphNode> = Vec::new();
@@ -128,6 +133,7 @@ impl DagGraphPopup {
             edges,
             scroll_x: 0,
             scroll_y: 0,
+            content_height,
         }
     }
 

@@ -1,12 +1,13 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
 
 use super::popup_area;
+use crate::ui::theme::theme;
 
 pub struct WarningPopup {
     pub warnings: Vec<String>,
@@ -16,10 +17,6 @@ impl WarningPopup {
     pub const fn new(warnings: Vec<String>) -> Self {
         Self { warnings }
     }
-
-    pub const fn has_warnings(&self) -> bool {
-        !self.warnings.is_empty()
-    }
 }
 
 impl Widget for &WarningPopup {
@@ -28,17 +25,21 @@ impl Widget for &WarningPopup {
             return;
         }
 
+        let t = theme();
+        let warning_color = t.state_up_for_retry;
+
         let popup_area = popup_area(area, 80, 50);
         let popup = Block::default()
             .border_type(BorderType::Rounded)
             .title("Warning - Press <Esc> or <q> to close")
             .title_style(
                 Style::default()
-                    .fg(Color::Yellow)
+                    .fg(warning_color)
                     .add_modifier(Modifier::BOLD),
             )
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Yellow));
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         Clear.render(popup_area, buf);
 
@@ -52,16 +53,15 @@ impl Widget for &WarningPopup {
                         Span::styled(
                             format!("Warning {}: ", idx + 1),
                             Style::default()
-                                .fg(Color::Yellow)
+                                .fg(warning_color)
                                 .add_modifier(Modifier::BOLD),
                         ),
-                        Span::styled(line, Style::default().fg(Color::White)),
+                        Span::styled(line, Style::default().fg(t.text_primary)),
                     ]));
                 } else {
-                    // Subsequent lines are just white text
                     text.push_line(Line::from(Span::styled(
                         line,
-                        Style::default().fg(Color::White),
+                        Style::default().fg(t.text_primary),
                     )));
                 }
             }

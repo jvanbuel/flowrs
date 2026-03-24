@@ -13,11 +13,15 @@ use super::CommandPopUp;
 
 impl Widget for &CommandPopUp<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let t = theme();
         let popup_area = popup_area(area, 80, 80);
         let popup = Block::default()
             .border_type(BorderType::Rounded)
             .title(self.title.as_str())
-            .borders(Borders::ALL);
+            .title_style(t.title_style)
+            .borders(Borders::ALL)
+            .border_style(t.border_style)
+            .style(t.surface_style);
 
         Clear.render(popup_area, buf);
 
