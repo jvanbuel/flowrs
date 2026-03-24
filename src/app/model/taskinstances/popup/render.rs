@@ -177,7 +177,7 @@ impl Widget for &mut DagGraphPopup {
 
         let block = Block::default()
             .title(" DAG Graph ")
-            .title_bottom(" [←↑↓→/hjkl] scroll  [Esc] close ")
+            .title_bottom(" [←↑↓→/hjkl] scroll  [Esc/q] close ")
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
