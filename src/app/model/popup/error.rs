@@ -42,7 +42,11 @@ impl Widget for &ErrorPopup {
         let popup = Block::default()
             .border_type(BorderType::Rounded)
             .title("Errors - Press <Esc> or <q> to close")
-            .title_style(Style::default().fg(error_color).add_modifier(Modifier::BOLD))
+            .title_style(
+                Style::default()
+                    .fg(error_color)
+                    .add_modifier(Modifier::BOLD),
+            )
             .borders(Borders::ALL)
             .border_style(t.border_style)
             .style(t.default_style);
@@ -60,10 +64,7 @@ impl Widget for &ErrorPopup {
                             .fg(error_color)
                             .add_modifier(Modifier::BOLD),
                     ),
-                    Span::styled(
-                        first_line.to_string(),
-                        Style::default().fg(t.text_primary),
-                    ),
+                    Span::styled(first_line.to_string(), Style::default().fg(t.text_primary)),
                 ]));
             }
             for line in lines {

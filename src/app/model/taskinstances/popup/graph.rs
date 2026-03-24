@@ -179,15 +179,13 @@ impl DagGraphPopup {
                     self.scroll_x = self.scroll_x.saturating_sub(SCROLL_STEP);
                 }
                 KeyCode::Right | KeyCode::Char('l') => {
-                    self.scroll_x =
-                        (self.scroll_x + SCROLL_STEP).min(self.max_scroll_x());
+                    self.scroll_x = (self.scroll_x + SCROLL_STEP).min(self.max_scroll_x());
                 }
                 KeyCode::Up | KeyCode::Char('k') => {
                     self.scroll_y = self.scroll_y.saturating_sub(SCROLL_STEP);
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
-                    self.scroll_y =
-                        (self.scroll_y + SCROLL_STEP).min(self.max_scroll_y());
+                    self.scroll_y = (self.scroll_y + SCROLL_STEP).min(self.max_scroll_y());
                 }
                 _ => {}
             }

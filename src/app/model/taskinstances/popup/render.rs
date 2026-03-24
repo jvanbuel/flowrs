@@ -168,10 +168,8 @@ impl Widget for &mut DagGraphPopup {
         let max_height = area.height * 85 / 100;
         let popup_height = min(needed_height, max_height);
         let popup = {
-            let vertical =
-                Layout::vertical([Constraint::Length(popup_height)]).flex(Flex::Center);
-            let horizontal =
-                Layout::horizontal([Constraint::Percentage(90)]).flex(Flex::Center);
+            let vertical = Layout::vertical([Constraint::Length(popup_height)]).flex(Flex::Center);
+            let horizontal = Layout::horizontal([Constraint::Percentage(90)]).flex(Flex::Center);
             let [area] = vertical.areas(area);
             let [area] = horizontal.areas(area);
             area
