@@ -19,12 +19,12 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
 strum = { version = "0.28.0", features = ["derive"] }
 time = { version = "0.3.47", features = ["serde", "serde-human-readable", "parsing", "macros"] }
-tokio = { version = "1.49.0", features = ["rt-multi-thread", "sync", "macros"] }
-toml = "1.0.6"
+tokio = { version = "1.51.0", features = ["rt-multi-thread", "sync", "macros"] }
+toml = "1.1.2"
 
 [package]
 name = "flowrs-tui"
-version = "0.12.1"
+version = "0.12.2"
 edition = "2021"
 rust-version = "1.87.0"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"

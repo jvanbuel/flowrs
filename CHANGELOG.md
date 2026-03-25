@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.1...flowrs-tui-v0.12.2) - 2026-03-22
+
+### Other
+
+- update Cargo.lock dependencies
+
 ## [0.12.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.0...flowrs-tui-v0.12.1) - 2026-03-15
 
 ### Other
