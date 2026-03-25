@@ -1,8 +1,10 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
+    style::Style,
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
 };
+use std::cmp::min;
 
 use crate::{
     app::model::popup::{popup_area, themed_button},
@@ -10,6 +12,7 @@ use crate::{
 };
 
 use super::clear::ClearTaskInstancePopup;
+use super::graph::DagGraphPopup;
 use super::mark::{MarkState, MarkTaskInstancePopup};
 
 impl Widget for &mut ClearTaskInstancePopup {
@@ -22,7 +25,7 @@ impl Widget for &mut ClearTaskInstancePopup {
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         // Use inner area for content layout to avoid overlapping the border
         let inner = popup_block.inner(area);
@@ -82,7 +85,7 @@ impl Widget for &mut MarkTaskInstancePopup {
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         let text = Paragraph::new("Mark status as")
             .style(t.default_style)
@@ -153,5 +156,131 @@ impl Widget for &mut MarkTaskInstancePopup {
         success_btn.render(success, buffer);
         failed_btn.render(failed, buffer);
         skipped_btn.render(skipped, buffer);
+    }
+}
+
+impl Widget for &mut DagGraphPopup {
+    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
+        // +2 for block borders, +1 for title bottom line
+        let needed_height = self.content_height + 3;
+        let max_height = area.height * 85 / 100;
+        let popup_height = min(needed_height, max_height);
+        let popup = {
+            let vertical = Layout::vertical([Constraint::Length(popup_height)]).flex(Flex::Center);
+            let horizontal = Layout::horizontal([Constraint::Percentage(90)]).flex(Flex::Center);
+            let [area] = vertical.areas(area);
+            let [area] = horizontal.areas(area);
+            area
+        };
+
+        let block = Block::default()
+            .title(" DAG Graph ")
+            .title_bottom(" [←↑↓→/hjkl] scroll  [Esc/q] close ")
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .border_style(t.border_style)
+            .style(t.default_style);
+
+        Clear.render(popup, buffer);
+        let inner = block.inner(popup);
+        block.render(popup, buffer);
+        self.set_viewport(inner.width, inner.height);
+
+        let edge_style = Style::default().fg(t.border_default);
+
+        // Draw edges first (behind nodes)
+        for &(src_idx, tgt_idx) in &self.edges {
+            let src = &self.nodes[src_idx];
+            let tgt = &self.nodes[tgt_idx];
+
+            // Connection points: right-center of source, left-center of target
+            let src_x = i32::from(src.x) + i32::from(src.width);
+            let src_y = i32::from(src.y) + 1;
+            let tgt_x = i32::from(tgt.x);
+            let tgt_y = i32::from(tgt.y) + 1;
+
+            if src_y == tgt_y {
+                // Same row: straight horizontal line with arrow
+                for x in src_x..tgt_x {
+                    let sym = if x == tgt_x - 1 { "▶" } else { "─" };
+                    self.set_cell(buffer, inner, x, src_y, sym, edge_style);
+                }
+            } else {
+                // Route: horizontal → vertical → horizontal
+                let route_x = src_x + (tgt_x - src_x) / 2;
+
+                // Horizontal from source to routing column
+                for x in src_x..route_x {
+                    self.set_cell(buffer, inner, x, src_y, "─", edge_style);
+                }
+
+                if tgt_y > src_y {
+                    // Going down
+                    self.set_cell(buffer, inner, route_x, src_y, "╮", edge_style);
+                    for y in (src_y + 1)..tgt_y {
+                        self.set_cell(buffer, inner, route_x, y, "│", edge_style);
+                    }
+                    self.set_cell(buffer, inner, route_x, tgt_y, "╰", edge_style);
+                } else {
+                    // Going up
+                    self.set_cell(buffer, inner, route_x, src_y, "╯", edge_style);
+                    for y in (tgt_y + 1)..src_y {
+                        self.set_cell(buffer, inner, route_x, y, "│", edge_style);
+                    }
+                    self.set_cell(buffer, inner, route_x, tgt_y, "╭", edge_style);
+                }
+
+                // Horizontal from routing column to target with arrow
+                for x in (route_x + 1)..tgt_x {
+                    let sym = if x == tgt_x - 1 { "▶" } else { "─" };
+                    self.set_cell(buffer, inner, x, tgt_y, sym, edge_style);
+                }
+            }
+        }
+
+        // Draw nodes (on top of edges)
+        let text_style = t.default_style;
+        for node in &self.nodes {
+            let border_style = Style::default().fg(node.border_color);
+            let nx = i32::from(node.x);
+            let ny = i32::from(node.y);
+            let nw = i32::from(node.width);
+
+            // Top border: ╭───╮
+            self.set_cell(buffer, inner, nx, ny, "╭", border_style);
+            for dx in 1..nw - 1 {
+                self.set_cell(buffer, inner, nx + dx, ny, "─", border_style);
+            }
+            self.set_cell(buffer, inner, nx + nw - 1, ny, "╮", border_style);
+
+            // Content row: │ name │
+            self.set_cell(buffer, inner, nx, ny + 1, "│", border_style);
+            // Clear interior
+            for dx in 1..nw - 1 {
+                self.set_cell(buffer, inner, nx + dx, ny + 1, " ", text_style);
+            }
+            // Write task name (left-aligned with padding)
+            let name_start = nx + 1 + i32::from(super::graph::NODE_PADDING);
+            for (i, ch) in node.task_id.chars().enumerate() {
+                self.set_cell(
+                    buffer,
+                    inner,
+                    name_start + i as i32,
+                    ny + 1,
+                    &ch.to_string(),
+                    text_style,
+                );
+            }
+            self.set_cell(buffer, inner, nx + nw - 1, ny + 1, "│", border_style);
+
+            // Bottom border: ╰───╯
+            self.set_cell(buffer, inner, nx, ny + 2, "╰", border_style);
+            for dx in 1..nw - 1 {
+                self.set_cell(buffer, inner, nx + dx, ny + 2, "─", border_style);
+            }
+            self.set_cell(buffer, inner, nx + nw - 1, ny + 2, "╯", border_style);
+        }
     }
 }

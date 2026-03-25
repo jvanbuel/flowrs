@@ -2,12 +2,13 @@ use anyhow::Error;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
 
 use super::popup_area;
+use crate::ui::theme::theme;
 
 pub struct ErrorPopup {
     pub errors: Vec<String>,
@@ -26,10 +27,6 @@ impl ErrorPopup {
     pub const fn from_strings(errors: Vec<String>) -> Self {
         Self { errors }
     }
-
-    pub const fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
-    }
 }
 
 impl Widget for &ErrorPopup {
@@ -38,13 +35,21 @@ impl Widget for &ErrorPopup {
             return;
         }
 
+        let t = theme();
+        let error_color = t.state_failed;
+
         let popup_area = popup_area(area, 80, 50);
         let popup = Block::default()
             .border_type(BorderType::Rounded)
             .title("Errors - Press <Esc> or <q> to close")
-            .title_style(Style::default().fg(Color::Red).add_modifier(Modifier::BOLD))
+            .title_style(
+                Style::default()
+                    .fg(error_color)
+                    .add_modifier(Modifier::BOLD),
+            )
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Red));
+            .border_style(t.border_style)
+            .style(t.default_style);
 
         Clear.render(popup_area, buf);
 
@@ -55,15 +60,17 @@ impl Widget for &ErrorPopup {
                 text.push_line(Line::from(vec![
                     Span::styled(
                         format!("Error {}: ", idx + 1),
-                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(error_color)
+                            .add_modifier(Modifier::BOLD),
                     ),
-                    Span::styled(first_line.to_string(), Style::default().fg(Color::White)),
+                    Span::styled(first_line.to_string(), Style::default().fg(t.text_primary)),
                 ]));
             }
             for line in lines {
                 text.push_line(Line::from(Span::styled(
                     line.to_string(),
-                    Style::default().fg(Color::White),
+                    Style::default().fg(t.text_primary),
                 )));
             }
             if idx < self.errors.len() - 1 {

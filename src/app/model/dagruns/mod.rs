@@ -151,6 +151,7 @@ impl DagRunModel {
             DagRunPopUp::Clear(p) => p.update(event, ctx),
             DagRunPopUp::Mark(p) => p.update(event, ctx),
             DagRunPopUp::Trigger(p) => p.update(event, ctx),
+            DagRunPopUp::Graph(p) => p.update(event, ctx),
         };
         debug!("Popup messages: {messages:?}");
 
@@ -202,6 +203,16 @@ impl DagRunModel {
             KeyCode::Char('?') => {
                 self.popup.show_commands(&DAGRUN_COMMAND_POP_UP);
                 KeyResult::Consumed
+            }
+            KeyCode::Char('d') => {
+                if let (Some(dag_id), Some(dag_run)) = (ctx.dag_id(), &self.current()) {
+                    KeyResult::ConsumedWith(vec![WorkerMessage::ShowDagGraph {
+                        dag_id: dag_id.clone(),
+                        dag_run_id: dag_run.dag_run_id.clone(),
+                    }])
+                } else {
+                    KeyResult::Consumed
+                }
             }
             KeyCode::Char('v') => {
                 if let Some(dag_id) = ctx.dag_id() {
