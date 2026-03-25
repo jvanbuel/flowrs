@@ -10,6 +10,11 @@ pub static DAGRUN_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
             description: "Clear a DAG run",
         },
         Command {
+            name: "DAG Graph",
+            key_binding: "d",
+            description: "Show DAG task dependency graph",
+        },
+        Command {
             name: "Show",
             key_binding: "v",
             description: "Show DAG code",
