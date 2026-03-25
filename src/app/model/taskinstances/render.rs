@@ -81,6 +81,7 @@ impl Widget for &mut TaskInstanceModel {
         match self.popup.custom_mut() {
             Some(TaskInstancePopUp::Clear(popup)) => popup.render(area, buffer),
             Some(TaskInstancePopUp::Mark(popup)) => popup.render(area, buffer),
+            Some(TaskInstancePopUp::Graph(popup)) => popup.render(area, buffer),
             None => {}
         }
     }

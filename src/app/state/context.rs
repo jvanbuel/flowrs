@@ -46,10 +46,8 @@ impl App {
                     self.logs.reset_scroll();
                 }
             }
-            WorkerMessage::UpdateTasks { dag_id } => {
-                if self.nav_context.dag_id() != Some(dag_id) {
-                    self.task_instances.task_graph = None;
-                }
+            WorkerMessage::UpdateTasks { dag_id } if self.nav_context.dag_id() != Some(dag_id) => {
+                self.task_instances.task_graph = None;
             }
             _ => {}
         }

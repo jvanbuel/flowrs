@@ -12,6 +12,23 @@ use reqwest::Method;
 
 use super::base::BaseClient;
 
+/// Parse a JSON response body, including a snippet of the body in the error on failure.
+///
+/// Some Airflow deployments return responses that don't match the documented schema
+/// (e.g. older v2.x versions omit `dag_display_name` / `task_display_name`). Surfacing
+/// the response body makes those parse failures actionable.
+pub(crate) fn parse_json_response<T: serde::de::DeserializeOwned>(
+    body: &str,
+    context: &str,
+) -> Result<T> {
+    serde_json::from_str(body).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse {context}: {e}. Response body (first 1000 chars): {}",
+            body.chars().take(1000).collect::<String>()
+        )
+    })
+}
+
 /// API v1 client implementation (for Airflow v2, uses /api/v1 endpoint)
 #[derive(Debug)]
 pub struct V1Client {

@@ -131,6 +131,7 @@ impl Widget for &mut DagRunModel {
             Some(DagRunPopUp::Clear(popup)) => popup.render(area, buf),
             Some(DagRunPopUp::Mark(popup)) => popup.render(area, buf),
             Some(DagRunPopUp::Trigger(popup)) => popup.render(area, buf),
+            Some(DagRunPopUp::Graph(popup)) => popup.render(area, buf),
             None => {}
         }
     }

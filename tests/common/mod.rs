@@ -69,6 +69,7 @@ pub fn create_test_client() -> anyhow::Result<Arc<dyn AirflowClient>> {
         managed: None,
         version,
         timeout_secs: 30,
+        insecure: false,
     };
 
     let client = FlowrsClient::new(&config)?;
@@ -91,6 +92,7 @@ pub async fn create_test_client_v3() -> anyhow::Result<Arc<dyn AirflowClient>> {
         managed: None,
         version: AirflowVersion::V3,
         timeout_secs: 30,
+        insecure: false,
     };
 
     let client = FlowrsClient::new(&config)?;

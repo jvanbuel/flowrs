@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.3...flowrs-config-v0.11.4) - 2026-05-25
+
+### Other
+
+- update Cargo.toml dependencies
+
+## [0.11.3](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.2...flowrs-config-v0.11.3) - 2026-05-15
+
+### Other
+
+- updated the following local packages: flowrs-airflow
+
+## [0.11.2](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.1...flowrs-config-v0.11.2) - 2026-05-10
+
+### Other
+
+- updated the following local packages: flowrs-airflow
+
+## [0.11.1](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.0...flowrs-config-v0.11.1) - 2026-04-23
+
+### Added
+
+- Add insecure SSL connection option ([#632](https://github.com/jvanbuel/flowrs/pull/632))
+
 ## [0.11.0](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.10.1...flowrs-config-v0.11.0) - 2026-03-14
 
 ### Added

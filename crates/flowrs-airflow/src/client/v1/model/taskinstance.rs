@@ -10,7 +10,7 @@ pub struct TaskInstanceCollectionResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TaskInstanceResponse {
     pub task_id: String,
-    pub task_display_name: String,
+    pub task_display_name: Option<String>,
     pub dag_id: String,
     pub dag_run_id: String,
     #[serde(with = "time::serde::iso8601")]

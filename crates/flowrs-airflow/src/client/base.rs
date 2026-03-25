@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::debug;
+use log::{debug, warn};
 use reqwest::{Method, Url};
 use std::convert::TryFrom;
 use std::fmt;
@@ -28,9 +28,16 @@ impl fmt::Debug for BaseClient {
 
 impl BaseClient {
     pub fn new(config: AirflowConfig) -> Result<Self> {
+        if config.insecure {
+            warn!(
+                "TLS certificate verification is disabled for server '{}'",
+                config.name
+            );
+        }
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
             .use_rustls_tls()
+            .danger_accept_invalid_certs(config.insecure)
             .build()?;
 
         let auth_provider = create_auth_provider(&config.auth)?;

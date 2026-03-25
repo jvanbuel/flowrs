@@ -35,7 +35,7 @@ impl TriggerDagRunPopUp {
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         // Use inner area for content layout to avoid overlapping the border
         let inner = popup_block.inner(area);
@@ -340,7 +340,7 @@ impl Widget for &mut ClearDagRunPopup {
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         // Use inner area for content layout to avoid overlapping the border
         let inner = popup_block.inner(area);
@@ -400,7 +400,7 @@ impl Widget for &mut MarkDagRunPopup {
             .border_type(BorderType::Rounded)
             .borders(Borders::ALL)
             .border_style(t.border_style)
-            .style(t.surface_style);
+            .style(t.default_style);
 
         let text = Paragraph::new("Mark status as")
             .style(t.default_style)

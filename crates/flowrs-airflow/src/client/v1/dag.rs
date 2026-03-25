@@ -3,7 +3,7 @@ use log::{debug, info};
 use reqwest::Method;
 
 use super::model::dag::DagCollectionResponse;
-use super::V1Client;
+use super::{parse_json_response, V1Client};
 
 const PAGE_SIZE: usize = 50;
 
@@ -23,7 +23,8 @@ impl V1Client {
                 .await?
                 .error_for_status()?;
 
-            let page: DagCollectionResponse = response.json().await?;
+            let response_text = response.text().await?;
+            let page: DagCollectionResponse = parse_json_response(&response_text, "DAGs response")?;
 
             total_entries = page.total_entries;
             let fetched_count = page.dags.len();

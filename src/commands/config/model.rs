@@ -139,6 +139,8 @@ impl ConfigCommand {
 pub struct AddCommand {
     #[clap(short, long)]
     pub file: Option<String>,
+    #[clap(long)]
+    pub insecure: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -159,6 +161,8 @@ pub struct UpdateCommand {
     pub name: Option<String>,
     #[clap(short, long)]
     pub file: Option<String>,
+    #[clap(long)]
+    pub insecure: bool,
 }
 
 #[derive(EnumIter, Debug, Display)]

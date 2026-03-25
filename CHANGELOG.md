@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.6](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.5...flowrs-tui-v0.12.6) - 2026-05-25
+
+### Other
+
+- *(deps)* bump openssl from 0.10.79 to 0.10.80
+- *(deps)* bump aws-config from 1.8.16 to 1.8.17
+- Merge pull request #642 from jvanbuel/dependabot/cargo/log-0.4.30
+- Merge pull request #643 from jvanbuel/dependabot/cargo/aws-sdk-mwaa-1.106.0
+- *(deps)* bump serde_json from 1.0.149 to 1.0.150
+
+## [0.12.5](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.4...flowrs-tui-v0.12.5) - 2026-05-15
+
+### Fixed
+
+- enable rustls-tls-native-roots for managed Airflow TLS
+
+## [0.12.4](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.3...flowrs-tui-v0.12.4) - 2026-05-10
+
+### Fixed
+
+- Handle missing display_name fields and improve JSON parse error reporting for Airflow v2.8.1 ([#628](https://github.com/jvanbuel/flowrs/pull/628))
+
+### Other
+
+- *(deps)* bump openssl from 0.10.78 to 0.10.79 ([#637](https://github.com/jvanbuel/flowrs/pull/637))
+- *(deps)* bump catppuccin from 2.7.0 to 2.8.0 ([#635](https://github.com/jvanbuel/flowrs/pull/635))
+
+## [0.12.3](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.2...flowrs-tui-v0.12.3) - 2026-04-23
+
+### Added
+
+- Add insecure SSL connection option ([#632](https://github.com/jvanbuel/flowrs/pull/632))
+- add DAG dependency graph visualization popup ([#621](https://github.com/jvanbuel/flowrs/pull/621))
+
+### Other
+
+- *(deps)* bump openssl from 0.10.76 to 0.10.78 ([#634](https://github.com/jvanbuel/flowrs/pull/634))
+- *(deps)* bump tokio from 1.51.0 to 1.51.1 ([#633](https://github.com/jvanbuel/flowrs/pull/633))
+- *(deps)* bump toml from 1.0.7+spec-1.1.0 to 1.1.2+spec-1.1.0 ([#629](https://github.com/jvanbuel/flowrs/pull/629))
+- *(deps)* bump google-cloud-auth from 1.7.0 to 1.8.0 ([#625](https://github.com/jvanbuel/flowrs/pull/625))
+- *(deps)* bump tokio from 1.50.0 to 1.51.0 ([#630](https://github.com/jvanbuel/flowrs/pull/630))
+
+## [0.12.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.1...flowrs-tui-v0.12.2) - 2026-03-22
+
+### Other
+
+- update Cargo.lock dependencies
+
 ## [0.12.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.0...flowrs-tui-v0.12.1) - 2026-03-15
 
 ### Other

@@ -72,6 +72,10 @@ pub enum WorkerMessage {
     UpdateTasks {
         dag_id: DagId,
     },
+    ShowDagGraph {
+        dag_id: DagId,
+        dag_run_id: DagRunId,
+    },
     OpenItem(OpenItem),
 }
 
@@ -286,6 +290,9 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         // Task operations
         WorkerMessage::UpdateTasks { dag_id } => {
             tasks::handle_update_tasks(&app, &client, &dag_id).await;
+        }
+        WorkerMessage::ShowDagGraph { dag_id, dag_run_id } => {
+            tasks::handle_show_dag_graph(&app, &client, &dag_id, &dag_run_id).await;
         }
         // Browser operations
         WorkerMessage::OpenItem(item) => {
