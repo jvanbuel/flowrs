@@ -154,7 +154,12 @@ impl TriggerDagRunPopUp {
             };
 
             let truncated_key = if entry.key.len() > max_key_len {
-                format!("{}…", &entry.key[..max_key_len.saturating_sub(1)])
+                let char_boundary = entry.key
+                    .char_indices()
+                    .take_while(|(i, _)| *i < max_key_len.saturating_sub(1))
+                    .last()
+                    .map_or(0, |(i, c)| i + c.len_utf8());
+                format!("{}…", &entry.key[..char_boundary])
             } else {
                 format!("{:max_key_len$}", entry.key)
             };
