@@ -306,6 +306,15 @@ fn render_ghost_line(
         )));
     }
 
+    // Show JSON parse warning when value is invalid
+    if !entry.json_valid {
+        let t = theme();
+        return Some(Line::from(Span::styled(
+            format!("{padding}\u{26a0} invalid JSON — will be sent as string"),
+            Style::default().fg(t.state_failed),
+        )));
+    }
+
     // For active entries with options, show the option list
     if is_active {
         let opts = entry.options();

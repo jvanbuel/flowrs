@@ -31,6 +31,7 @@ pub(crate) struct ParamEntry {
     pub value: String,
     pub description: Option<String>,
     pub kind: ParamKind,
+    pub json_valid: bool,
 }
 
 impl ParamEntry {
@@ -80,25 +81,34 @@ impl TriggerDagRunPopUp {
         !self.params.is_empty()
     }
 
-    fn build_conf(&self) -> Option<serde_json::Value> {
+    fn build_conf(&mut self) -> Option<serde_json::Value> {
         if self.params.is_empty() {
             return None;
         }
         let mut map = serde_json::Map::new();
-        for entry in &self.params {
-            let parsed = serde_json::from_str(&entry.value)
-                .unwrap_or(serde_json::Value::String(entry.value.clone()));
-            map.insert(entry.key.clone(), parsed);
+        for entry in &mut self.params {
+            if let Ok(parsed) = serde_json::from_str(&entry.value) {
+                entry.json_valid = true;
+                map.insert(entry.key.clone(), parsed);
+            } else {
+                entry.json_valid = false;
+                map.insert(
+                    entry.key.clone(),
+                    serde_json::Value::String(entry.value.clone()),
+                );
+            }
         }
         Some(serde_json::Value::Object(map))
     }
 
-    pub(crate) fn active_entry(&self) -> &ParamEntry {
-        &self.params[self.active_param]
+    pub(crate) fn active_entry(&self) -> Option<&ParamEntry> {
+        self.params.get(self.active_param)
     }
 
     fn cycle_option(&mut self, forward: bool) {
-        let entry = &mut self.params[self.active_param];
+        let Some(entry) = self.params.get_mut(self.active_param) else {
+            return;
+        };
         let (ParamKind::Enum(opts) | ParamKind::Examples(opts)) = &entry.kind else {
             return;
         };
@@ -115,7 +125,9 @@ impl TriggerDagRunPopUp {
     }
 
     fn toggle_bool(&mut self) {
-        let entry = &mut self.params[self.active_param];
+        let Some(entry) = self.params.get_mut(self.active_param) else {
+            return;
+        };
         if entry.kind == ParamKind::Bool {
             entry.value = if entry.value == "true" {
                 "false"
@@ -134,6 +146,7 @@ fn extract_param(key: &str, v: &serde_json::Value) -> ParamEntry {
             value: value_to_string(v),
             description: None,
             kind: kind_from_value(v),
+            json_valid: true,
         };
     };
 
@@ -155,6 +168,7 @@ fn extract_param(key: &str, v: &serde_json::Value) -> ParamEntry {
             value,
             description,
             kind,
+            json_valid: true,
         };
     }
 
@@ -165,6 +179,7 @@ fn extract_param(key: &str, v: &serde_json::Value) -> ParamEntry {
             value: value_to_string(default),
             description: None,
             kind: kind_from_value(default),
+            json_valid: true,
         };
     }
 
@@ -173,6 +188,7 @@ fn extract_param(key: &str, v: &serde_json::Value) -> ParamEntry {
         value: value_to_string(v),
         description: None,
         kind: ParamKind::Text,
+        json_valid: true,
     }
 }
 
@@ -316,25 +332,26 @@ impl TriggerDagRunPopUp {
                     }
                     return (Some(FlowrsEvent::Key(key_event)), vec![]);
                 }
-                match self.active_entry().kind {
+                match self.active_entry().map(|e| &e.kind) {
                     // Bool: toggle on Enter instead of opening text editor
-                    ParamKind::Bool => self.toggle_bool(),
+                    Some(ParamKind::Bool) => self.toggle_bool(),
                     // Enum: cycle on Enter (no free-text editing)
-                    ParamKind::Enum(_) => self.cycle_option(true),
+                    Some(ParamKind::Enum(_)) => self.cycle_option(true),
                     // Text and Examples: open text editor
-                    _ => {
+                    Some(_) => {
                         self.editing = true;
-                        self.cursor_pos = self.active_entry().value.len();
+                        self.cursor_pos = self.active_entry().map_or(0, |e| e.value.len());
                     }
+                    None => {}
                 }
                 (None, vec![])
             }
             KeyCode::Char(' ') if self.focus == FocusZone::Params => {
                 // Space toggles bools and cycles enums/examples for quick editing
-                match self.active_entry().kind {
-                    ParamKind::Bool => self.toggle_bool(),
-                    ParamKind::Enum(_) | ParamKind::Examples(_) => self.cycle_option(true),
-                    ParamKind::Text => {}
+                match self.active_entry().map(|e| &e.kind) {
+                    Some(ParamKind::Bool) => self.toggle_bool(),
+                    Some(ParamKind::Enum(_) | ParamKind::Examples(_)) => self.cycle_option(true),
+                    _ => {}
                 }
                 (None, vec![])
             }
@@ -365,7 +382,10 @@ impl TriggerDagRunPopUp {
         code: KeyCode,
         key_event: crossterm::event::KeyEvent,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
-        let value = &mut self.params[self.active_param].value;
+        let Some(entry) = self.params.get_mut(self.active_param) else {
+            return (None, vec![]);
+        };
+        let value = &mut entry.value;
         match code {
             KeyCode::Esc | KeyCode::Enter => {
                 self.editing = false;
