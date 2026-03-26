@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::debug;
+use log::{debug, warn};
 
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::airflow::traits::AirflowClient;
@@ -17,13 +17,20 @@ pub async fn handle_update_dag_runs(
     dag_id: &DagId,
     env_name: &str,
 ) {
-    let dag_runs = client.list_dagruns(dag_id).await;
+    let (dag_runs, dag_params) =
+        tokio::join!(client.list_dagruns(dag_id), client.get_dag_params(dag_id));
     let mut app = app.lock().unwrap();
     match dag_runs {
         Ok(dag_runs) => {
             // Replace DAG runs in the originating environment, not the active one
             if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                 env.replace_dag_runs(dag_id, dag_runs.dag_runs);
+                // Cache dag params alongside dag runs (failure is non-fatal)
+                match dag_params {
+                    Ok(Some(params)) => env.update_dag_params(dag_id, params),
+                    Ok(None) => {}
+                    Err(e) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
+                }
             }
             // Only sync panel data if this environment is still active
             if app.environment_state.active_environment.as_deref() == Some(env_name) {
@@ -83,9 +90,10 @@ pub async fn handle_trigger_dag_run(
     client: &Arc<dyn AirflowClient>,
     dag_id: &DagId,
     env_name: &str,
+    conf: Option<serde_json::Value>,
 ) {
     debug!("Triggering dag_run: {dag_id}");
-    let dag_run = client.trigger_dag_run(dag_id, None).await;
+    let dag_run = client.trigger_dag_run(dag_id, None, conf).await;
     match dag_run {
         Ok(()) => {
             // Refresh the dag runs list to show the newly triggered run
