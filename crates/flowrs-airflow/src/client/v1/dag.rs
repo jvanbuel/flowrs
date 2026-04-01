@@ -23,7 +23,17 @@ impl V1Client {
                 .await?
                 .error_for_status()?;
 
-            let page: DagCollectionResponse = response.json().await?;
+            let response_text = response.text().await?;
+            let page: DagCollectionResponse = match serde_json::from_str(&response_text) {
+                Ok(page) => page,
+                Err(e) => {
+                    return Err(anyhow::anyhow!(
+                        "Failed to parse DAGs response: {}. Response body (first 1000 chars): {}",
+                        e,
+                        response_text.chars().take(1000).collect::<String>()
+                    ));
+                }
+            };
 
             total_entries = page.total_entries;
             let fetched_count = page.dags.len();

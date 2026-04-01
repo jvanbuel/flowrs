@@ -7,9 +7,10 @@ use crate::airflow::model::common::{
 };
 
 pub(crate) fn v1_dag_to_dag(value: flowrs_airflow::client::v1::model::dag::DagResponse) -> Dag {
+    let dag_id = value.dag_id.clone();
     Dag {
         dag_id: value.dag_id.into(),
-        dag_display_name: Some(value.dag_display_name),
+        dag_display_name: value.dag_display_name.or_else(|| Some(dag_id)),
         description: value.description,
         fileloc: value.fileloc,
         is_paused: value.is_paused.unwrap_or(false),
