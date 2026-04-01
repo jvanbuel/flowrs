@@ -10,7 +10,7 @@ pub struct DagCollectionResponse {
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DagResponse {
     pub dag_id: String,
-    pub dag_display_name: String,
+    pub dag_display_name: Option<String>,
     pub root_dag_id: Option<String>,
     pub is_paused: Option<bool>,
     pub is_active: Option<bool>,
