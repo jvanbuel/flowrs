@@ -30,7 +30,7 @@ pub struct TaskInstance {
     pub state: Option<String>,
     pub try_number: u32,
     pub max_tries: i64,
-    pub task_display_name: String,
+    pub task_display_name: Option<String>,
     pub hostname: Option<String>,
     pub unixname: Option<String>,
     pub pool: String,
