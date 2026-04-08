@@ -81,7 +81,7 @@ impl TriggerDagRunPopUp {
         !self.params.is_empty()
     }
 
-    fn build_conf(&mut self) -> Option<serde_json::Value> {
+    fn build_conf_and_validate(&mut self) -> Option<serde_json::Value> {
         if self.params.is_empty() {
             return None;
         }
@@ -307,7 +307,7 @@ impl TriggerDagRunPopUp {
         key_event: crossterm::event::KeyEvent,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         if self.editing {
-            return self.handle_editing(code, key_event);
+            return self.handle_editing(code);
         }
 
         match code {
@@ -326,7 +326,7 @@ impl TriggerDagRunPopUp {
                             Some(FlowrsEvent::Key(key_event)),
                             vec![WorkerMessage::TriggerDagRun {
                                 dag_id: self.dag_id.clone(),
-                                conf: self.build_conf(),
+                                conf: self.build_conf_and_validate(),
                             }],
                         );
                     }
@@ -380,7 +380,6 @@ impl TriggerDagRunPopUp {
     fn handle_editing(
         &mut self,
         code: KeyCode,
-        key_event: crossterm::event::KeyEvent,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         let Some(entry) = self.params.get_mut(self.active_param) else {
             return (None, vec![]);
@@ -391,6 +390,7 @@ impl TriggerDagRunPopUp {
                 self.editing = false;
             }
             KeyCode::Char(c) => {
+                debug_assert!(value.is_char_boundary(self.cursor_pos), "cursor not on char boundary");
                 value.insert(self.cursor_pos, c);
                 self.cursor_pos += c.len_utf8();
             }
@@ -422,7 +422,6 @@ impl TriggerDagRunPopUp {
             }
             _ => {}
         }
-        let _ = key_event;
         (None, vec![])
     }
 }
