@@ -377,10 +377,7 @@ impl TriggerDagRunPopUp {
         }
     }
 
-    fn handle_editing(
-        &mut self,
-        code: KeyCode,
-    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+    fn handle_editing(&mut self, code: KeyCode) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         let Some(entry) = self.params.get_mut(self.active_param) else {
             return (None, vec![]);
         };
@@ -390,7 +387,10 @@ impl TriggerDagRunPopUp {
                 self.editing = false;
             }
             KeyCode::Char(c) => {
-                debug_assert!(value.is_char_boundary(self.cursor_pos), "cursor not on char boundary");
+                debug_assert!(
+                    value.is_char_boundary(self.cursor_pos),
+                    "cursor not on char boundary"
+                );
                 value.insert(self.cursor_pos, c);
                 self.cursor_pos += c.len_utf8();
             }

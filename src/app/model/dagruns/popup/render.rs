@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     style::Style,
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
 
 use crate::{
@@ -99,7 +99,7 @@ impl TriggerDagRunPopUp {
             .style(t.default_style)
             .centered();
 
-        let rows_per_param: usize = 2;
+        let rows_per_param: usize = 3;
         let visible_params = params_area.height as usize / rows_per_param;
 
         // Scroll handling
@@ -116,7 +116,14 @@ impl TriggerDagRunPopUp {
 
         let ghost_style = Style::default().fg(t.purple_dim);
 
-        let max_key_len = self.params.iter().map(|e| e.key.len()).max().unwrap_or(0);
+        // Cap key display width to ~1/3 of available width so values remain visible
+        let key_display_len = self
+            .params
+            .iter()
+            .map(|e| e.key.len())
+            .max()
+            .unwrap_or(0)
+            .min(params_area.width as usize / 3);
 
         for (row_idx, (i, entry)) in self
             .params
@@ -130,7 +137,7 @@ impl TriggerDagRunPopUp {
                 break;
             };
             let row_y = params_area.y + row_offset;
-            if row_y + 1 >= params_area.y + params_area.height {
+            if row_y + 2 >= params_area.y + params_area.height {
                 break;
             }
             let row_area = Rect::new(
@@ -143,7 +150,7 @@ impl TriggerDagRunPopUp {
                 params_area.x + 1,
                 row_y + 1,
                 params_area.width.saturating_sub(2),
-                1,
+                2,
             );
 
             let is_active = i == self.active_param && self.focus == FocusZone::Params;
@@ -153,16 +160,16 @@ impl TriggerDagRunPopUp {
                 Style::default().fg(t.text_primary)
             };
 
-            let truncated_key = if entry.key.len() > max_key_len {
+            let truncated_key = if entry.key.len() > key_display_len {
                 let char_boundary = entry
                     .key
                     .char_indices()
-                    .take_while(|(i, _)| *i < max_key_len.saturating_sub(1))
+                    .take_while(|(i, _)| *i < key_display_len.saturating_sub(1))
                     .last()
                     .map_or(0, |(i, c)| i + c.len_utf8());
                 format!("{}…", &entry.key[..char_boundary])
             } else {
-                format!("{:max_key_len$}", entry.key)
+                format!("{:key_display_len$}", entry.key)
             };
 
             let value_line = render_value_line(
@@ -176,9 +183,11 @@ impl TriggerDagRunPopUp {
             value_line.render(row_area, buffer);
 
             // Ghost line: description, or options list, or kind hint
-            let ghost_line = render_ghost_line(entry, max_key_len, ghost_style, is_active);
+            let ghost_line = render_ghost_line(entry, key_display_len, ghost_style, is_active);
             if let Some(line) = ghost_line {
-                line.render(ghost_area, buffer);
+                Paragraph::new(line)
+                    .wrap(Wrap { trim: false })
+                    .render(ghost_area, buffer);
             }
         }
 
