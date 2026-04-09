@@ -249,6 +249,7 @@ pub async fn get_mwaa_environment_servers() -> Result<Vec<AirflowConfig>> {
             managed: Some(ManagedService::Mwaa),
             version,
             timeout_secs: 30,
+            insecure: false,
         });
     }
 

@@ -60,6 +60,9 @@ pub struct AirflowConfig {
     /// Request timeout in seconds. Defaults to 30 seconds if not specified.
     #[serde(default = "default_timeout")]
     pub timeout_secs: u64,
+    /// Whether to allow insecure SSL connections.
+    #[serde(default)]
+    pub insecure: bool,
 }
 
 pub const fn default_timeout() -> u64 {

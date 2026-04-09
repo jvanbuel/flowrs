@@ -209,6 +209,7 @@ password = "airflow"
                 managed: None,
                 version: AirflowVersion::V2,
                 timeout_secs: default_timeout(),
+                insecure: false,
             }],
             managed_services: vec![ManagedService::Conveyor],
             active_server: None,

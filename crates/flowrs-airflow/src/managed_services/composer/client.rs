@@ -324,6 +324,7 @@ pub async fn get_composer_environment_servers(
                 managed: Some(ManagedService::Gcc),
                 version,
                 timeout_secs: 30,
+                insecure: false,
             });
         }
     }

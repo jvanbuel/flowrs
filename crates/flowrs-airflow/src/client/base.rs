@@ -31,6 +31,7 @@ impl BaseClient {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
             .use_rustls_tls()
+            .danger_accept_invalid_certs(config.insecure)
             .build()?;
 
         let auth_provider = create_auth_provider(&config.auth)?;

@@ -27,6 +27,10 @@ impl AddCommand {
             _ => AirflowVersion::V2,
         };
 
+        let insecure = inquire::Confirm::new("Allow insecure SSL connections? (danger)")
+            .with_default(false)
+            .prompt()?;
+
         let auth_type =
             Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
 
@@ -44,6 +48,7 @@ impl AddCommand {
                     managed: None,
                     version,
                     timeout_secs: 30,
+                    insecure,
                 }
             }
             ConfigOption::Token(_) => {
@@ -64,6 +69,7 @@ impl AddCommand {
                     managed: None,
                     version,
                     timeout_secs: 30,
+                    insecure,
                 }
             }
         };
