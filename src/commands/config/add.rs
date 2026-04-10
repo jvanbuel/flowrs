@@ -27,10 +27,14 @@ impl AddCommand {
             _ => AirflowVersion::V2,
         };
 
-        let insecure = inquire::Confirm::new("Allow insecure SSL connections? (danger)")
-            .with_help_message("Disables TLS certificate verification (MITM risk). Use only for local/dev port-forwarded endpoints.")
-            .with_default(false)
-            .prompt()?;
+        let insecure = if self.insecure {
+            inquire::Confirm::new("Are you sure you want to allow insecure SSL connections? (danger)")
+                .with_help_message("Disables TLS certificate verification (MITM risk). Use only for local/dev port-forwarded endpoints.")
+                .with_default(false)
+                .prompt()?
+        } else {
+            false
+        };
 
         let auth_type =
             Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;

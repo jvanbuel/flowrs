@@ -45,9 +45,14 @@ impl UpdateCommand {
             .with_validator(validate_endpoint)
             .prompt()?;
 
-        let insecure = inquire::Confirm::new("Allow insecure SSL connections? (danger)")
-            .with_default(airflow_config.insecure)
-            .prompt()?;
+        let insecure = if self.insecure || airflow_config.insecure {
+            inquire::Confirm::new("Allow insecure SSL connections? (danger)")
+                .with_help_message("Disables TLS certificate verification (MITM risk). Use only for local/dev port-forwarded endpoints.")
+                .with_default(airflow_config.insecure)
+                .prompt()?
+        } else {
+            false
+        };
 
         let auth_type =
             Select::new("authentication type", ConfigOption::iter().collect()).prompt()?;
