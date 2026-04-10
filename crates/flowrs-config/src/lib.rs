@@ -182,6 +182,7 @@ name = "bla"
 endpoint = "http://localhost:8080"
 version = "V2"
 timeout_secs = 30
+insecure = false
 
 [servers.auth.Basic]
 username = "airflow"
