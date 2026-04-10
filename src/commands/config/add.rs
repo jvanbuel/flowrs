@@ -28,6 +28,7 @@ impl AddCommand {
         };
 
         let insecure = inquire::Confirm::new("Allow insecure SSL connections? (danger)")
+            .with_help_message("Disables TLS certificate verification (MITM risk). Use only for local/dev port-forwarded endpoints.")
             .with_default(false)
             .prompt()?;
 
