@@ -301,6 +301,7 @@ pub async fn get_astronomer_environment_servers() -> (Vec<AirflowConfig>, Vec<St
                 managed: Some(ManagedService::Astronomer),
                 version,
                 timeout_secs: 30,
+                insecure: false,
             });
         }
     }

@@ -143,6 +143,7 @@ pub fn get_conveyor_environment_servers() -> Result<Vec<AirflowConfig>> {
                 managed: Some(ManagedService::Conveyor),
                 version,
                 timeout_secs: 30,
+                insecure: false,
             }
         })
         .collect();
