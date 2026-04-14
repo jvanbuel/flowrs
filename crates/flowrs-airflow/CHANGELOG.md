@@ -7,14 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.1](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.0...flowrs-config-v0.11.1) - 2026-04-14
+## [0.10.2](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.1...flowrs-airflow-v0.10.2) - 2026-04-14
 
 ### Added
 
 - Add insecure SSL connection option ([#632](https://github.com/jvanbuel/flowrs/pull/632))
 
-## [0.11.0](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.10.1...flowrs-config-v0.11.0) - 2026-03-14
+### Other
 
-### Added
-
-- add dark/light theme support with auto-detection
+- *(deps)* bump google-cloud-auth from 1.7.0 to 1.8.0 ([#625](https://github.com/jvanbuel/flowrs/pull/625))

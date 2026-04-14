@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.2...flowrs-tui-v0.12.3) - 2026-04-14
+
+### Added
+
+- Add insecure SSL connection option ([#632](https://github.com/jvanbuel/flowrs/pull/632))
+- add DAG dependency graph visualization popup ([#621](https://github.com/jvanbuel/flowrs/pull/621))
+
+### Other
+
+- *(deps)* bump tokio from 1.51.0 to 1.51.1 ([#633](https://github.com/jvanbuel/flowrs/pull/633))
+- *(deps)* bump toml from 1.0.7+spec-1.1.0 to 1.1.2+spec-1.1.0 ([#629](https://github.com/jvanbuel/flowrs/pull/629))
+- *(deps)* bump google-cloud-auth from 1.7.0 to 1.8.0 ([#625](https://github.com/jvanbuel/flowrs/pull/625))
+- *(deps)* bump tokio from 1.50.0 to 1.51.0 ([#630](https://github.com/jvanbuel/flowrs/pull/630))
+
 ## [0.12.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.1...flowrs-tui-v0.12.2) - 2026-03-22
 
 ### Other
