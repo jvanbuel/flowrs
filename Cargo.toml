@@ -24,7 +24,7 @@ toml = "1.1.2"
 
 [package]
 name = "flowrs-tui"
-version = "0.12.3"
+version = "0.12.4"
 edition = "2021"
 rust-version = "1.87.0"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
