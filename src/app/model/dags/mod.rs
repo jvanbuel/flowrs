@@ -28,6 +28,8 @@ pub struct DagModel {
     pub popup: Popup<DagPopUp>,
     /// DAG source code viewer
     pub dag_code: Option<DagCodeView>,
+    /// Cached DAG params for the trigger popup (backfilled from `DAGRun` sync)
+    pub dag_params_cache: HashMap<DagId, serde_json::Value>,
     ticks: u32,
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
@@ -40,6 +42,7 @@ impl Default for DagModel {
             dag_stats: HashMap::new(),
             popup: Popup::None,
             dag_code: None,
+            dag_params_cache: HashMap::new(),
             ticks: 0,
             poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
@@ -146,9 +149,11 @@ impl DagModel {
             }
             KeyCode::Char('t') => {
                 if let Some(dag) = self.table.current() {
+                    let params = self.dag_params_cache.get(&dag.dag_id);
                     self.popup
                         .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(
                             dag.dag_id.clone(),
+                            params,
                         )));
                 } else {
                     self.popup
