@@ -3,7 +3,7 @@ use log::{debug, info};
 use reqwest::{Method, Response};
 
 use super::model;
-use super::V1Client;
+use super::{parse_json_response, V1Client};
 
 const PAGE_SIZE: usize = 100;
 
@@ -30,7 +30,9 @@ impl V1Client {
                 .await?
                 .error_for_status()?;
 
-            let page: model::taskinstance::TaskInstanceCollectionResponse = response.json().await?;
+            let response_text = response.text().await?;
+            let page: model::taskinstance::TaskInstanceCollectionResponse =
+                parse_json_response(&response_text, "task instances response")?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -77,7 +79,9 @@ impl V1Client {
                 .await?
                 .error_for_status()?;
 
-            let page: model::taskinstance::TaskInstanceCollectionResponse = response.json().await?;
+            let response_text = response.text().await?;
+            let page: model::taskinstance::TaskInstanceCollectionResponse =
+                parse_json_response(&response_text, "all task instances response")?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -121,7 +125,9 @@ impl V1Client {
             .await?
             .error_for_status()?;
 
-        let tries: model::taskinstance::TaskInstanceTriesResponse = response.json().await?;
+        let response_text = response.text().await?;
+        let tries: model::taskinstance::TaskInstanceTriesResponse =
+            parse_json_response(&response_text, "task instance tries response")?;
         debug!(
             "Fetched {} tries for task {task_id}",
             tries.task_instances.len()
