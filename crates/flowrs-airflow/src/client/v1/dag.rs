@@ -3,7 +3,7 @@ use log::{debug, info};
 use reqwest::Method;
 
 use super::model::dag::DagCollectionResponse;
-use super::V1Client;
+use super::{parse_json_response, V1Client};
 
 const PAGE_SIZE: usize = 50;
 
@@ -24,16 +24,7 @@ impl V1Client {
                 .error_for_status()?;
 
             let response_text = response.text().await?;
-            let page: DagCollectionResponse = match serde_json::from_str(&response_text) {
-                Ok(page) => page,
-                Err(e) => {
-                    return Err(anyhow::anyhow!(
-                        "Failed to parse DAGs response: {}. Response body (first 1000 chars): {}",
-                        e,
-                        response_text.chars().take(1000).collect::<String>()
-                    ));
-                }
-            };
+            let page: DagCollectionResponse = parse_json_response(&response_text, "DAGs response")?;
 
             total_entries = page.total_entries;
             let fetched_count = page.dags.len();

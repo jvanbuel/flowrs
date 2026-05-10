@@ -3,7 +3,7 @@ use log::{debug, info};
 use reqwest::{Method, Response};
 
 use super::model;
-use super::V1Client;
+use super::{parse_json_response, V1Client};
 
 const PAGE_SIZE: usize = 100;
 
@@ -31,16 +31,8 @@ impl V1Client {
                 .error_for_status()?;
 
             let response_text = response.text().await?;
-            let page: model::taskinstance::TaskInstanceCollectionResponse = match serde_json::from_str(&response_text) {
-                Ok(page) => page,
-                Err(e) => {
-                    return Err(anyhow::anyhow!(
-                        "Failed to parse task instances response: {}. Response body (first 1000 chars): {}",
-                        e,
-                        response_text.chars().take(1000).collect::<String>()
-                    ));
-                }
-            };
+            let page: model::taskinstance::TaskInstanceCollectionResponse =
+                parse_json_response(&response_text, "task instances response")?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -88,16 +80,8 @@ impl V1Client {
                 .error_for_status()?;
 
             let response_text = response.text().await?;
-            let page: model::taskinstance::TaskInstanceCollectionResponse = match serde_json::from_str(&response_text) {
-                Ok(page) => page,
-                Err(e) => {
-                    return Err(anyhow::anyhow!(
-                        "Failed to parse all task instances response: {}. Response body (first 1000 chars): {}",
-                        e,
-                        response_text.chars().take(1000).collect::<String>()
-                    ));
-                }
-            };
+            let page: model::taskinstance::TaskInstanceCollectionResponse =
+                parse_json_response(&response_text, "all task instances response")?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -142,16 +126,8 @@ impl V1Client {
             .error_for_status()?;
 
         let response_text = response.text().await?;
-        let tries: model::taskinstance::TaskInstanceTriesResponse = match serde_json::from_str(&response_text) {
-            Ok(tries) => tries,
-            Err(e) => {
-                return Err(anyhow::anyhow!(
-                    "Failed to parse task instance tries response: {}. Response body (first 1000 chars): {}",
-                    e,
-                    response_text.chars().take(1000).collect::<String>()
-                ));
-            }
-        };
+        let tries: model::taskinstance::TaskInstanceTriesResponse =
+            parse_json_response(&response_text, "task instance tries response")?;
         debug!(
             "Fetched {} tries for task {task_id}",
             tries.task_instances.len()
