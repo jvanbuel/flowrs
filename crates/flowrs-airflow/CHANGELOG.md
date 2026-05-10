@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.3](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.2...flowrs-airflow-v0.10.3) - 2026-05-10
+
+### Fixed
+
+- Handle missing display_name fields and improve JSON parse error reporting for Airflow v2.8.1 ([#628](https://github.com/jvanbuel/flowrs/pull/628))
+
 ## [0.10.2](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.1...flowrs-airflow-v0.10.2) - 2026-04-23
 
 ### Added
