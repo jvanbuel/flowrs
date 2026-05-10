@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.4](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.3...flowrs-tui-v0.12.4) - 2026-05-10
+
+### Fixed
+
+- Handle missing display_name fields and improve JSON parse error reporting for Airflow v2.8.1 ([#628](https://github.com/jvanbuel/flowrs/pull/628))
+
+### Other
+
+- *(deps)* bump openssl from 0.10.78 to 0.10.79 ([#637](https://github.com/jvanbuel/flowrs/pull/637))
+- *(deps)* bump catppuccin from 2.7.0 to 2.8.0 ([#635](https://github.com/jvanbuel/flowrs/pull/635))
+
 ## [0.12.3](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.2...flowrs-tui-v0.12.3) - 2026-04-23
 
 ### Added
