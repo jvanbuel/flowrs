@@ -14,7 +14,7 @@ chrono = "0.4.43"
 clap = { version = "^4.5", features = ["derive", "env"] }
 dirs = "6.0.0"
 log = { version = "0.4.29", features = ["std"] }
-reqwest = { version = "0.12.28", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.12.28", features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.148"
 strum = { version = "0.28.0", features = ["derive"] }
