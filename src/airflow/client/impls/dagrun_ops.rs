@@ -49,10 +49,23 @@ impl DagRunOperations for FlowrsClient {
         }
     }
 
-    async fn trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()> {
+    async fn trigger_dag_run(
+        &self,
+        dag_id: &str,
+        logical_date: Option<&str>,
+        conf: Option<serde_json::Value>,
+    ) -> Result<()> {
         match self {
-            Self::V1(client) => client.post_trigger_dag_run(dag_id, logical_date).await,
-            Self::V2(client) => client.post_trigger_dag_run(dag_id, logical_date).await,
+            Self::V1(client) => {
+                client
+                    .post_trigger_dag_run(dag_id, logical_date, conf)
+                    .await
+            }
+            Self::V2(client) => {
+                client
+                    .post_trigger_dag_run(dag_id, logical_date, conf)
+                    .await
+            }
         }
     }
 }
