@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.4](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.3...flowrs-airflow-v0.10.4) - 2026-05-15
+
+### Other
+
+- update Cargo.toml dependencies
+
 ## [0.10.3](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.2...flowrs-airflow-v0.10.3) - 2026-05-10
 
 ### Fixed
