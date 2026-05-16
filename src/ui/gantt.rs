@@ -3,6 +3,7 @@ use ratatui::text::{Line, Span};
 use time::OffsetDateTime;
 
 use crate::airflow::model::common::gantt::GanttData;
+use crate::airflow::model::common::taskinstance::TaskInstanceState;
 use crate::airflow::model::common::TaskId;
 
 use super::constants::AirflowStateColor;
@@ -33,11 +34,23 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
         let Some(start) = t.start_date else {
             continue;
         };
-        // Skip tries with no concrete state: after a clear, Airflow may
-        // return the pending TI with stale start/end dates copied from the
-        // prior attempt, which would otherwise paint the bar gray
-        // (None-state → Color::Reset) instead of preserving the history.
-        if t.state.is_none() {
+        // Only paint a segment if the try actually executed (or is
+        // executing). After a clear, Airflow's /tries endpoint may include
+        // the new TI with stale dates from the prior attempt but a
+        // pre-execution state (None, Scheduled, Queued, UpForRetry, ...),
+        // which would otherwise overwrite the previous bar's color.
+        if !matches!(
+            t.state,
+            Some(
+                TaskInstanceState::Success
+                    | TaskInstanceState::Failed
+                    | TaskInstanceState::Skipped
+                    | TaskInstanceState::UpstreamFailed
+                    | TaskInstanceState::Running
+                    | TaskInstanceState::Restarting
+                    | TaskInstanceState::Deferred
+            )
+        ) {
             continue;
         }
         let end = t.end_date.unwrap_or_else(OffsetDateTime::now_utc);
@@ -157,36 +170,46 @@ mod tests {
     #[test]
     fn test_bar_skips_cleared_try_with_stale_dates() {
         // After clearing, Airflow's /tries endpoint may return the pending
-        // TI alongside the history, with state=None but stale start/end
-        // dates from the prior attempt. The bar must keep the previous
-        // success color, not get repainted gray.
+        // TI alongside the history, with stale start/end dates from the
+        // prior attempt and a pre-execution state. The bar must keep the
+        // previous segment's color, not be overpainted.
         use crate::airflow::model::common::gantt::TaskTryGantt;
 
-        let mut gantt = GanttData::default();
-        gantt.task_tries.insert(
-            "task_1".into(),
-            vec![
-                TaskTryGantt {
-                    try_number: 1,
-                    start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-                    end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-                    state: Some(TaskInstanceState::Success),
-                },
-                TaskTryGantt {
-                    try_number: 2,
-                    start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-                    end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-                    state: None,
-                },
-            ],
-        );
-        gantt.recompute_window();
+        for pending_state in [
+            None,
+            Some(TaskInstanceState::Scheduled),
+            Some(TaskInstanceState::Queued),
+            Some(TaskInstanceState::UpForRetry),
+        ] {
+            let mut gantt = GanttData::default();
+            gantt.task_tries.insert(
+                "task_1".into(),
+                vec![
+                    TaskTryGantt {
+                        try_number: 1,
+                        start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+                        end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+                        state: Some(TaskInstanceState::Success),
+                    },
+                    TaskTryGantt {
+                        try_number: 2,
+                        start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+                        end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+                        state: pending_state.clone(),
+                    },
+                ],
+            );
+            gantt.recompute_window();
 
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
-        let none_color: ratatui::style::Color = AirflowStateColor::None.into();
-        for span in &bar.spans {
-            if let Some(fg) = span.style.fg {
-                assert_ne!(fg, none_color, "bar repainted with None color: {span:?}");
+            let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
+            let success_color: ratatui::style::Color = AirflowStateColor::Success.into();
+            for span in &bar.spans {
+                if let Some(fg) = span.style.fg {
+                    assert_eq!(
+                        fg, success_color,
+                        "cleared try (state={pending_state:?}) overpainted bar: {span:?}"
+                    );
+                }
             }
         }
     }
