@@ -3,6 +3,7 @@ use ratatui::text::{Line, Span};
 use time::OffsetDateTime;
 
 use crate::airflow::model::common::gantt::GanttData;
+use crate::airflow::model::common::taskinstance::TaskInstanceState;
 use crate::airflow::model::common::TaskId;
 
 use super::constants::AirflowStateColor;
@@ -33,7 +34,28 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
         let Some(start) = t.start_date else {
             continue;
         };
-        let end = t.end_date.unwrap_or_else(OffsetDateTime::now_utc);
+        // Only paint a segment for states that have a concrete color and
+        // unambiguously represent a real execution period. After a clear,
+        // Airflow may report the TI in a transitional state (None,
+        // Scheduled, Queued, Restarting, Deferred, ...) while keeping the
+        // prior attempt's start_date; without this guard the old segment
+        // gets repainted with the transitional state's color (often the
+        // terminal Reset color, which reads as gray).
+        let end = match (&t.state, t.end_date) {
+            (
+                Some(
+                    TaskInstanceState::Success
+                    | TaskInstanceState::Failed
+                    | TaskInstanceState::Skipped
+                    | TaskInstanceState::UpstreamFailed,
+                ),
+                Some(end),
+            ) => end,
+            (Some(TaskInstanceState::Running), _) => {
+                t.end_date.unwrap_or_else(OffsetDateTime::now_utc)
+            }
+            _ => continue,
+        };
 
         let start_ratio = gantt.ratio(start);
         let end_ratio = gantt.ratio(end);
@@ -145,6 +167,57 @@ mod tests {
         let bar = create_gantt_bar(&gantt, &"nonexistent".into(), 20);
         let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
         assert_eq!(total_chars, 20);
+    }
+
+    #[test]
+    fn test_bar_skips_cleared_try_with_stale_dates() {
+        // After clearing, Airflow's /tries endpoint may return the pending
+        // TI alongside the history, with stale start/end dates from the
+        // prior attempt and a pre-execution state. The bar must keep the
+        // previous segment's color, not be overpainted.
+        use crate::airflow::model::common::gantt::TaskTryGantt;
+
+        for pending_state in [
+            None,
+            Some(TaskInstanceState::Scheduled),
+            Some(TaskInstanceState::Queued),
+            Some(TaskInstanceState::UpForRetry),
+            Some(TaskInstanceState::Restarting),
+            Some(TaskInstanceState::Deferred),
+            Some(TaskInstanceState::Removed),
+            Some(TaskInstanceState::Unknown),
+        ] {
+            let mut gantt = GanttData::default();
+            gantt.task_tries.insert(
+                "task_1".into(),
+                vec![
+                    TaskTryGantt {
+                        try_number: 1,
+                        start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+                        end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+                        state: Some(TaskInstanceState::Success),
+                    },
+                    TaskTryGantt {
+                        try_number: 2,
+                        start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+                        end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+                        state: pending_state.clone(),
+                    },
+                ],
+            );
+            gantt.recompute_window();
+
+            let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
+            let success_color: ratatui::style::Color = AirflowStateColor::Success.into();
+            for span in &bar.spans {
+                if let Some(fg) = span.style.fg {
+                    assert_eq!(
+                        fg, success_color,
+                        "cleared try (state={pending_state:?}) overpainted bar: {span:?}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
