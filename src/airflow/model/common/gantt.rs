@@ -17,28 +17,35 @@ pub struct TaskTryGantt {
 impl TaskTryGantt {
     /// Whether this try should contribute a segment to the Gantt bar.
     ///
-    /// A try is renderable when it has a `start_date` AND either (a) it has
-    /// an `end_date` (completed) or (b) it is in an actively-executing state.
+    /// A try is renderable when it has a `start_date` AND a concrete
+    /// execution state AND either has an `end_date` (completed) or is in an
+    /// actively-executing state.
     ///
-    /// This excludes stale data Airflow may report after clearing a task,
-    /// where the new pending task instance is returned with a populated
-    /// `start_date` (from a previous attempt or `scheduled_when`) but a
-    /// non-running state like `None`, `Scheduled`, `Queued`, or `UpForRetry`.
+    /// In particular this excludes tries with no `state` (or `Unknown`):
+    /// after a clear, Airflow may report the new task instance with stale
+    /// `start_date`/`end_date` from the prior attempt but `state = None`,
+    /// and the `/tries` endpoint can include that pending TI alongside the
+    /// real history. Without this guard the cleared task's bar gets painted
+    /// with the `None`-state (reset/gray) color until the next run begins.
     #[must_use]
     pub fn is_renderable(&self) -> bool {
         if self.start_date.is_none() {
+            return false;
+        }
+        let Some(state) = &self.state else {
+            return false;
+        };
+        if matches!(state, TaskInstanceState::Unknown) {
             return false;
         }
         if self.end_date.is_some() {
             return true;
         }
         matches!(
-            self.state,
-            Some(
-                TaskInstanceState::Running
-                    | TaskInstanceState::Restarting
-                    | TaskInstanceState::Deferred
-            )
+            state,
+            TaskInstanceState::Running
+                | TaskInstanceState::Restarting
+                | TaskInstanceState::Deferred
         )
     }
 }
@@ -279,6 +286,32 @@ mod tests {
             state: Some(TaskInstanceState::UpForRetry),
         };
         assert!(!up_for_retry.is_renderable());
+    }
+
+    #[test]
+    fn test_cleared_task_with_stale_completed_dates_is_not_renderable() {
+        // After clearing in Airflow 3 (and 2.10+ in some versions), the
+        // /tries endpoint returns the current cleared TI alongside the
+        // history. Airflow may retain the previous attempt's start/end
+        // dates on that pending entry but reset the state to None. Without
+        // skipping it, the Gantt bar paints with the None-state (gray)
+        // color even though the prior attempt should still show its
+        // success/failed color until the new attempt runs.
+        let cleared_with_stale_dates = TaskTryGantt {
+            try_number: 2,
+            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+            state: None,
+        };
+        assert!(!cleared_with_stale_dates.is_renderable());
+
+        let unknown_state = TaskTryGantt {
+            try_number: 2,
+            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+            state: Some(TaskInstanceState::Unknown),
+        };
+        assert!(!unknown_state.is_renderable());
     }
 
     #[test]

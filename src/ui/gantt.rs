@@ -201,6 +201,49 @@ mod tests {
     }
 
     #[test]
+    fn test_bar_keeps_success_color_when_cleared_try_has_stale_dates() {
+        // Reproduces the user-reported bug: previously successful try gets
+        // repainted gray after clearing. The /tries endpoint returns both
+        // the historical success AND the cleared TI with stale dates but
+        // state=None. The bar must keep the success color, not gray.
+        use crate::airflow::model::common::gantt::TaskTryGantt;
+
+        let mut gantt = GanttData::default();
+        gantt.task_tries.insert(
+            "task_1".into(),
+            vec![
+                TaskTryGantt {
+                    try_number: 1,
+                    start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+                    end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+                    state: Some(TaskInstanceState::Success),
+                },
+                // Cleared TI: state reset, but Airflow kept stale dates.
+                TaskTryGantt {
+                    try_number: 2,
+                    start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
+                    end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
+                    state: None,
+                },
+            ],
+        );
+        gantt.recompute_window();
+
+        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
+        let success_color: ratatui::style::Color = AirflowStateColor::Success.into();
+        let none_color: ratatui::style::Color = AirflowStateColor::None.into();
+        for span in &bar.spans {
+            if let Some(fg) = span.style.fg {
+                assert_ne!(
+                    fg, none_color,
+                    "bar painted with None color after clear: {span:?}"
+                );
+                assert_eq!(fg, success_color, "unexpected color in bar: {span:?}");
+            }
+        }
+    }
+
+    #[test]
     fn test_bar_creation_multiple_tasks() {
         let tasks = vec![
             make_task(
