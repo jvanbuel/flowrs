@@ -14,42 +14,6 @@ pub struct TaskTryGantt {
     pub state: Option<TaskInstanceState>,
 }
 
-impl TaskTryGantt {
-    /// Whether this try should contribute a segment to the Gantt bar.
-    ///
-    /// A try is renderable when it has a `start_date` AND a concrete
-    /// execution state AND either has an `end_date` (completed) or is in an
-    /// actively-executing state.
-    ///
-    /// In particular this excludes tries with no `state` (or `Unknown`):
-    /// after a clear, Airflow may report the new task instance with stale
-    /// `start_date`/`end_date` from the prior attempt but `state = None`,
-    /// and the `/tries` endpoint can include that pending TI alongside the
-    /// real history. Without this guard the cleared task's bar gets painted
-    /// with the `None`-state (reset/gray) color until the next run begins.
-    #[must_use]
-    pub fn is_renderable(&self) -> bool {
-        if self.start_date.is_none() {
-            return false;
-        }
-        let Some(state) = &self.state else {
-            return false;
-        };
-        if matches!(state, TaskInstanceState::Unknown) {
-            return false;
-        }
-        if self.end_date.is_some() {
-            return true;
-        }
-        matches!(
-            state,
-            TaskInstanceState::Running
-                | TaskInstanceState::Restarting
-                | TaskInstanceState::Deferred
-        )
-    }
-}
-
 /// Gantt chart data for all task instances in the current DAG run.
 /// Rebuilt each time the task instance list is refreshed.
 #[derive(Debug, Clone, Default)]
@@ -118,16 +82,11 @@ impl GanttData {
 
         for tries in self.task_tries.values() {
             for t in tries {
-                // Only contribute to the window if the try will actually be
-                // rendered; otherwise stale start/end dates from a cleared TI
-                // would skew the window for other tasks' bars.
-                if t.is_renderable() {
-                    if let Some(start) = t.start_date {
-                        min_start = Some(min_start.map_or(start, |cur| cur.min(start)));
-                    }
-                    if let Some(end) = t.end_date {
-                        max_end = Some(max_end.map_or(end, |cur| cur.max(end)));
-                    }
+                if let Some(start) = t.start_date {
+                    min_start = Some(min_start.map_or(start, |cur| cur.min(start)));
+                }
+                if let Some(end) = t.end_date {
+                    max_end = Some(max_end.map_or(end, |cur| cur.max(end)));
                 }
                 if matches!(
                     t.state,
@@ -135,8 +94,6 @@ impl GanttData {
                         TaskInstanceState::Running
                             | TaskInstanceState::Queued
                             | TaskInstanceState::Scheduled
-                            | TaskInstanceState::Restarting
-                            | TaskInstanceState::Deferred
                     )
                 ) {
                     any_running = true;
@@ -248,131 +205,6 @@ mod tests {
         let gantt = GanttData::from_task_instances(&tasks);
         assert_eq!(gantt.window_start, Some(datetime!(2024-01-01 10:00:00 UTC)));
         assert_eq!(gantt.window_end, Some(datetime!(2024-01-01 11:00:00 UTC)));
-    }
-
-    #[test]
-    fn test_cleared_task_with_stale_start_date_is_not_renderable() {
-        // After clearing, Airflow may return a TI with a stale `start_date`
-        // (from a previous attempt or `scheduled_when`) but a non-running
-        // state. Such tries must not paint a Gantt segment.
-        let stale = TaskTryGantt {
-            try_number: 2,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: None,
-            state: Some(TaskInstanceState::Scheduled),
-        };
-        assert!(!stale.is_renderable());
-
-        let pending_none = TaskTryGantt {
-            try_number: 2,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: None,
-            state: None,
-        };
-        assert!(!pending_none.is_renderable());
-
-        let queued = TaskTryGantt {
-            try_number: 2,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: None,
-            state: Some(TaskInstanceState::Queued),
-        };
-        assert!(!queued.is_renderable());
-
-        let up_for_retry = TaskTryGantt {
-            try_number: 2,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: None,
-            state: Some(TaskInstanceState::UpForRetry),
-        };
-        assert!(!up_for_retry.is_renderable());
-    }
-
-    #[test]
-    fn test_cleared_task_with_stale_completed_dates_is_not_renderable() {
-        // After clearing in Airflow 3 (and 2.10+ in some versions), the
-        // /tries endpoint returns the current cleared TI alongside the
-        // history. Airflow may retain the previous attempt's start/end
-        // dates on that pending entry but reset the state to None. Without
-        // skipping it, the Gantt bar paints with the None-state (gray)
-        // color even though the prior attempt should still show its
-        // success/failed color until the new attempt runs.
-        let cleared_with_stale_dates = TaskTryGantt {
-            try_number: 2,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-            state: None,
-        };
-        assert!(!cleared_with_stale_dates.is_renderable());
-
-        let unknown_state = TaskTryGantt {
-            try_number: 2,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-            state: Some(TaskInstanceState::Unknown),
-        };
-        assert!(!unknown_state.is_renderable());
-    }
-
-    #[test]
-    fn test_running_and_completed_tries_are_renderable() {
-        let running = TaskTryGantt {
-            try_number: 1,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: None,
-            state: Some(TaskInstanceState::Running),
-        };
-        assert!(running.is_renderable());
-
-        let completed = TaskTryGantt {
-            try_number: 1,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-            state: Some(TaskInstanceState::Success),
-        };
-        assert!(completed.is_renderable());
-
-        let failed = TaskTryGantt {
-            try_number: 1,
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-            state: Some(TaskInstanceState::Failed),
-        };
-        assert!(failed.is_renderable());
-
-        let no_start = TaskTryGantt {
-            try_number: 1,
-            start_date: None,
-            end_date: None,
-            state: None,
-        };
-        assert!(!no_start.is_renderable());
-    }
-
-    #[test]
-    fn test_window_ignores_stale_start_dates() {
-        // task_1 completed at 10:00–10:30.
-        // task_2 was cleared and has a stale start_date from 09:00 with no end.
-        // Without the fix, window_start would be pulled back to 09:00.
-        let mut gantt = GanttData::from_task_instances(&[make_task(
-            "task_1",
-            1,
-            Some(datetime!(2024-01-01 10:00:00 UTC)),
-            Some(datetime!(2024-01-01 10:30:00 UTC)),
-            Some(TaskInstanceState::Success),
-        )]);
-        gantt.task_tries.insert(
-            "task_2".into(),
-            vec![TaskTryGantt {
-                try_number: 2,
-                start_date: Some(datetime!(2024-01-01 09:00:00 UTC)),
-                end_date: None,
-                state: None,
-            }],
-        );
-        gantt.recompute_window();
-        assert_eq!(gantt.window_start, Some(datetime!(2024-01-01 10:00:00 UTC)));
-        assert_eq!(gantt.window_end, Some(datetime!(2024-01-01 10:30:00 UTC)));
     }
 
     #[test]

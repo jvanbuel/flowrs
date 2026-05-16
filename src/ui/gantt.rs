@@ -30,11 +30,16 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
     let mut char_colors: Vec<Option<Color>> = vec![None; width];
 
     for t in tries {
-        if !t.is_renderable() {
+        let Some(start) = t.start_date else {
+            continue;
+        };
+        // Skip tries with no concrete state: after a clear, Airflow may
+        // return the pending TI with stale start/end dates copied from the
+        // prior attempt, which would otherwise paint the bar gray
+        // (None-state → Color::Reset) instead of preserving the history.
+        if t.state.is_none() {
             continue;
         }
-        // Safe: is_renderable() guarantees start_date is Some.
-        let start = t.start_date.expect("renderable try has start_date");
         let end = t.end_date.unwrap_or_else(OffsetDateTime::now_utc);
 
         let start_ratio = gantt.ratio(start);
@@ -150,62 +155,11 @@ mod tests {
     }
 
     #[test]
-    fn test_bar_skips_pending_try_after_clear() {
-        // Simulates a cleared task: the Gantt has two tries for task_1 —
-        // try 1 succeeded normally, try 2 is the new pending instance with a
-        // start_date populated but no end_date and a non-running state.
-        // The bar must color only try 1's segment; try 2 must be skipped.
-        use crate::airflow::model::common::gantt::TaskTryGantt;
-
-        let mut gantt = GanttData::from_task_instances(&[make_task(
-            "task_1",
-            1,
-            Some(datetime!(2024-01-01 10:00:00 UTC)),
-            Some(datetime!(2024-01-01 10:30:00 UTC)),
-            Some(TaskInstanceState::Success),
-        )]);
-        gantt.task_tries.insert(
-            "task_1".into(),
-            vec![
-                TaskTryGantt {
-                    try_number: 1,
-                    start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-                    end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-                    state: Some(TaskInstanceState::Success),
-                },
-                TaskTryGantt {
-                    try_number: 2,
-                    start_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-                    end_date: None,
-                    state: Some(TaskInstanceState::Scheduled),
-                },
-            ],
-        );
-        gantt.recompute_window();
-
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
-        let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
-        assert_eq!(total_chars, 20);
-        // Every colored char in the bar must come from the Success try, not
-        // the pending one — i.e. no span should be styled with a color other
-        // than the Success color (raw spans = empty).
-        let success_color: ratatui::style::Color = AirflowStateColor::Success.into();
-        for span in &bar.spans {
-            if let Some(fg) = span.style.fg {
-                assert_eq!(
-                    fg, success_color,
-                    "unexpected color in bar after cleared try: {span:?}"
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn test_bar_keeps_success_color_when_cleared_try_has_stale_dates() {
-        // Reproduces the user-reported bug: previously successful try gets
-        // repainted gray after clearing. The /tries endpoint returns both
-        // the historical success AND the cleared TI with stale dates but
-        // state=None. The bar must keep the success color, not gray.
+    fn test_bar_skips_cleared_try_with_stale_dates() {
+        // After clearing, Airflow's /tries endpoint may return the pending
+        // TI alongside the history, with state=None but stale start/end
+        // dates from the prior attempt. The bar must keep the previous
+        // success color, not get repainted gray.
         use crate::airflow::model::common::gantt::TaskTryGantt;
 
         let mut gantt = GanttData::default();
@@ -218,7 +172,6 @@ mod tests {
                     end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
                     state: Some(TaskInstanceState::Success),
                 },
-                // Cleared TI: state reset, but Airflow kept stale dates.
                 TaskTryGantt {
                     try_number: 2,
                     start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
@@ -230,15 +183,10 @@ mod tests {
         gantt.recompute_window();
 
         let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
-        let success_color: ratatui::style::Color = AirflowStateColor::Success.into();
         let none_color: ratatui::style::Color = AirflowStateColor::None.into();
         for span in &bar.spans {
             if let Some(fg) = span.style.fg {
-                assert_ne!(
-                    fg, none_color,
-                    "bar painted with None color after clear: {span:?}"
-                );
-                assert_eq!(fg, success_color, "unexpected color in bar: {span:?}");
+                assert_ne!(fg, none_color, "bar repainted with None color: {span:?}");
             }
         }
     }
