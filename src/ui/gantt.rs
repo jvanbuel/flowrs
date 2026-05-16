@@ -34,26 +34,28 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
         let Some(start) = t.start_date else {
             continue;
         };
-        // Only paint a segment if the try actually executed (or is
-        // executing). After a clear, Airflow's /tries endpoint may include
-        // the new TI with stale dates from the prior attempt but a
-        // pre-execution state (None, Scheduled, Queued, UpForRetry, ...),
-        // which would otherwise overwrite the previous bar's color.
-        if !matches!(
-            t.state,
-            Some(
-                TaskInstanceState::Success
+        // Only paint a segment for states that have a concrete color and
+        // unambiguously represent a real execution period. After a clear,
+        // Airflow may report the TI in a transitional state (None,
+        // Scheduled, Queued, Restarting, Deferred, ...) while keeping the
+        // prior attempt's start_date; without this guard the old segment
+        // gets repainted with the transitional state's color (often the
+        // terminal Reset color, which reads as gray).
+        let end = match (&t.state, t.end_date) {
+            (
+                Some(
+                    TaskInstanceState::Success
                     | TaskInstanceState::Failed
                     | TaskInstanceState::Skipped
-                    | TaskInstanceState::UpstreamFailed
-                    | TaskInstanceState::Running
-                    | TaskInstanceState::Restarting
-                    | TaskInstanceState::Deferred
-            )
-        ) {
-            continue;
-        }
-        let end = t.end_date.unwrap_or_else(OffsetDateTime::now_utc);
+                    | TaskInstanceState::UpstreamFailed,
+                ),
+                Some(end),
+            ) => end,
+            (Some(TaskInstanceState::Running), _) => {
+                t.end_date.unwrap_or_else(OffsetDateTime::now_utc)
+            }
+            _ => continue,
+        };
 
         let start_ratio = gantt.ratio(start);
         let end_ratio = gantt.ratio(end);
@@ -180,6 +182,10 @@ mod tests {
             Some(TaskInstanceState::Scheduled),
             Some(TaskInstanceState::Queued),
             Some(TaskInstanceState::UpForRetry),
+            Some(TaskInstanceState::Restarting),
+            Some(TaskInstanceState::Deferred),
+            Some(TaskInstanceState::Removed),
+            Some(TaskInstanceState::Unknown),
         ] {
             let mut gantt = GanttData::default();
             gantt.task_tries.insert(
