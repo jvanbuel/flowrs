@@ -16,7 +16,7 @@ dirs = "6.0.0"
 log = { version = "0.4.29", features = ["std"] }
 reqwest = { version = "0.12.28", features = ["json", "rustls-tls", "rustls-tls-native-roots"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.148"
+serde_json = "1.0.150"
 strum = { version = "0.28.0", features = ["derive"] }
 time = { version = "0.3.47", features = ["serde", "serde-human-readable", "parsing", "macros"] }
 tokio = { version = "1.51.1", features = ["rt-multi-thread", "sync", "macros"] }
