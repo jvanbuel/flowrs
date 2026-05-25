@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.6](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.5...flowrs-tui-v0.12.6) - 2026-05-25
+
+### Other
+
+- *(deps)* bump openssl from 0.10.79 to 0.10.80
+- *(deps)* bump aws-config from 1.8.16 to 1.8.17
+- Merge pull request #642 from jvanbuel/dependabot/cargo/log-0.4.30
+- Merge pull request #643 from jvanbuel/dependabot/cargo/aws-sdk-mwaa-1.106.0
+- *(deps)* bump serde_json from 1.0.149 to 1.0.150
+
 ## [0.12.5](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.4...flowrs-tui-v0.12.5) - 2026-05-15
 
 ### Fixed
