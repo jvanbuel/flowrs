@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.7](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.6...flowrs-tui-v0.12.7) - 2026-06-18
+
+### Other
+
+- *(deps)* bump aws-sdk-mwaa from 1.108.0 to 1.109.0
+- Merge pull request #651 from jvanbuel/dependabot/cargo/aws-config-1.8.18
+- Merge pull request #652 from jvanbuel/dependabot/cargo/log-0.4.32
+
 ## [0.12.6](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.5...flowrs-tui-v0.12.6) - 2026-05-25
 
 ### Other

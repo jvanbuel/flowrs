@@ -6,7 +6,8 @@ use super::{App, Panel};
 
 /// Cached date format for breadcrumb display (YYYY-MM-DD)
 static BREADCRUMB_DATE_FORMAT: LazyLock<Vec<BorrowedFormatItem<'static>>> = LazyLock::new(|| {
-    time::format_description::parse("[year]-[month]-[day]").expect("Invalid date format")
+    time::format_description::parse_borrowed::<2>("[year]-[month]-[day]")
+        .expect("Invalid date format")
 });
 
 impl App {
