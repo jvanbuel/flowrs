@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.5](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.4...flowrs-config-v0.11.5) - 2026-06-18
+
+### Other
+
+- update Cargo.toml dependencies
+
 ## [0.11.4](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.3...flowrs-config-v0.11.4) - 2026-05-25
 
 ### Other
