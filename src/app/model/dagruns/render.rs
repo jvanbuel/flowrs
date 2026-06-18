@@ -79,7 +79,7 @@ impl Widget for &mut DagRunModel {
                     )),
                     Line::from(if let Some(date) = item.logical_date {
                         date.format(
-                            &format_description::parse(TIME_FORMAT)
+                            &format_description::parse_borrowed::<2>(TIME_FORMAT)
                                 .expect("TIME_FORMAT constant should be a valid time format"),
                         )
                         .expect("Date formatting with TIME_FORMAT should succeed")
