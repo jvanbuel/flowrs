@@ -24,5 +24,6 @@ pub static DAG_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
     CommandPopUp {
         title: "DAG Commands".into(),
         commands,
+        show_gantt_legend: false,
     }
 });

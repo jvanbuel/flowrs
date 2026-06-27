@@ -68,6 +68,10 @@ pub struct TaskInstanceTryResponse {
     pub state: Option<String>,
     pub try_number: u32,
     pub map_index: i64,
+    #[serde(default, with = "time::serde::iso8601::option")]
+    pub queued_when: Option<OffsetDateTime>,
+    #[serde(default, with = "time::serde::iso8601::option")]
+    pub scheduled_when: Option<OffsetDateTime>,
 }
 
 /// Response model for a collection of task instance tries.

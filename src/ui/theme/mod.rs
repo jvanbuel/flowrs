@@ -36,6 +36,7 @@ pub struct Theme {
     pub state_failed: Color,
     pub state_running: Color,
     pub state_queued: Color,
+    pub state_scheduled: Color,
     pub state_up_for_retry: Color,
     pub state_up_for_reschedule: Color,
     pub state_skipped: Color,

@@ -25,7 +25,7 @@ impl Widget for &CommandPopUp<'_> {
 
         Clear.render(popup_area, buf);
 
-        let text = self
+        let mut lines = self
             .commands
             .iter()
             .map(|c| {
@@ -40,9 +40,20 @@ impl Widget for &CommandPopUp<'_> {
                     ),
                 ])
             })
-            .collect::<Text>();
+            .collect::<Vec<Line>>();
 
-        let command_paragraph = Paragraph::new(text).wrap(Wrap { trim: true }).block(popup);
+        if self.show_gantt_legend {
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "Gantt colors:",
+                Style::default().add_modifier(Modifier::BOLD),
+            )));
+            lines.extend(crate::ui::common::gantt_legend_full());
+        }
+
+        let command_paragraph = Paragraph::new(Text::from(lines))
+            .wrap(Wrap { trim: true })
+            .block(popup);
         command_paragraph.render(popup_area, buf);
     }
 }
