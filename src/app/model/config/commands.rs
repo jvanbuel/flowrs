@@ -12,5 +12,6 @@ pub static CONFIG_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
     CommandPopUp {
         title: "Config Commands".into(),
         commands,
+        show_gantt_legend: false,
     }
 });

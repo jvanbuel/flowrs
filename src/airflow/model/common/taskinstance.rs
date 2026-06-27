@@ -90,6 +90,9 @@ pub struct TaskInstance {
     pub priority_weight: Option<i64>,
     pub operator: Option<String>,
     pub queued_when: Option<OffsetDateTime>,
+    /// When the scheduler moved the task to the `scheduled` state.
+    /// Only available from the Airflow v3 (`/api/v2`) API; `None` for v2 servers.
+    pub scheduled_when: Option<OffsetDateTime>,
     pub pid: Option<i64>,
     pub note: Option<String>,
 }

@@ -6,9 +6,13 @@ use super::taskinstance::TaskInstanceState;
 use super::TaskId;
 
 /// A single try/attempt of a task instance, with the fields needed for Gantt chart rendering.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TaskTryGantt {
     pub try_number: u32,
+    /// When the scheduler moved the task to the `scheduled` state (v3 API only).
+    pub scheduled_when: Option<OffsetDateTime>,
+    /// When the task was handed to the executor / placed on the queue.
+    pub queued_when: Option<OffsetDateTime>,
     pub start_date: Option<OffsetDateTime>,
     pub end_date: Option<OffsetDateTime>,
     pub state: Option<TaskInstanceState>,
@@ -47,6 +51,8 @@ impl GanttData {
             let entry = task_tries.entry(task.task_id.clone()).or_default();
             entry.push(TaskTryGantt {
                 try_number: task.try_number,
+                scheduled_when: task.scheduled_when,
+                queued_when: task.queued_when,
                 start_date: task.start_date,
                 end_date: task.end_date,
                 state: task.state.clone(),
@@ -82,8 +88,13 @@ impl GanttData {
 
         for tries in self.task_tries.values() {
             for t in tries {
-                if let Some(start) = t.start_date {
-                    min_start = Some(min_start.map_or(start, |cur| cur.min(start)));
+                // The visible window begins at the earliest known event for the
+                // try: scheduling, then queueing, then execution start.
+                for candidate in [t.scheduled_when, t.queued_when, t.start_date]
+                    .into_iter()
+                    .flatten()
+                {
+                    min_start = Some(min_start.map_or(candidate, |cur| cur.min(candidate)));
                 }
                 if let Some(end) = t.end_date {
                     max_end = Some(max_end.map_or(end, |cur| cur.max(end)));
@@ -227,12 +238,14 @@ mod tests {
                     start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
                     end_date: Some(datetime!(2024-01-01 10:20:00 UTC)),
                     state: Some(TaskInstanceState::Failed),
+                    ..Default::default()
                 },
                 TaskTryGantt {
                     try_number: 2,
                     start_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
                     end_date: Some(datetime!(2024-01-01 11:00:00 UTC)),
                     state: Some(TaskInstanceState::Success),
+                    ..Default::default()
                 },
             ],
         );

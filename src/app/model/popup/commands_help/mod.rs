@@ -9,6 +9,9 @@ pub struct Command<'a> {
 pub struct CommandPopUp<'a> {
     pub title: String,
     pub commands: Vec<Command<'a>>,
+    /// When true, the popup appends a color key for the Gantt chart phases and
+    /// task states. Only the Task Instances panel sets this.
+    pub show_gantt_legend: bool,
 }
 
 pub struct DefaultCommands(pub Vec<Command<'static>>);
