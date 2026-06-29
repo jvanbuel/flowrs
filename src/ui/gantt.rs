@@ -3,8 +3,10 @@ use ratatui::text::{Line, Span};
 use time::OffsetDateTime;
 
 use crate::airflow::model::common::gantt::GanttData;
+use crate::airflow::model::common::taskinstance::TaskInstanceState;
 use crate::airflow::model::common::TaskId;
 
+use super::common::state_to_colored_square;
 use super::constants::AirflowStateColor;
 
 /// Create a Gantt bar `Line` for a specific task, sized to `width` characters.
@@ -113,6 +115,41 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
         i += count;
     }
 
+    Line::from(spans)
+}
+
+/// Single-line Gantt color key — the two lead-in phases followed by every task
+/// state the run segment can take — rendered as a legend beneath the
+/// task-instance Gantt column.
+///
+/// Uses the same `■` swatch as the table's State column (`state_to_colored_square`)
+/// so the two line up visually. Labels come from each state's `Display` and
+/// colors from the `TaskInstanceState -> AirflowStateColor` mapping, so the
+/// legend stays in sync with how the bar itself is colored. States that map to
+/// no distinct color (e.g. `Deferred`, `Removed`) are intentionally omitted.
+///
+/// Each swatch is joined to its label with a non-breaking space (`\u{a0}`) while
+/// items are separated by regular spaces, so a `Paragraph` with `Wrap` reflows
+/// the legend onto multiple rows on narrow panels without ever splitting a
+/// swatch from its label.
+pub fn gantt_legend_line() -> Line<'static> {
+    // In the order Airflow phases progress, then terminal states.
+    let states = [
+        TaskInstanceState::Scheduled,
+        TaskInstanceState::Queued,
+        TaskInstanceState::Running,
+        TaskInstanceState::Success,
+        TaskInstanceState::Failed,
+        TaskInstanceState::UpForRetry,
+        TaskInstanceState::UpForReschedule,
+        TaskInstanceState::Skipped,
+        TaskInstanceState::UpstreamFailed,
+    ];
+    let mut spans: Vec<Span<'static>> = Vec::with_capacity(states.len() * 2);
+    for state in &states {
+        spans.push(state_to_colored_square(AirflowStateColor::from(state)));
+        spans.push(Span::raw(format!("\u{a0}{state}  ")));
+    }
     Line::from(spans)
 }
 

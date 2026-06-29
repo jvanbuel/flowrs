@@ -39,6 +39,5 @@ pub static DAGRUN_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
     CommandPopUp {
         title: "DAG Run Commands".into(),
         commands,
-        show_gantt_legend: false,
     }
 });
