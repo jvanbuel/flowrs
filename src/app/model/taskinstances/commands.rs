@@ -35,6 +35,5 @@ pub static TASK_COMMAND_POP_UP: LazyLock<CommandPopUp> = LazyLock::new(|| {
     CommandPopUp {
         title: "Task Commands".into(),
         commands,
-        show_gantt_legend: true,
     }
 });
