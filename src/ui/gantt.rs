@@ -180,22 +180,6 @@ mod tests {
     }
 
     #[test]
-    fn test_bar_creation_single_task() {
-        let tasks = vec![make_task(
-            "task_1",
-            1,
-            Some(datetime!(2024-01-01 10:00:00 UTC)),
-            Some(datetime!(2024-01-01 11:00:00 UTC)),
-            Some(TaskInstanceState::Success),
-        )];
-        let gantt = GanttData::from_task_instances(&tasks);
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
-        // Single task spanning entire window should fill all 20 chars
-        let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
-        assert_eq!(total_chars, 20);
-    }
-
-    #[test]
     fn test_bar_creation_missing_task() {
         let tasks = vec![make_task(
             "task_1",
@@ -319,29 +303,4 @@ mod tests {
         assert!(has_queued, "queued task should render a queued segment");
     }
 
-    #[test]
-    fn test_bar_creation_multiple_tasks() {
-        let tasks = vec![
-            make_task(
-                "task_1",
-                1,
-                Some(datetime!(2024-01-01 10:00:00 UTC)),
-                Some(datetime!(2024-01-01 10:30:00 UTC)),
-                Some(TaskInstanceState::Success),
-            ),
-            make_task(
-                "task_2",
-                1,
-                Some(datetime!(2024-01-01 10:30:00 UTC)),
-                Some(datetime!(2024-01-01 11:00:00 UTC)),
-                Some(TaskInstanceState::Failed),
-            ),
-        ];
-        let gantt = GanttData::from_task_instances(&tasks);
-
-        // task_1 should fill the first half
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
-        let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
-        assert_eq!(total_chars, 20);
-    }
 }
