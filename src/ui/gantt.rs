@@ -302,5 +302,4 @@ mod tests {
         let has_queued = bar.spans.iter().any(|s| s.style.fg == Some(queued));
         assert!(has_queued, "queued task should render a queued segment");
     }
-
 }
