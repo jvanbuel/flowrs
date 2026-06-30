@@ -17,8 +17,24 @@ pub async fn handle_update_dag_runs(
     dag_id: &DagId,
     env_name: &str,
 ) {
-    let (dag_runs, dag_params) =
-        tokio::join!(client.list_dagruns(dag_id), client.get_dag_params(dag_id));
+    // The param schema is effectively static, so fetch it only once per DAG
+    // instead of on every poll. DAG runs are always refreshed.
+    let need_params = {
+        let app = app.lock().unwrap();
+        app.environment_state
+            .environments
+            .get(env_name)
+            .is_none_or(|env| !env.dag_params.contains_key(dag_id))
+    };
+
+    let (dag_runs, dag_params) = if need_params {
+        let (dag_runs, dag_params) =
+            tokio::join!(client.list_dagruns(dag_id), client.get_dag_params(dag_id));
+        (dag_runs, Some(dag_params))
+    } else {
+        (client.list_dagruns(dag_id).await, None)
+    };
+
     let mut app = app.lock().unwrap();
     match dag_runs {
         Ok(dag_runs) => {
@@ -27,9 +43,9 @@ pub async fn handle_update_dag_runs(
                 env.replace_dag_runs(dag_id, dag_runs.dag_runs);
                 // Cache dag params alongside dag runs (failure is non-fatal)
                 match dag_params {
-                    Ok(Some(params)) => env.update_dag_params(dag_id, params),
-                    Ok(None) => {}
-                    Err(e) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
+                    Some(Ok(Some(params))) => env.update_dag_params(dag_id, params),
+                    Some(Err(e)) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
+                    Some(Ok(None)) | None => {}
                 }
             }
             // Only sync panel data if this environment is still active

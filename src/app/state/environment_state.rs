@@ -32,7 +32,9 @@ pub struct EnvironmentData {
     pub task_logs: HashMap<(DagId, DagRunId, TaskId), Vec<Log>>,
 
     /// Result of `get_dag_params(dag_id)` — cached param schemas for trigger popup.
-    pub dag_params: HashMap<DagId, serde_json::Value>,
+    /// `Arc` so the per-sync copies into the panel models are pointer bumps,
+    /// not deep clones of the (potentially large) schema JSON.
+    pub dag_params: HashMap<DagId, Arc<serde_json::Value>>,
 }
 
 impl EnvironmentData {
@@ -79,7 +81,7 @@ impl EnvironmentData {
 
     /// Update cached params for a DAG.
     pub fn update_dag_params(&mut self, dag_id: &DagId, params: serde_json::Value) {
-        self.dag_params.insert(dag_id.clone(), params);
+        self.dag_params.insert(dag_id.clone(), Arc::new(params));
     }
 
     /// Replace logs for a specific task instance.
@@ -162,7 +164,7 @@ impl EnvironmentStateContainer {
     }
 
     /// Get cached dag params for a specific DAG in the active environment.
-    pub fn get_active_dag_params(&self, dag_id: &DagId) -> Option<serde_json::Value> {
+    pub fn get_active_dag_params(&self, dag_id: &DagId) -> Option<Arc<serde_json::Value>> {
         self.get_active_environment()
             .and_then(|env| env.dag_params.get(dag_id))
             .cloned()
