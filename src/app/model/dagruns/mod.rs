@@ -3,6 +3,8 @@ mod dag_code_view;
 pub mod popup;
 mod render;
 
+use std::sync::Arc;
+
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::style::Style;
@@ -30,7 +32,7 @@ pub struct DagRunModel {
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagRunPopUp>,
     /// Cached DAG params for the trigger popup
-    pub dag_params: Option<serde_json::Value>,
+    pub dag_params: Option<Arc<serde_json::Value>>,
     ticks: u32,
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
@@ -186,7 +188,7 @@ impl DagRunModel {
                     self.popup
                         .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
                             dag_id.clone(),
-                            self.dag_params.as_ref(),
+                            self.dag_params.as_deref(),
                         )));
                 }
                 KeyResult::Consumed

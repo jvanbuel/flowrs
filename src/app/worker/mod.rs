@@ -39,6 +39,9 @@ pub enum WorkerMessage {
     GetDagCode {
         dag_id: DagId,
     },
+    GetDagParams {
+        dag_id: DagId,
+    },
     ClearDagRun {
         dag_run_id: DagRunId,
         dag_id: DagId,
@@ -207,6 +210,9 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         }
         WorkerMessage::GetDagCode { dag_id } => {
             dags::handle_get_dag_code(&app, &client, &dag_id).await;
+        }
+        WorkerMessage::GetDagParams { dag_id } => {
+            dags::handle_get_dag_params(&app, &client, &dag_id, &env_name).await;
         }
         // DAG run operations
         WorkerMessage::UpdateDagRuns { dag_id, .. } => {

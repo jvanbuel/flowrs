@@ -1,4 +1,5 @@
 use crossterm::event::KeyCode;
+use ratatui::widgets::TableState;
 
 use crate::app::{
     events::custom::FlowrsEvent,
@@ -8,13 +9,13 @@ use crate::app::{
 
 use crate::airflow::model::common::DagId;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum FocusZone {
     Params,
     Buttons,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum ParamKind {
     /// Free-text input
     Text,
@@ -35,16 +36,33 @@ pub(crate) struct ParamEntry {
 }
 
 impl ParamEntry {
-    pub fn has_options(&self) -> bool {
-        matches!(self.kind, ParamKind::Enum(_) | ParamKind::Examples(_))
-    }
-
     pub fn options(&self) -> &[String] {
         match &self.kind {
             ParamKind::Enum(opts) | ParamKind::Examples(opts) => opts,
             _ => &[],
         }
     }
+
+    /// Recompute `json_valid` for the current value.
+    ///
+    /// Only free-text params that look like a structured JSON literal (object
+    /// or array) can be "invalid" — bools/enums are machine-controlled and a
+    /// plain string value is legitimately sent as a JSON string, so neither is
+    /// ever flagged.
+    fn revalidate(&mut self) {
+        self.json_valid = match self.kind {
+            ParamKind::Text if looks_like_json_struct(&self.value) => {
+                serde_json::from_str::<serde_json::Value>(&self.value).is_ok()
+            }
+            _ => true,
+        };
+    }
+}
+
+/// Whether `value` looks like it was meant to be a structured JSON literal.
+fn looks_like_json_struct(value: &str) -> bool {
+    let trimmed = value.trim_start();
+    trimmed.starts_with('{') || trimmed.starts_with('[')
 }
 
 pub struct TriggerDagRunPopUp {
@@ -53,25 +71,22 @@ pub struct TriggerDagRunPopUp {
     pub(crate) active_param: usize,
     pub(crate) editing: bool,
     pub(crate) cursor_pos: usize,
-    pub(crate) scroll_offset: usize,
+    /// Table selection/scroll state; the row scroll offset is managed by
+    /// ratatui's `Table` widget, driven from `active_param` at render time.
+    pub(crate) table_state: TableState,
     pub(crate) focus: FocusZone,
     pub(crate) selected_button: SelectedButton,
 }
 
 impl TriggerDagRunPopUp {
     pub fn new(dag_id: DagId, raw_params: Option<&serde_json::Value>) -> Self {
-        let params = raw_params
-            .and_then(|v| v.as_object())
-            .map(|obj| obj.iter().map(|(k, v)| extract_param(k, v)).collect())
-            .unwrap_or_default();
-
         Self {
             dag_id,
-            params,
+            params: build_params(raw_params),
             active_param: 0,
             editing: false,
             cursor_pos: 0,
-            scroll_offset: 0,
+            table_state: TableState::default(),
             focus: FocusZone::Params,
             selected_button: SelectedButton::default(),
         }
@@ -87,16 +102,10 @@ impl TriggerDagRunPopUp {
         }
         let mut map = serde_json::Map::new();
         for entry in &mut self.params {
-            if let Ok(parsed) = serde_json::from_str(&entry.value) {
-                entry.json_valid = true;
-                map.insert(entry.key.clone(), parsed);
-            } else {
-                entry.json_valid = false;
-                map.insert(
-                    entry.key.clone(),
-                    serde_json::Value::String(entry.value.clone()),
-                );
-            }
+            entry.revalidate();
+            let parsed = serde_json::from_str(&entry.value)
+                .unwrap_or_else(|_| serde_json::Value::String(entry.value.clone()));
+            map.insert(entry.key.clone(), parsed);
         }
         Some(serde_json::Value::Object(map))
     }
@@ -139,6 +148,14 @@ impl TriggerDagRunPopUp {
     }
 }
 
+/// Build the editable param list from a raw DAG `params` schema object.
+fn build_params(raw_params: Option<&serde_json::Value>) -> Vec<ParamEntry> {
+    raw_params
+        .and_then(|v| v.as_object())
+        .map(|obj| obj.iter().map(|(k, v)| extract_param(k, v)).collect())
+        .unwrap_or_default()
+}
+
 fn extract_param(key: &str, v: &serde_json::Value) -> ParamEntry {
     let Some(obj) = v.as_object() else {
         return ParamEntry {
@@ -150,8 +167,13 @@ fn extract_param(key: &str, v: &serde_json::Value) -> ParamEntry {
         };
     };
 
-    // Airflow wrapped Param class (2.6+): has "__class" key
-    if obj.contains_key("__class") {
+    // Airflow serializes each Param as an object carrying its `value`, `schema`
+    // and `description`. The legacy `__class` tag is present in some versions
+    // and absent in others, so detect the wrapper by any of its structural
+    // fields rather than by `__class` alone.
+    let is_wrapped_param =
+        obj.contains_key("__class") || obj.contains_key("schema") || obj.contains_key("value");
+    if is_wrapped_param {
         let raw_value = obj.get("value").filter(|v| !v.is_null());
         let value = raw_value.map_or_else(String::new, value_to_string);
 
@@ -311,6 +333,12 @@ impl TriggerDagRunPopUp {
         }
 
         match code {
+            // Esc on the buttons returns to param editing; Esc on the params
+            // (or `q` anywhere) closes the popup.
+            KeyCode::Esc if self.focus == FocusZone::Buttons => {
+                self.focus = FocusZone::Params;
+                (None, vec![])
+            }
             KeyCode::Esc | KeyCode::Char('q') => (Some(FlowrsEvent::Key(key_event)), vec![]),
             KeyCode::Tab | KeyCode::BackTab => {
                 self.focus = match self.focus {
@@ -332,6 +360,7 @@ impl TriggerDagRunPopUp {
                     }
                     return (Some(FlowrsEvent::Key(key_event)), vec![]);
                 }
+                let value_len = self.active_entry().map_or(0, |e| e.value.len());
                 match self.active_entry().map(|e| &e.kind) {
                     // Bool: toggle on Enter instead of opening text editor
                     Some(ParamKind::Bool) => self.toggle_bool(),
@@ -340,7 +369,7 @@ impl TriggerDagRunPopUp {
                     // Text and Examples: open text editor
                     Some(_) => {
                         self.editing = true;
-                        self.cursor_pos = self.active_entry().map_or(0, |e| e.value.len());
+                        self.cursor_pos = value_len;
                     }
                     None => {}
                 }
@@ -383,7 +412,7 @@ impl TriggerDagRunPopUp {
         };
         let value = &mut entry.value;
         match code {
-            KeyCode::Esc | KeyCode::Enter => {
+            KeyCode::Esc | KeyCode::Enter | KeyCode::Tab | KeyCode::BackTab => {
                 self.editing = false;
             }
             KeyCode::Char(c) => {
@@ -394,34 +423,100 @@ impl TriggerDagRunPopUp {
                 value.insert(self.cursor_pos, c);
                 self.cursor_pos += c.len_utf8();
             }
-            KeyCode::Backspace => {
-                if self.cursor_pos > 0 {
-                    let prev = value[..self.cursor_pos]
-                        .char_indices()
-                        .next_back()
-                        .map_or(0, |(i, _)| i);
-                    value.replace_range(prev..self.cursor_pos, "");
-                    self.cursor_pos = prev;
-                }
+            KeyCode::Backspace if self.cursor_pos > 0 => {
+                let prev = value[..self.cursor_pos]
+                    .char_indices()
+                    .next_back()
+                    .map_or(0, |(i, _)| i);
+                value.replace_range(prev..self.cursor_pos, "");
+                self.cursor_pos = prev;
             }
-            KeyCode::Left => {
-                if self.cursor_pos > 0 {
-                    self.cursor_pos = value[..self.cursor_pos]
-                        .char_indices()
-                        .next_back()
-                        .map_or(0, |(i, _)| i);
-                }
+            KeyCode::Left if self.cursor_pos > 0 => {
+                self.cursor_pos = value[..self.cursor_pos]
+                    .char_indices()
+                    .next_back()
+                    .map_or(0, |(i, _)| i);
             }
-            KeyCode::Right => {
-                if self.cursor_pos < value.len() {
-                    self.cursor_pos = value[self.cursor_pos..]
-                        .char_indices()
-                        .nth(1)
-                        .map_or(value.len(), |(i, _)| self.cursor_pos + i);
-                }
+            KeyCode::Right if self.cursor_pos < value.len() => {
+                self.cursor_pos = value[self.cursor_pos..]
+                    .char_indices()
+                    .nth(1)
+                    .map_or(value.len(), |(i, _)| self.cursor_pos + i);
             }
             _ => {}
         }
+        // Keep the JSON-validity hint in sync as the user types.
+        entry.revalidate();
         (None, vec![])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn esc(focus: FocusZone) -> (Option<FlowrsEvent>, FocusZone) {
+        let schema = serde_json::json!({ "x": { "value": 1, "schema": { "type": "integer" } } });
+        let mut popup = TriggerDagRunPopUp::new(DagId::from("d"), Some(&schema));
+        popup.focus = focus;
+        let key = crossterm::event::KeyEvent::from(KeyCode::Esc);
+        let (event, _) = popup.update_with_params(KeyCode::Esc, key);
+        (event, popup.focus)
+    }
+
+    #[test]
+    fn esc_on_buttons_returns_to_params_without_closing() {
+        let (event, focus) = esc(FocusZone::Buttons);
+        assert!(event.is_none(), "popup must stay open");
+        assert_eq!(focus, FocusZone::Params);
+    }
+
+    #[test]
+    fn esc_on_params_closes_the_popup() {
+        let (event, _) = esc(FocusZone::Params);
+        assert!(
+            event.is_some(),
+            "Esc on params returns the key so the parent closes it"
+        );
+    }
+
+    #[test]
+    fn tab_exits_edit_mode() {
+        let schema = serde_json::json!({ "x": { "value": "hi", "schema": { "type": "string" } } });
+        let mut popup = TriggerDagRunPopUp::new(DagId::from("d"), Some(&schema));
+        popup.editing = true;
+        popup.handle_editing(KeyCode::Tab);
+        assert!(!popup.editing);
+    }
+
+    #[test]
+    fn extracts_wrapped_param_without_class_tag() {
+        // The shape returned by Airflow instances that omit `__class`.
+        let entry = extract_param(
+            "awi",
+            &serde_json::json!({
+                "value": false,
+                "description": "Resync table: awi",
+                "schema": { "type": "boolean" }
+            }),
+        );
+        assert_eq!(entry.value, "false");
+        assert_eq!(entry.kind, ParamKind::Bool);
+        assert_eq!(entry.description.as_deref(), Some("Resync table: awi"));
+    }
+
+    #[test]
+    fn wrapped_param_value_is_not_dumped_as_json() {
+        // Regression: the whole wrapper object must not become the value text.
+        let entry = extract_param(
+            "schooljaar_start",
+            &serde_json::json!({
+                "value": 2020,
+                "description": "Start of the schoolyear range",
+                "schema": { "type": "integer" }
+            }),
+        );
+        assert_eq!(entry.value, "2020");
+        assert!(!entry.value.contains("schema"));
     }
 }
