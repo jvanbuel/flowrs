@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.7](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.6...flowrs-airflow-v0.10.7) - 2026-07-01
+
+### Added
+
+- show scheduled and queued phases in the Gantt chart
+
 ## [0.10.6](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.5...flowrs-airflow-v0.10.6) - 2026-06-18
 
 ### Other
