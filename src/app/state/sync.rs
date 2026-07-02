@@ -20,6 +20,7 @@ impl App {
             Panel::DAGRun => {
                 if let Some(dag_id) = self.nav_context.dag_id() {
                     self.dagruns.table.all = self.environment_state.get_active_dag_runs(dag_id);
+                    self.dagruns.dag_params = self.environment_state.get_active_dag_params(dag_id);
                     let dag_run_ids: Vec<String> = self
                         .dagruns
                         .table

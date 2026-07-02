@@ -35,4 +35,11 @@ impl DagOperations for FlowrsClient {
             Self::V2(client) => client.fetch_dag_code(&dag.dag_id).await,
         }
     }
+
+    async fn get_dag_params(&self, dag_id: &str) -> Result<Option<serde_json::Value>> {
+        match self {
+            Self::V1(client) => client.fetch_dag_params(dag_id).await,
+            Self::V2(client) => client.fetch_dag_params(dag_id).await,
+        }
+    }
 }

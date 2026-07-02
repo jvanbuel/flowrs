@@ -1,8 +1,12 @@
 use std::sync::{Arc, Mutex};
 
+use log::warn;
+
 use crate::airflow::model::common::DagId;
 use crate::airflow::traits::AirflowClient;
+use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
 use crate::app::model::dagruns::DagCodeView;
+use crate::app::model::dags::popup::DagPopUp;
 use crate::app::state::{App, Panel};
 
 /// Handle updating DAGs and their statistics from the Airflow server.
@@ -166,4 +170,49 @@ pub async fn handle_get_dag_code(
             _ => app.dags.popup.show_error(error),
         }
     }
+}
+
+/// Fetch a DAG's param schema on demand, then open the trigger popup with it.
+/// Used by the DAG-list trigger path when the schema isn't cached yet — opening
+/// only after the fetch avoids briefly showing the param-less popup.
+pub async fn handle_get_dag_params(
+    app: &Arc<Mutex<App>>,
+    client: &Arc<dyn AirflowClient>,
+    dag_id: &DagId,
+    env_name: &str,
+) {
+    // Reuse the schema cached in the environment (e.g. from a prior DAG-runs
+    // visit) and only hit the API when it isn't there yet.
+    let need_fetch = {
+        let app = app.lock().unwrap();
+        app.environment_state
+            .environments
+            .get(env_name)
+            .is_none_or(|env| !env.dag_params.contains_key(dag_id))
+    };
+    if need_fetch {
+        match client.get_dag_params(dag_id).await {
+            Ok(Some(params)) => {
+                let mut app = app.lock().unwrap();
+                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
+                    env.update_dag_params(dag_id, params);
+                }
+            }
+            Ok(None) => {}
+            Err(e) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
+        }
+    }
+
+    let mut app = app.lock().unwrap();
+    let params = app
+        .environment_state
+        .environments
+        .get(env_name)
+        .and_then(|env| env.dag_params.get(dag_id).cloned());
+    app.dags
+        .popup
+        .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(
+            dag_id.clone(),
+            params.as_deref(),
+        )));
 }

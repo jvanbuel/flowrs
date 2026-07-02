@@ -70,4 +70,17 @@ impl V2Client {
         let dag_source: model::dag::DagSource = response.json().await?;
         Ok(dag_source.content)
     }
+
+    pub async fn fetch_dag_params(&self, dag_id: &str) -> Result<Option<serde_json::Value>> {
+        // `params` lives on the details endpoint; the plain `dags/{dag_id}`
+        // (DAGResponse) schema does not include it.
+        let response = self
+            .base_api(Method::GET, &format!("dags/{dag_id}/details"))
+            .await?
+            .send()
+            .await?
+            .error_for_status()?;
+        let body: serde_json::Value = response.json().await?;
+        Ok(body.get("params").cloned())
+    }
 }

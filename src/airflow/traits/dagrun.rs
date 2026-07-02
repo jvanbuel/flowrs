@@ -20,5 +20,10 @@ pub trait DagRunOperations: Send + Sync {
     async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()>;
 
     /// Trigger a new DAG run
-    async fn trigger_dag_run(&self, dag_id: &str, logical_date: Option<&str>) -> Result<()>;
+    async fn trigger_dag_run(
+        &self,
+        dag_id: &str,
+        logical_date: Option<&str>,
+        conf: Option<serde_json::Value>,
+    ) -> Result<()>;
 }

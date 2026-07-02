@@ -60,8 +60,12 @@ impl V2Client {
         &self,
         dag_id: &str,
         logical_date: Option<&str>,
+        conf: Option<serde_json::Value>,
     ) -> Result<()> {
-        let body = serde_json::json!({"logical_date": logical_date});
+        let mut body = serde_json::json!({"logical_date": logical_date});
+        if let Some(conf) = conf {
+            body["conf"] = conf;
+        }
 
         let resp: Response = self
             .base_api(Method::POST, &format!("dags/{dag_id}/dagRuns"))

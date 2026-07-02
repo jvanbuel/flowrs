@@ -70,7 +70,7 @@ impl Theme {
             marked_style: Style::new().fg(p.text_primary).bg(p.marked_bg),
             alt_row_style: Style::new().fg(p.text_primary).bg(p.alt_row_bg),
             surface_style: Style::new().fg(p.text_primary).bg(p.surface),
-            button_default: Style::new().fg(p.text_primary).bg(p.surface),
+            button_default: Style::new().fg(p.text_primary),
             button_selected: Style::new()
                 .fg(p.accent)
                 .bg(p.selected_bg)

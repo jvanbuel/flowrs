@@ -9,7 +9,6 @@ use log::debug;
 
 use crate::airflow::model::common::{Dag, DagId, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
-use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
 use commands::DAG_COMMAND_POP_UP;
 
 use super::dagruns::DagCodeView;
@@ -146,15 +145,16 @@ impl DagModel {
             }
             KeyCode::Char('t') => {
                 if let Some(dag) = self.table.current() {
-                    self.popup
-                        .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(
-                            dag.dag_id.clone(),
-                        )));
+                    // The worker fetches the schema (or reuses the cached one)
+                    // and opens the trigger popup once it's ready.
+                    KeyResult::ConsumedWith(vec![WorkerMessage::GetDagParams {
+                        dag_id: dag.dag_id.clone(),
+                    }])
                 } else {
                     self.popup
                         .show_error(vec!["No DAG selected to trigger".to_string()]);
+                    KeyResult::Consumed
                 }
-                KeyResult::Consumed
             }
             _ => KeyResult::PassThrough,
         }
