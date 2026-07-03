@@ -77,16 +77,7 @@ impl TriggerDagRunPopUp {
         let popup_w = area.width.saturating_mul(PARAMS_POPUP_WIDTH_PCT) / 100;
         let inner_w = popup_w.saturating_sub(2) as usize;
 
-        // Columns: capped key, fixed-ish value, description fills the rest.
-        let key_col = self
-            .params
-            .iter()
-            .map(|e| e.key.chars().count())
-            .max()
-            .unwrap_or(8)
-            .clamp(8, (inner_w / 4).max(8));
-        let value_col = (inner_w / 4).clamp(10, 24);
-        let desc_col = inner_w.saturating_sub(key_col + value_col + COLUMN_GAPS);
+        let (key_col, value_col, desc_col) = self.param_columns(inner_w);
 
         // Pre-wrap each description so a row is as tall as its (capped) wrap.
         let infos: Vec<(Vec<String>, Style)> = self
@@ -126,10 +117,13 @@ impl TriggerDagRunPopUp {
             ));
         let inner = popup_block.inner(area);
 
-        // header · param table · spacer · buttons · key legend
+        // header · param table · spacer · buttons · key legend. The table gets
+        // `Fill` (lowest priority) so that on very short screens it shrinks
+        // first and the buttons keep their 3 rows — with `Min(3)` the solver
+        // squeezed the buttons instead, rendering them as empty boxes.
         let [header_area, table_area, _, buttons_area, legend_area] = Layout::vertical([
             Constraint::Length(1),
-            Constraint::Min(3),
+            Constraint::Fill(1),
             Constraint::Length(1),
             Constraint::Length(3),
             Constraint::Length(1),
@@ -214,6 +208,54 @@ impl TriggerDagRunPopUp {
             .style(Style::default().fg(t.purple_dim))
             .centered()
             .render(legend_area, buffer);
+    }
+
+    /// Compute the (key, value, description) column widths for a popup of
+    /// `inner_w` columns.
+    ///
+    /// The key column is content-sized, capped at a quarter of the popup. The
+    /// value column grows with its widest rendered value so long values stay
+    /// readable, but leaves at least a third of the remaining width to
+    /// descriptions — unless no row has any info text, in which case values
+    /// get all of it. The description column fills whatever is left.
+    fn param_columns(&self, inner_w: usize) -> (usize, usize, usize) {
+        let key_col = self
+            .params
+            .iter()
+            .map(|e| e.key.chars().count())
+            .max()
+            .unwrap_or(8)
+            .clamp(8, (inner_w / 4).max(8));
+        let avail = inner_w.saturating_sub(key_col + COLUMN_GAPS);
+
+        let widest_value = self
+            .params
+            .iter()
+            .map(value_display_width)
+            .max()
+            .unwrap_or(0);
+        let has_info = self.params.iter().any(|e| !row_info(e).0.is_empty());
+        let value_cap = if has_info {
+            avail.saturating_mul(2) / 3
+        } else {
+            avail
+        };
+        let value_col = widest_value.clamp(10, value_cap.max(10));
+        let desc_col = avail.saturating_sub(value_col);
+        (key_col, value_col, desc_col)
+    }
+}
+
+/// Display width (in columns) of a param's rendered value, including the
+/// decorations `value_cell` adds around it (bool symbol, enum position).
+fn value_display_width(entry: &ParamEntry) -> usize {
+    match &entry.kind {
+        ParamKind::Bool => "\u{2717} false".chars().count(),
+        ParamKind::Enum(opts) => {
+            let n = opts.len();
+            entry.value.chars().count() + format!("  ({n}/{n})").chars().count()
+        }
+        _ => entry.value.chars().count(),
     }
 }
 
@@ -346,6 +388,9 @@ fn centered_rect(area: Rect, width: u16, height: u16) -> Rect {
 /// Render the standard centered Yes / No button pair into `area`.
 /// `active` dims the highlight when the buttons aren't the focused zone.
 fn render_yes_no(area: Rect, buffer: &mut Buffer, yes_selected: bool, active: bool) {
+    if area.height == 0 {
+        return;
+    }
     let [_, yes, _, no, _] = Layout::horizontal([
         Constraint::Fill(1),
         Constraint::Length(8),
@@ -354,8 +399,29 @@ fn render_yes_no(area: Rect, buffer: &mut Buffer, yes_selected: bool, active: bo
         Constraint::Fill(1),
     ])
     .areas(area);
-    themed_button("Yes", active && yes_selected).render(yes, buffer);
-    themed_button("No", active && !yes_selected).render(no, buffer);
+    if area.height >= 3 {
+        themed_button("Yes", active && yes_selected).render(yes, buffer);
+        themed_button("No", active && !yes_selected).render(no, buffer);
+    } else {
+        // Too short for bordered buttons — the border would swallow the label
+        // and leave two blank boxes. Fall back to flat highlighted labels.
+        let t = theme();
+        let style = |selected: bool| {
+            if selected {
+                t.button_selected
+            } else {
+                t.button_default
+            }
+        };
+        Paragraph::new("Yes")
+            .style(style(active && yes_selected))
+            .centered()
+            .render(Rect { height: 1, ..yes }, buffer);
+        Paragraph::new("No")
+            .style(style(active && !yes_selected))
+            .centered()
+            .render(Rect { height: 1, ..no }, buffer);
+    }
 }
 
 /// Slide a `width`-column window over `value` so the char at `cursor_pos`
@@ -573,6 +639,112 @@ mod tests {
         let value = "0123456789";
         let (before, _cursor, after) = value_window(value, 5, 4);
         assert!(before.chars().count() + 1 + after.chars().count() <= 4);
+    }
+
+    fn buffer_text(buf: &ratatui::buffer::Buffer) -> String {
+        let area = buf.area;
+        let mut out = String::new();
+        for y in area.top()..area.bottom() {
+            for x in area.left()..area.right() {
+                out.push_str(buf[(x, y)].symbol());
+            }
+            out.push('\n');
+        }
+        out
+    }
+
+    #[test]
+    fn yes_no_buttons_survive_cramped_heights() {
+        // Regression: on short screens the layout solver used to squeeze the
+        // buttons row below 3 lines, so the bordered Yes/No boxes rendered as
+        // empty borders with no label.
+        use crate::airflow::model::common::DagId;
+        use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
+        use ratatui::{buffer::Buffer, layout::Rect, widgets::Widget};
+
+        crate::ui::theme::init_theme(flowrs_config::Theme::Dark);
+
+        let schema = serde_json::json!({
+            "a": {"value": "1", "schema": {"type": "string"}},
+            "b": {"value": "2", "schema": {"type": "string"}},
+            "c": {"value": "3", "schema": {"type": "string"}},
+        });
+        let mut popup = TriggerDagRunPopUp::new(DagId::from("d"), Some(&schema));
+
+        for height in [6u16, 8, 10, 12, 24] {
+            let area = Rect::new(0, 0, 60, height);
+            let mut buf = Buffer::empty(area);
+            (&mut popup).render(area, &mut buf);
+            let text = buffer_text(&buf);
+            assert!(text.contains("Yes"), "no Yes button at height {height}");
+            assert!(text.contains("No"), "no No button at height {height}");
+        }
+    }
+
+    #[test]
+    fn value_column_grows_with_content_but_keeps_room_for_descriptions() {
+        use crate::airflow::model::common::DagId;
+        use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
+
+        crate::ui::theme::init_theme(flowrs_config::Theme::Dark);
+
+        let long_value = "x".repeat(60);
+        let schema = serde_json::json!({
+            "big": {"value": long_value, "description": "a description", "schema": {"type": "string"}},
+        });
+        let popup = TriggerDagRunPopUp::new(DagId::from("d"), Some(&schema));
+
+        // inner_w 100: key = 8, avail = 90. The 60-char value fits within the
+        // two-thirds cap (60), and descriptions keep the remaining third.
+        let (key, value, desc) = popup.param_columns(100);
+        assert_eq!(key, 8);
+        assert_eq!(value, 60);
+        assert_eq!(desc, 30);
+
+        // On a narrower popup the value column is capped so the description
+        // still gets a third of the space.
+        let (key, value, desc) = popup.param_columns(70);
+        assert_eq!(key, 8);
+        assert_eq!(value, 40); // two thirds of the remaining 60
+        assert_eq!(desc, 20);
+    }
+
+    #[test]
+    fn value_column_takes_all_space_when_no_row_has_info() {
+        use crate::airflow::model::common::DagId;
+        use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
+
+        crate::ui::theme::init_theme(flowrs_config::Theme::Dark);
+
+        let long_value = "x".repeat(200);
+        let schema = serde_json::json!({
+            "big": {"value": long_value, "schema": {"type": "string"}},
+        });
+        let popup = TriggerDagRunPopUp::new(DagId::from("d"), Some(&schema));
+
+        // No description / options / warning anywhere: the value column may
+        // use the full remaining width.
+        let (key, value, desc) = popup.param_columns(100);
+        assert_eq!(key, 8);
+        assert_eq!(value, 90);
+        assert_eq!(desc, 0);
+    }
+
+    #[test]
+    fn short_values_keep_a_minimum_column() {
+        use crate::airflow::model::common::DagId;
+        use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
+
+        crate::ui::theme::init_theme(flowrs_config::Theme::Dark);
+
+        let schema = serde_json::json!({
+            "flag": {"value": true, "description": "a flag", "schema": {"type": "boolean"}},
+        });
+        let popup = TriggerDagRunPopUp::new(DagId::from("d"), Some(&schema));
+
+        let (_, value, desc) = popup.param_columns(100);
+        assert_eq!(value, 10, "short values get the minimum column width");
+        assert!(desc > 50, "descriptions absorb the rest");
     }
 
     #[test]
