@@ -1,12 +1,14 @@
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{
+    Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget, Wrap,
+};
 
 use crate::airflow::model::common::{calculate_duration, format_duration};
 use crate::ui::common::{create_headers, state_to_colored_square};
 use crate::ui::constants::AirflowStateColor;
-use crate::ui::gantt::create_gantt_bar;
+use crate::ui::gantt::{create_gantt_bar, gantt_legend_line};
 use crate::ui::theme::theme;
 
 use super::popup::TaskInstancePopUp;
@@ -14,7 +16,19 @@ use super::TaskInstanceModel;
 
 impl Widget for &mut TaskInstanceModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
-        let content_area = self.table.render_with_filter(area, buffer);
+        let panel_area = self.table.render_with_filter(area, buffer);
+
+        // The legend wraps onto as many rows as the panel width requires; reserve
+        // exactly that height at the bottom and let the table fill the rest.
+        let legend = Paragraph::new(gantt_legend_line())
+            .wrap(Wrap { trim: true })
+            .alignment(Alignment::Center);
+        #[allow(clippy::cast_possible_truncation)]
+        let legend_height = legend.line_count(panel_area.width).max(1) as u16;
+
+        let [content_area, legend_area] =
+            Layout::vertical([Constraint::Fill(1), Constraint::Length(legend_height)])
+                .areas(panel_area);
         let t = theme();
 
         let headers = ["Task ID", "Duration", "State", "Tries", "Gantt"];
@@ -73,6 +87,8 @@ impl Widget for &mut TaskInstanceModel {
         .row_highlight_style(t.selected_row_style);
 
         StatefulWidget::render(t, content_area, buffer, &mut self.table.filtered.state);
+
+        legend.render(legend_area, buffer);
 
         // Render any active popup (error, commands, or custom)
         (&self.popup).render(area, buffer);

@@ -1,6 +1,6 @@
 [package]
 name = "flowrs-config"
-version = "0.11.4"
+version = "0.11.6"
 edition = "2021"
 rust-version = "1.87.0"
 description = "Configuration types for flowrs"
@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/jvanbuel/flowrs"
 
 [dependencies]
-flowrs-airflow = { path = "../flowrs-airflow", version = "0.10.5", default-features = false }
+flowrs-airflow = { path = "../flowrs-airflow", version = "0.10.7", default-features = false }
 anyhow.workspace = true
 clap.workspace = true
 dirs.workspace = true

@@ -99,6 +99,7 @@ pub(crate) fn v2_task_instance_to_domain(
         priority_weight: value.priority_weight,
         operator: value.operator,
         queued_when: value.queued_when,
+        scheduled_when: value.scheduled_when,
         pid: value.pid,
         note: value.note,
     }
@@ -122,6 +123,8 @@ pub(crate) fn v2_task_instance_try_to_gantt(
 ) -> TaskTryGantt {
     TaskTryGantt {
         try_number: value.try_number,
+        scheduled_when: value.scheduled_when,
+        queued_when: value.queued_when,
         start_date: value.start_date,
         end_date: value.end_date,
         state: value.state.map(|s| TaskInstanceState::from(s.as_str())),

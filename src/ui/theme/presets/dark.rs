@@ -26,6 +26,7 @@ impl Theme {
             state_failed: Color::Rgb(255, 107, 107),  // #FF6B6B
             state_running: Color::Rgb(155, 255, 155), // #9BFF9B
             state_queued: Color::Rgb(128, 128, 128),  // #808080
+            state_scheduled: Color::Rgb(210, 180, 140), // tan #D2B48C
             state_up_for_retry: Color::Rgb(255, 179, 71), // #FFB347
             state_up_for_reschedule: Color::Rgb(111, 231, 219), // #6FE7DB
             state_skipped: Color::Rgb(255, 142, 198), // #FF8EC6
