@@ -1,8 +1,18 @@
 use crossterm::event::KeyCode;
+use ratatui::{
+    buffer::Buffer,
+    layout::{Constraint, Flex, Layout, Rect},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
+};
 use strum::Display;
 
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
-use crate::app::{events::custom::FlowrsEvent, model::Model, worker::WorkerMessage};
+use crate::app::{
+    events::custom::FlowrsEvent,
+    model::{popup::popup_area, Model},
+    worker::WorkerMessage,
+};
+use crate::ui::theme::theme;
 
 pub struct MarkDagRunPopup {
     pub dag_id: DagId,
@@ -94,5 +104,98 @@ impl Model for MarkDagRunPopup {
             }
         }
         (Some(event.clone()), vec![])
+    }
+}
+
+impl Widget for &mut MarkDagRunPopup {
+    fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
+        // Smaller popup: 35% width, auto height
+        let area = popup_area(area, 35, 30);
+
+        let [_, header, options, _] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(2),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ])
+        .flex(Flex::Center)
+        .areas(area);
+
+        let popup_block = Block::default()
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .border_style(t.border_style)
+            .style(t.default_style);
+
+        let text = Paragraph::new("Mark status as")
+            .style(t.default_style)
+            .centered();
+
+        let [_, success, _, failed, _, queued, _] = Layout::horizontal([
+            Constraint::Fill(1),
+            Constraint::Length(11),
+            Constraint::Length(2),
+            Constraint::Length(10),
+            Constraint::Length(2),
+            Constraint::Length(10),
+            Constraint::Fill(1),
+        ])
+        .areas(options);
+
+        // Success button
+        let (success_style, success_border) = if self.status == MarkState::Success {
+            (t.button_selected, t.border_selected)
+        } else {
+            (t.button_default, t.border_default)
+        };
+        let success_btn = Paragraph::new("Success")
+            .style(success_style)
+            .centered()
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::ALL)
+                    .border_style(success_style.fg(success_border)),
+            );
+
+        // Failed button
+        let (failed_style, failed_border) = if self.status == MarkState::Failed {
+            (t.button_selected, t.border_selected)
+        } else {
+            (t.button_default, t.border_default)
+        };
+        let failed_btn = Paragraph::new("Failed")
+            .style(failed_style)
+            .centered()
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::ALL)
+                    .border_style(failed_style.fg(failed_border)),
+            );
+
+        // Queued button
+        let (queued_style, queued_border) = if self.status == MarkState::Queued {
+            (t.button_selected, t.border_selected)
+        } else {
+            (t.button_default, t.border_default)
+        };
+        let queued_btn = Paragraph::new("Queued")
+            .style(queued_style)
+            .centered()
+            .block(
+                Block::default()
+                    .border_type(BorderType::Rounded)
+                    .borders(Borders::ALL)
+                    .border_style(queued_style.fg(queued_border)),
+            );
+
+        Clear.render(area, buffer);
+        popup_block.render(area, buffer);
+        text.render(header, buffer);
+        success_btn.render(success, buffer);
+        failed_btn.render(failed, buffer);
+        queued_btn.render(queued, buffer);
     }
 }

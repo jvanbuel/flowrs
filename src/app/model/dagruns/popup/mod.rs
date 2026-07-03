@@ -1,6 +1,5 @@
 pub mod clear;
 pub mod mark;
-mod render;
 pub mod trigger;
 
 use clear::ClearDagRunPopup;
