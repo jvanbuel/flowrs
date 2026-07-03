@@ -1,10 +1,19 @@
 use crossterm::event::KeyCode;
+use ratatui::{
+    buffer::Buffer,
+    layout::{Constraint, Flex, Layout, Rect},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
+};
 
 use crate::app::{
     events::custom::FlowrsEvent,
-    model::{popup::SelectedButton, Model},
+    model::{
+        popup::{popup_area, render_yes_no, SelectedButton},
+        Model,
+    },
     worker::WorkerMessage,
 };
+use crate::ui::theme::theme;
 
 use crate::airflow::model::common::{DagId, DagRunId};
 
@@ -65,5 +74,43 @@ impl Model for ClearDagRunPopup {
             }
         }
         (Some(event.clone()), vec![])
+    }
+}
+
+impl Widget for &mut ClearDagRunPopup {
+    fn render(self, area: Rect, buffer: &mut Buffer) {
+        let t = theme();
+        // Smaller popup: 40% width, auto height
+        let area = popup_area(area, 40, 30);
+
+        let popup_block = Block::default()
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .border_style(t.border_style)
+            .style(t.default_style);
+
+        // Use inner area for content layout to avoid overlapping the border
+        let inner = popup_block.inner(area);
+
+        let [_, header, options, _] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(2),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ])
+        .flex(Flex::Center)
+        .areas(inner);
+
+        let message = if self.dag_run_ids.len() == 1 {
+            "Clear this DAG Run?".to_string()
+        } else {
+            format!("Clear {} DAG Runs?", self.dag_run_ids.len())
+        };
+        let text = Paragraph::new(message).style(t.default_style).centered();
+
+        Clear.render(area, buffer);
+        popup_block.render(area, buffer);
+        text.render(header, buffer);
+        render_yes_no(options, buffer, self.selected_button.is_yes(), true);
     }
 }

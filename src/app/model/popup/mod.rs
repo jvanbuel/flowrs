@@ -156,3 +156,42 @@ pub fn themed_button(text: &str, selected: bool) -> Paragraph<'_> {
             .style(style),
     )
 }
+
+/// Render the standard centered Yes / No button pair into `area`.
+/// `active` dims the highlight when the buttons aren't the focused zone.
+pub fn render_yes_no(area: Rect, buffer: &mut Buffer, yes_selected: bool, active: bool) {
+    if area.height == 0 {
+        return;
+    }
+    let [_, yes, _, no, _] = Layout::horizontal([
+        Constraint::Fill(1),
+        Constraint::Length(8),
+        Constraint::Length(2),
+        Constraint::Length(8),
+        Constraint::Fill(1),
+    ])
+    .areas(area);
+    if area.height >= 3 {
+        themed_button("Yes", active && yes_selected).render(yes, buffer);
+        themed_button("No", active && !yes_selected).render(no, buffer);
+    } else {
+        // Too short for bordered buttons — the border would swallow the label
+        // and leave two blank boxes. Fall back to flat highlighted labels.
+        let t = theme();
+        let style = |selected: bool| {
+            if selected {
+                t.button_selected
+            } else {
+                t.button_default
+            }
+        };
+        Paragraph::new("Yes")
+            .style(style(active && yes_selected))
+            .centered()
+            .render(Rect { height: 1, ..yes }, buffer);
+        Paragraph::new("No")
+            .style(style(active && !yes_selected))
+            .centered()
+            .render(Rect { height: 1, ..no }, buffer);
+    }
+}
