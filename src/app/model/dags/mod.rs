@@ -145,8 +145,8 @@ impl DagModel {
             }
             KeyCode::Char('t') => {
                 if let Some(dag) = self.table.current() {
-                    // The worker fetches the schema (or reuses the cached one)
-                    // and opens the trigger popup once it's ready.
+                    // The worker fetches a fresh param schema (falling back to
+                    // the cached one) and opens the trigger popup once ready.
                     KeyResult::ConsumedWith(vec![WorkerMessage::GetDagParams {
                         dag_id: dag.dag_id.clone(),
                     }])

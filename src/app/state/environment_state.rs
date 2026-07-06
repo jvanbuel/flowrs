@@ -163,13 +163,6 @@ impl EnvironmentStateContainer {
             .unwrap_or_default()
     }
 
-    /// Get cached dag params for a specific DAG in the active environment.
-    pub fn get_active_dag_params(&self, dag_id: &DagId) -> Option<Arc<serde_json::Value>> {
-        self.get_active_environment()
-            .and_then(|env| env.dag_params.get(dag_id))
-            .cloned()
-    }
-
     /// Get logs for a specific task instance in the active environment.
     pub fn get_active_task_logs(
         &self,

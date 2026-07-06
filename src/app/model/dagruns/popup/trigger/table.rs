@@ -77,20 +77,25 @@ pub(super) fn value_cell(
     value_width: usize,
 ) -> Text<'static> {
     let t = theme();
+    // Invalid JSON turns the value red (live while typing) so the problem is
+    // visible on the value itself, not just in the description column.
+    let value_style = if entry.json_valid {
+        Style::default().fg(t.text_primary)
+    } else {
+        Style::default().fg(t.state_failed)
+    };
 
     if editing {
         let (before, cursor_char, after) = value_window(&entry.value, cursor_pos, value_width);
         return Line::from(vec![
-            Span::styled(before, Style::default().fg(t.text_primary)),
+            Span::styled(before, value_style),
             // `REVERSED` (not an explicit bg) so the block survives the row
             // highlight, which the Table patches over the cell afterwards.
             Span::styled(
                 cursor_char.to_string(),
-                Style::default()
-                    .fg(t.text_primary)
-                    .add_modifier(Modifier::REVERSED),
+                value_style.add_modifier(Modifier::REVERSED),
             ),
-            Span::styled(after, Style::default().fg(t.text_primary)),
+            Span::styled(after, value_style),
         ])
         .into();
     }
@@ -109,7 +114,7 @@ pub(super) fn value_cell(
         ParamKind::Enum(opts) => enum_cell(entry, opts, value_width),
         _ => Line::from(Span::styled(
             truncate_cols(&entry.value, value_width),
-            Style::default().fg(t.text_primary),
+            value_style,
         ))
         .into(),
     }
@@ -163,17 +168,17 @@ fn wrap_lines(text: &str, width: usize) -> Vec<String> {
     lines
 }
 
-/// Text + style for a param's "Description" cell: its description, else a JSON
-/// validity warning, else its option list, else empty.
+/// Text + style for a param's "Description" cell: a JSON validity warning
+/// takes precedence, else its description, else its option list, else empty.
 fn row_info(entry: &ParamEntry) -> (String, Style) {
     let t = theme();
-    if let Some(desc) = &entry.description {
-        (desc.clone(), Style::default().fg(t.text_primary))
-    } else if !entry.json_valid {
+    if !entry.json_valid {
         (
             "\u{26a0} invalid JSON — will be sent as string".to_string(),
             Style::default().fg(t.state_failed),
         )
+    } else if let Some(desc) = &entry.description {
+        (desc.clone(), Style::default().fg(t.text_primary))
     } else if !entry.options().is_empty() {
         (
             entry.options().join("  |  "),
