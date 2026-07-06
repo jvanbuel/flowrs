@@ -2,17 +2,19 @@
 
 use ratatui::{
     style::{Modifier, Style},
-    text::{Line, Span},
+    text::{Line, Span, Text},
 };
 
 use crate::ui::theme::theme;
 
 use super::params::{ParamEntry, ParamKind};
-use super::text::{truncate_cols, value_window};
+use super::text::{truncate_cols, value_window, wrap_text};
 use super::TriggerDagRunPopUp;
 
 /// Total inter-column padding the table reserves (1 col between each of 3 columns).
 const COLUMN_GAPS: usize = 2;
+/// Max wrapped lines for an enum value (the only kind that wraps).
+const MAX_VALUE_LINES: usize = 3;
 
 impl TriggerDagRunPopUp {
     /// Compute the (key, value, description) column widths for a popup of
@@ -24,13 +26,14 @@ impl TriggerDagRunPopUp {
     /// descriptions — unless no row has any info text, in which case values
     /// get all of it. The description column fills whatever is left.
     pub(super) fn param_columns(&self, inner_w: usize) -> (usize, usize, usize) {
+        // Min 9 so the "Parameter" column header is never clipped.
         let key_col = self
             .params
             .iter()
             .map(|e| e.key.chars().count())
             .max()
-            .unwrap_or(8)
-            .clamp(8, (inner_w / 4).max(8));
+            .unwrap_or(9)
+            .clamp(9, (inner_w / 4).max(9));
         let avail = inner_w.saturating_sub(key_col + COLUMN_GAPS);
 
         let widest_value = self
@@ -66,13 +69,13 @@ fn value_display_width(entry: &ParamEntry) -> usize {
 
 /// Build the "Value" cell for a param row. When `editing`, shows the live
 /// cursor with horizontal scroll; otherwise a typed widget (bool symbol,
-/// enum value + position, or plain/truncated text).
+/// wrapped enum value + position, or plain/truncated text).
 pub(super) fn value_cell(
     entry: &ParamEntry,
     editing: bool,
     cursor_pos: usize,
     value_width: usize,
-) -> Line<'static> {
+) -> Text<'static> {
     let t = theme();
 
     if editing {
@@ -88,7 +91,8 @@ pub(super) fn value_cell(
                     .add_modifier(Modifier::REVERSED),
             ),
             Span::styled(after, Style::default().fg(t.text_primary)),
-        ]);
+        ])
+        .into();
     }
 
     match &entry.kind {
@@ -100,28 +104,59 @@ pub(super) fn value_cell(
             } else {
                 ("\u{2717} false", t.state_failed)
             };
-            Line::from(Span::styled(symbol, Style::default().fg(color)))
+            Line::from(Span::styled(symbol, Style::default().fg(color))).into()
         }
-        ParamKind::Enum(opts) => {
-            let position = opts
-                .iter()
-                .position(|o| *o == entry.value)
-                .map(|idx| format!("  ({}/{})", idx + 1, opts.len()))
-                .unwrap_or_default();
-            let value = truncate_cols(
-                &entry.value,
-                value_width.saturating_sub(position.chars().count()),
-            );
-            Line::from(vec![
-                Span::styled(value, Style::default().fg(t.text_primary)),
-                Span::styled(position, Style::default().fg(t.purple_dim)),
-            ])
-        }
+        ParamKind::Enum(opts) => enum_cell(entry, opts, value_width),
         _ => Line::from(Span::styled(
             truncate_cols(&entry.value, value_width),
             Style::default().fg(t.text_primary),
-        )),
+        ))
+        .into(),
     }
+}
+
+/// Enum values wrap (instead of truncating) so the selected option is fully
+/// readable; the dimmed `(i/n)` position tag goes on the last line, or on its
+/// own line when it doesn't fit.
+fn enum_cell(entry: &ParamEntry, opts: &[String], value_width: usize) -> Text<'static> {
+    let t = theme();
+
+    let mut lines = wrap_text(&entry.value, value_width);
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    if lines.len() > MAX_VALUE_LINES {
+        lines.truncate(MAX_VALUE_LINES);
+        if let Some(last) = lines.last_mut() {
+            *last = truncate_cols(&format!("{last}…"), value_width);
+        }
+    }
+
+    let mut text: Vec<Line> = lines
+        .iter()
+        .map(|l| Line::from(Span::styled(l.clone(), Style::default().fg(t.text_primary))))
+        .collect();
+
+    let position = opts
+        .iter()
+        .position(|o| *o == entry.value)
+        .map(|idx| format!("  ({}/{})", idx + 1, opts.len()))
+        .unwrap_or_default();
+    if !position.is_empty() {
+        let last_width = lines.last().map_or(0, |l| l.chars().count());
+        let position_style = Style::default().fg(t.purple_dim);
+        if last_width + position.chars().count() <= value_width {
+            if let Some(last) = text.last_mut() {
+                last.push_span(Span::styled(position, position_style));
+            }
+        } else {
+            text.push(Line::from(Span::styled(
+                position.trim_start().to_string(),
+                position_style,
+            )));
+        }
+    }
+    Text::from(text)
 }
 
 /// Text + style for a param's "Description" cell: its description, else a JSON
