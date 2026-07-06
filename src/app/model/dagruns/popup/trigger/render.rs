@@ -5,7 +5,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
     style::{Modifier, Style},
-    text::{Line, Span, Text},
+    text::Span,
     widgets::{
         Block, BorderType, Borders, Cell, Clear, Paragraph, Row, StatefulWidget, Table, Widget,
     },
@@ -16,16 +16,13 @@ use crate::{
     ui::theme::theme,
 };
 
-use super::table::{row_info, value_cell};
-use super::text::wrap_text;
+use super::table::{desc_cell, value_cell};
 use super::{FocusZone, TriggerDagRunPopUp};
 
 /// Popup width as a percent of the screen; the height grows with content.
 const PARAMS_POPUP_WIDTH_PCT: u16 = 75;
 /// Cap on popup height as a percent of the screen (content scrolls beyond it).
 const PARAMS_POPUP_MAX_H_PCT: u16 = 85;
-/// Max wrapped lines shown per param description (taller rows scroll the table).
-const MAX_DESC_LINES: usize = 3;
 
 impl Widget for &mut TriggerDagRunPopUp {
     fn render(self, area: Rect, buffer: &mut Buffer) {
@@ -83,35 +80,30 @@ impl TriggerDagRunPopUp {
         let active = self.active_param;
         let editing = self.editing && self.focus == FocusZone::Params;
 
-        // Pre-wrap each description so a row is as tall as its (capped) wrap.
-        let infos: Vec<(Vec<String>, Style)> = self
-            .params
-            .iter()
-            .map(|entry| {
-                let (text, style) = row_info(entry);
-                let mut lines = wrap_text(&text, desc_col);
-                lines.truncate(MAX_DESC_LINES);
-                if lines.is_empty() {
-                    lines.push(String::new());
-                }
-                (lines, style)
-            })
-            .collect();
+        // Build the rows up front: descriptions and enum values wrap, so each
+        // row is as tall as its tallest cell and the total sizes the popup.
+        let mut rows = Vec::with_capacity(self.params.len());
+        let mut total_rows_h: u16 = 0;
+        for (i, entry) in self.params.iter().enumerate() {
+            let value = value_cell(entry, editing && i == active, self.cursor_pos, value_col);
+            let desc = desc_cell(entry, desc_col);
+            let height = u16::try_from(value.height().max(desc.height())).unwrap_or(1);
+            total_rows_h = total_rows_h.saturating_add(height);
+            rows.push(
+                Row::new(vec![
+                    // Parameter names in the accent color to set them apart
+                    // from the (neutral) values.
+                    Cell::from(Span::styled(
+                        entry.key.clone(),
+                        Style::default().fg(t.accent),
+                    )),
+                    Cell::from(value),
+                    Cell::from(desc),
+                ])
+                .height(height),
+            );
+        }
 
-        // Pre-build the value cells: enum values wrap, so they contribute to
-        // row height too.
-        let value_cells: Vec<Text> = self
-            .params
-            .iter()
-            .enumerate()
-            .map(|(i, entry)| value_cell(entry, editing && i == active, self.cursor_pos, value_col))
-            .collect();
-
-        let total_rows_h: u16 = infos
-            .iter()
-            .zip(value_cells.iter())
-            .map(|((lines, _), value)| u16::try_from(lines.len().max(value.height())).unwrap_or(1))
-            .sum();
         // chrome = header(1) + spacer(1) + buttons(3) + legend(1) + table header(1) + borders(2)
         let desired_h = total_rows_h.saturating_add(9);
         let max_h = area.height.saturating_mul(PARAMS_POPUP_MAX_H_PCT) / 100;
@@ -151,32 +143,6 @@ impl TriggerDagRunPopUp {
             .style(t.default_style)
             .centered()
             .render(header_area, buffer);
-
-        let rows: Vec<Row> = self
-            .params
-            .iter()
-            .zip(infos.iter().zip(value_cells))
-            .map(|(entry, ((lines, style), value))| {
-                let height = u16::try_from(lines.len().max(value.height())).unwrap_or(1);
-                let desc = Text::from(
-                    lines
-                        .iter()
-                        .map(|l| Line::from(Span::styled(l.clone(), *style)))
-                        .collect::<Vec<_>>(),
-                );
-                Row::new(vec![
-                    // Parameter names in the accent color to set them apart
-                    // from the (neutral) values.
-                    Cell::from(Span::styled(
-                        entry.key.clone(),
-                        Style::default().fg(t.accent),
-                    )),
-                    Cell::from(value),
-                    Cell::from(desc),
-                ])
-                .height(height)
-            })
-            .collect();
 
         let header_row =
             Row::new(["Parameter", "Value", "Description"]).style(t.table_header_style);

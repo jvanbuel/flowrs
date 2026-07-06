@@ -13,8 +13,8 @@ use super::TriggerDagRunPopUp;
 
 /// Total inter-column padding the table reserves (1 col between each of 3 columns).
 const COLUMN_GAPS: usize = 2;
-/// Max wrapped lines for an enum value (the only kind that wraps).
-const MAX_VALUE_LINES: usize = 3;
+/// Max wrapped lines per cell (descriptions and enum values wrap).
+const MAX_CELL_LINES: usize = 3;
 
 impl TriggerDagRunPopUp {
     /// Compute the (key, value, description) column widths for a popup of
@@ -120,48 +120,52 @@ pub(super) fn value_cell(
 /// own line when it doesn't fit.
 fn enum_cell(entry: &ParamEntry, opts: &[String], value_width: usize) -> Text<'static> {
     let t = theme();
-
-    let mut lines = wrap_text(&entry.value, value_width);
-    if lines.is_empty() {
-        lines.push(String::new());
-    }
-    if lines.len() > MAX_VALUE_LINES {
-        lines.truncate(MAX_VALUE_LINES);
-        if let Some(last) = lines.last_mut() {
-            *last = truncate_cols(&format!("{last}…"), value_width);
-        }
-    }
+    let lines = wrap_lines(&entry.value, value_width);
 
     let mut text: Vec<Line> = lines
         .iter()
         .map(|l| Line::from(Span::styled(l.clone(), Style::default().fg(t.text_primary))))
         .collect();
-
-    let position = opts
-        .iter()
-        .position(|o| *o == entry.value)
-        .map(|idx| format!("  ({}/{})", idx + 1, opts.len()))
-        .unwrap_or_default();
-    if !position.is_empty() {
+    if let Some(idx) = opts.iter().position(|o| *o == entry.value) {
+        let tag = format!("({}/{})", idx + 1, opts.len());
+        let dim = Style::default().fg(t.purple_dim);
         let last_width = lines.last().map_or(0, |l| l.chars().count());
-        let position_style = Style::default().fg(t.purple_dim);
-        if last_width + position.chars().count() <= value_width {
+        if last_width + tag.chars().count() + 2 <= value_width {
             if let Some(last) = text.last_mut() {
-                last.push_span(Span::styled(position, position_style));
+                last.push_span(Span::styled(format!("  {tag}"), dim));
             }
         } else {
-            text.push(Line::from(Span::styled(
-                position.trim_start().to_string(),
-                position_style,
-            )));
+            text.push(Line::from(Span::styled(tag, dim)));
         }
     }
     Text::from(text)
 }
 
+/// The "Description" cell: the row's info text wrapped to `width`.
+pub(super) fn desc_cell(entry: &ParamEntry, width: usize) -> Text<'static> {
+    let (info, style) = row_info(entry);
+    Text::from(
+        wrap_lines(&info, width)
+            .into_iter()
+            .map(|l| Line::from(Span::styled(l, style)))
+            .collect::<Vec<_>>(),
+    )
+}
+
+/// Wrap `text` to `width` columns, capped at [`MAX_CELL_LINES`], always
+/// returning at least one (possibly empty) line so every row has a height.
+fn wrap_lines(text: &str, width: usize) -> Vec<String> {
+    let mut lines = wrap_text(text, width);
+    lines.truncate(MAX_CELL_LINES);
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
 /// Text + style for a param's "Description" cell: its description, else a JSON
 /// validity warning, else its option list, else empty.
-pub(super) fn row_info(entry: &ParamEntry) -> (String, Style) {
+fn row_info(entry: &ParamEntry) -> (String, Style) {
     let t = theme();
     if let Some(desc) = &entry.description {
         (desc.clone(), Style::default().fg(t.text_primary))
