@@ -30,13 +30,13 @@ impl ParamEntry {
 
     /// Recompute `json_valid` for the current value.
     ///
-    /// Only free-text params that look like a structured JSON literal (object
-    /// or array) can be "invalid" — bools/enums are machine-controlled and a
-    /// plain string value is legitimately sent as a JSON string, so neither is
-    /// ever flagged.
+    /// Only free-text params (plain text or examples-with-suggestions) that
+    /// look like a structured JSON literal (object or array) can be "invalid"
+    /// — bools/enums are machine-controlled and a plain string value is
+    /// legitimately sent as a JSON string, so neither is ever flagged.
     pub(crate) fn revalidate(&mut self) {
         self.json_valid = match self.kind {
-            ParamKind::Text if looks_like_json_struct(&self.value) => {
+            ParamKind::Text | ParamKind::Examples(_) if looks_like_json_struct(&self.value) => {
                 serde_json::from_str::<serde_json::Value>(&self.value).is_ok()
             }
             _ => true,
