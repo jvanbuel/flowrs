@@ -200,13 +200,14 @@ impl TriggerDagRunPopUp {
                 match self.active_entry().map(|e| &e.kind) {
                     // Bool: toggle on Enter instead of opening text editor
                     Some(ParamKind::Bool) => self.toggle_bool(),
-                    // Text, Examples and Enum: open text editor. Cycling
-                    // enum options is Space's job, not Enter's.
-                    Some(_) => {
+                    // Text and Examples: open text editor
+                    Some(ParamKind::Text | ParamKind::Examples(_)) => {
                         self.editing = true;
                         self.cursor_pos = value_len;
                     }
-                    None => {}
+                    // Enum: a closed set Airflow validates against, so no
+                    // free-text editing; Space cycles the options.
+                    Some(ParamKind::Enum(_)) | None => {}
                 }
                 (None, vec![])
             }
