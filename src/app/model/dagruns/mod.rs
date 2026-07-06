@@ -3,8 +3,6 @@ mod dag_code_view;
 pub mod popup;
 mod render;
 
-use std::sync::Arc;
-
 use crossterm::event::KeyCode;
 use log::debug;
 use ratatui::style::Style;
@@ -19,7 +17,6 @@ use crate::app::worker::WorkerMessage;
 use commands::DAGRUN_COMMAND_POP_UP;
 use popup::clear::ClearDagRunPopup;
 use popup::mark::MarkDagRunPopup;
-use popup::trigger::TriggerDagRunPopUp;
 use popup::DagRunPopUp;
 
 pub use dag_code_view::DagCodeView;
@@ -31,8 +28,6 @@ pub struct DagRunModel {
     pub table: FilterableTable<DagRun>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagRunPopUp>,
-    /// Cached DAG params for the trigger popup
-    pub dag_params: Option<Arc<serde_json::Value>>,
     ticks: u32,
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
@@ -44,7 +39,6 @@ impl Default for DagRunModel {
             dag_code: None,
             table: FilterableTable::new(),
             popup: Popup::None,
-            dag_params: None,
             ticks: 0,
             poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
@@ -185,11 +179,11 @@ impl DagRunModel {
         match key_code {
             KeyCode::Char('t') => {
                 if let Some(dag_id) = ctx.dag_id() {
-                    self.popup
-                        .show_custom(DagRunPopUp::Trigger(TriggerDagRunPopUp::new(
-                            dag_id.clone(),
-                            self.dag_params.as_deref(),
-                        )));
+                    // The worker fetches a fresh param schema (falling back to
+                    // the cached one) and opens the trigger popup once ready.
+                    return KeyResult::ConsumedWith(vec![WorkerMessage::GetDagParams {
+                        dag_id: dag_id.clone(),
+                    }]);
                 }
                 KeyResult::Consumed
             }

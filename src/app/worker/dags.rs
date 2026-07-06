@@ -5,6 +5,7 @@ use log::warn;
 use crate::airflow::model::common::DagId;
 use crate::airflow::traits::AirflowClient;
 use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
+use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::dagruns::DagCodeView;
 use crate::app::model::dags::popup::DagPopUp;
 use crate::app::state::{App, Panel};
@@ -172,35 +173,30 @@ pub async fn handle_get_dag_code(
     }
 }
 
-/// Fetch a DAG's param schema on demand, then open the trigger popup with it.
-/// Used by the DAG-list trigger path when the schema isn't cached yet — opening
-/// only after the fetch avoids briefly showing the param-less popup.
+/// Fetch a fresh copy of a DAG's param schema, then open the trigger popup
+/// with it on the panel that asked. The schema is re-fetched on every popup
+/// open so changes on the Airflow side show up; the cached copy is only the
+/// fallback when the fetch fails.
 pub async fn handle_get_dag_params(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
     dag_id: &DagId,
     env_name: &str,
 ) {
-    // Reuse the schema cached in the environment (e.g. from a prior DAG-runs
-    // visit) and only hit the API when it isn't there yet.
-    let need_fetch = {
-        let app = app.lock().unwrap();
-        app.environment_state
-            .environments
-            .get(env_name)
-            .is_none_or(|env| !env.dag_params.contains_key(dag_id))
-    };
-    if need_fetch {
-        match client.get_dag_params(dag_id).await {
-            Ok(Some(params)) => {
-                let mut app = app.lock().unwrap();
-                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                    env.update_dag_params(dag_id, params);
+    match client.get_dag_params(dag_id).await {
+        Ok(params) => {
+            let mut app = app.lock().unwrap();
+            if let Some(env) = app.environment_state.environments.get_mut(env_name) {
+                match params {
+                    Some(params) => env.update_dag_params(dag_id, params),
+                    // The DAG no longer has params: drop any stale schema.
+                    None => {
+                        env.dag_params.remove(dag_id);
+                    }
                 }
             }
-            Ok(None) => {}
-            Err(e) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
         }
+        Err(e) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
     }
 
     let mut app = app.lock().unwrap();
@@ -209,10 +205,9 @@ pub async fn handle_get_dag_params(
         .environments
         .get(env_name)
         .and_then(|env| env.dag_params.get(dag_id).cloned());
-    app.dags
-        .popup
-        .show_custom(DagPopUp::Trigger(TriggerDagRunPopUp::new(
-            dag_id.clone(),
-            params.as_deref(),
-        )));
+    let popup = TriggerDagRunPopUp::new(dag_id.clone(), params.as_deref());
+    match app.active_panel {
+        Panel::DAGRun => app.dagruns.popup.show_custom(DagRunPopUp::Trigger(popup)),
+        _ => app.dags.popup.show_custom(DagPopUp::Trigger(popup)),
+    }
 }

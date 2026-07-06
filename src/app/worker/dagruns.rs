@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::{debug, warn};
+use log::debug;
 
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::airflow::traits::AirflowClient;
@@ -17,23 +17,7 @@ pub async fn handle_update_dag_runs(
     dag_id: &DagId,
     env_name: &str,
 ) {
-    // The param schema is effectively static, so fetch it only once per DAG
-    // instead of on every poll. DAG runs are always refreshed.
-    let need_params = {
-        let app = app.lock().unwrap();
-        app.environment_state
-            .environments
-            .get(env_name)
-            .is_none_or(|env| !env.dag_params.contains_key(dag_id))
-    };
-
-    let (dag_runs, dag_params) = if need_params {
-        let (dag_runs, dag_params) =
-            tokio::join!(client.list_dagruns(dag_id), client.get_dag_params(dag_id));
-        (dag_runs, Some(dag_params))
-    } else {
-        (client.list_dagruns(dag_id).await, None)
-    };
+    let dag_runs = client.list_dagruns(dag_id).await;
 
     let mut app = app.lock().unwrap();
     match dag_runs {
@@ -41,12 +25,6 @@ pub async fn handle_update_dag_runs(
             // Replace DAG runs in the originating environment, not the active one
             if let Some(env) = app.environment_state.environments.get_mut(env_name) {
                 env.replace_dag_runs(dag_id, dag_runs.dag_runs);
-                // Cache dag params alongside dag runs (failure is non-fatal)
-                match dag_params {
-                    Some(Ok(Some(params))) => env.update_dag_params(dag_id, params),
-                    Some(Err(e)) => warn!("Failed to fetch dag params for {dag_id}: {e}"),
-                    Some(Ok(None)) | None => {}
-                }
             }
             // Only sync panel data if this environment is still active
             if app.environment_state.active_environment.as_deref() == Some(env_name) {
