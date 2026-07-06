@@ -200,9 +200,8 @@ impl TriggerDagRunPopUp {
                 match self.active_entry().map(|e| &e.kind) {
                     // Bool: toggle on Enter instead of opening text editor
                     Some(ParamKind::Bool) => self.toggle_bool(),
-                    // Enum: cycle on Enter (no free-text editing)
-                    Some(ParamKind::Enum(_)) => self.cycle_option(true),
-                    // Text and Examples: open text editor
+                    // Text, Examples and Enum: open text editor. Cycling
+                    // enum options is Space's job, not Enter's.
                     Some(_) => {
                         self.editing = true;
                         self.cursor_pos = value_len;

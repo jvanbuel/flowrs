@@ -80,6 +80,9 @@ impl TriggerDagRunPopUp {
 
         let (key_col, value_col, desc_col) = self.param_columns(inner_w);
 
+        let active = self.active_param;
+        let editing = self.editing && self.focus == FocusZone::Params;
+
         // Pre-wrap each description so a row is as tall as its (capped) wrap.
         let infos: Vec<(Vec<String>, Style)> = self
             .params
@@ -95,9 +98,19 @@ impl TriggerDagRunPopUp {
             })
             .collect();
 
+        // Pre-build the value cells: enum values wrap, so they contribute to
+        // row height too.
+        let value_cells: Vec<Text> = self
+            .params
+            .iter()
+            .enumerate()
+            .map(|(i, entry)| value_cell(entry, editing && i == active, self.cursor_pos, value_col))
+            .collect();
+
         let total_rows_h: u16 = infos
             .iter()
-            .map(|(lines, _)| u16::try_from(lines.len()).unwrap_or(1))
+            .zip(value_cells.iter())
+            .map(|((lines, _), value)| u16::try_from(lines.len().max(value.height())).unwrap_or(1))
             .sum();
         // chrome = header(1) + spacer(1) + buttons(3) + legend(1) + table header(1) + borders(2)
         let desired_h = total_rows_h.saturating_add(9);
@@ -139,14 +152,12 @@ impl TriggerDagRunPopUp {
             .centered()
             .render(header_area, buffer);
 
-        let active = self.active_param;
-        let editing = self.editing && self.focus == FocusZone::Params;
         let rows: Vec<Row> = self
             .params
             .iter()
-            .zip(infos.iter())
-            .enumerate()
-            .map(|(i, (entry, (lines, style)))| {
+            .zip(infos.iter().zip(value_cells))
+            .map(|(entry, ((lines, style), value))| {
+                let height = u16::try_from(lines.len().max(value.height())).unwrap_or(1);
                 let desc = Text::from(
                     lines
                         .iter()
@@ -160,15 +171,10 @@ impl TriggerDagRunPopUp {
                         entry.key.clone(),
                         Style::default().fg(t.accent),
                     )),
-                    Cell::from(value_cell(
-                        entry,
-                        editing && i == active,
-                        self.cursor_pos,
-                        value_col,
-                    )),
+                    Cell::from(value),
                     Cell::from(desc),
                 ])
-                .height(u16::try_from(lines.len()).unwrap_or(1))
+                .height(height)
             })
             .collect();
 
