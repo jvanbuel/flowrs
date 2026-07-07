@@ -51,6 +51,8 @@ pub struct Theme {
     pub surface_style: Style,
     pub button_default: Style,
     pub button_selected: Style,
+    pub search_match_style: Style,
+    pub search_current_match_style: Style,
     pub border_default: Color,
     pub border_selected: Color,
 }
