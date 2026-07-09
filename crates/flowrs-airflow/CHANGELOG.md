@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.8](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.7...flowrs-airflow-v0.10.8) - 2026-07-09
+
+### Fixed
+
+- *(airflow)* drop dry_run from v2 task instance PATCH
+
 ## [0.10.7](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.6...flowrs-airflow-v0.10.7) - 2026-07-01
 
 ### Added
