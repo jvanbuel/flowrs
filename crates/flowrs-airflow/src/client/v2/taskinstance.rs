@@ -143,7 +143,10 @@ impl V2Client {
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
             )
             .await?
-            .json(&serde_json::json!({"new_state": status, "dry_run": false}))
+            // Airflow 3's `/api/v2` PatchTaskInstanceBody uses a strict schema that
+            // forbids unknown fields; unlike the `/api/v1` endpoint it does not accept
+            // `dry_run` (dry-run is a separate endpoint), so sending it yields a 422.
+            .json(&serde_json::json!({"new_state": status}))
             .send()
             .await?
             .error_for_status()?;
