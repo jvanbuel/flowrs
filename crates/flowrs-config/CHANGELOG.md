@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.11.8](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.7...flowrs-config-v0.11.8) - 2026-07-10
+## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.7...flowrs-config-v0.12.0) - 2026-07-10
 
 ### Other
 
