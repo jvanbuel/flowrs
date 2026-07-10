@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.9](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.8...flowrs-airflow-v0.10.9) - 2026-07-10
+
+### Added
+
+- editable params table for the DAG trigger popup
+- trigger DAG runs with custom configuration params
+
 ## [0.10.8](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.7...flowrs-airflow-v0.10.8) - 2026-07-09
 
 ### Fixed

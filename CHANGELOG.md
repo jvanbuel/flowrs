@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.11](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.10...flowrs-tui-v0.12.11) - 2026-07-10
+
+### Added
+
+- wrap enum values in the trigger popup and edit them on Enter
+- editable params table for the DAG trigger popup
+- trigger DAG runs with custom configuration params
+
+### Fixed
+
+- show invalid-JSON in red and re-fetch dag params on popup open
+- flag invalid JSON in examples params too
+- don't open the text editor for enum params
+- keep trigger popup Yes/No visible and size value column to content
+- truncate long keys by display width and wrap ghost text
+- address CodeRabbit review on trigger popup
+- address CodeRabbit review on trigger popup ([#624](https://github.com/jvanbuel/flowrs/pull/624))
+
+### Other
+
+- simplify trigger table row building
+- split the dag-run popup rendering into logical units
+- keep only the blank-buttons regression test
+- fix cargo fmt on trigger popup render
+- Update src/app/model/dagruns/popup/render.rs
+
 ## [0.12.10](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.9...flowrs-tui-v0.12.10) - 2026-07-09
 
 ### Other
