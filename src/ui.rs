@@ -120,7 +120,12 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
                 f.set_cursor_position(app.task_instances.table.filter.cursor_position);
             }
         }
-        Panel::Logs => app.logs.render(panel_area, f.buffer_mut()),
+        Panel::Logs => {
+            app.logs.render(panel_area, f.buffer_mut());
+            if let Some(position) = app.logs.search_cursor_position {
+                f.set_cursor_position(position);
+            }
+        }
     }
 
     // Render global warning popup on top of all panels

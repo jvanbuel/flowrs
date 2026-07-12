@@ -75,6 +75,9 @@ impl Theme {
                 .fg(p.accent)
                 .bg(p.selected_bg)
                 .add_modifier(Modifier::BOLD),
+            // Reversed video keeps search highlights readable on every palette
+            search_match_style: Style::new().add_modifier(Modifier::REVERSED),
+            search_current_match_style: Style::new().fg(p.accent).add_modifier(Modifier::REVERSED),
             border_default: p.purple_dim,
             border_selected: p.border_selected,
         }
