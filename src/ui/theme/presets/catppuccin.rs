@@ -7,6 +7,8 @@ impl Theme {
         let c = &catppuccin::PALETTE.latte.colors;
         Self::build(&ThemePalette {
             text_primary: c.text.into(),
+            text_muted: c.subtext0.into(),
+            text_ghost: c.overlay0.into(),
             purple: c.mauve.into(),
             purple_dim: c.overlay1.into(),
             accent: c.teal.into(),
@@ -38,6 +40,8 @@ impl Theme {
         let c = &catppuccin::PALETTE.frappe.colors;
         Self::build(&ThemePalette {
             text_primary: c.text.into(),
+            text_muted: c.subtext0.into(),
+            text_ghost: c.overlay0.into(),
             purple: c.mauve.into(),
             purple_dim: c.overlay2.into(),
             accent: c.teal.into(),
@@ -69,6 +73,8 @@ impl Theme {
         let c = &catppuccin::PALETTE.macchiato.colors;
         Self::build(&ThemePalette {
             text_primary: c.text.into(),
+            text_muted: c.subtext0.into(),
+            text_ghost: c.overlay0.into(),
             purple: c.mauve.into(),
             purple_dim: c.overlay2.into(),
             accent: c.teal.into(),
@@ -100,6 +106,8 @@ impl Theme {
         let c = &catppuccin::PALETTE.mocha.colors;
         Self::build(&ThemePalette {
             text_primary: c.text.into(),
+            text_muted: c.subtext0.into(),
+            text_ghost: c.overlay0.into(),
             purple: c.mauve.into(),
             purple_dim: c.overlay2.into(),
             accent: c.teal.into(),

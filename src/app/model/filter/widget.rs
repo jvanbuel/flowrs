@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Position, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph, Widget},
 };
@@ -63,7 +63,10 @@ impl FilterStateMachine {
                 for cond in conditions {
                     let cond_text = format!("{}: {} ", cond.field, cond.value);
                     cursor_offset += cond_text.len() as u16;
-                    spans.push(Span::styled(cond_text, Style::default().fg(Color::Gray)));
+                    spans.push(Span::styled(
+                        cond_text,
+                        Style::default().fg(theme().text_muted),
+                    ));
                 }
 
                 // Render primary field name with colon (like ValueInput)
@@ -92,7 +95,7 @@ impl FilterStateMachine {
                 if let Some(ghost) = autocomplete.ghost_suffix() {
                     spans.push(Span::styled(
                         ghost.to_string(),
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(theme().text_ghost),
                     ));
                 }
 
@@ -111,7 +114,10 @@ impl FilterStateMachine {
                 for cond in conditions {
                     let cond_text = format!("{}: {} ", cond.field, cond.value);
                     cursor_offset += cond_text.len() as u16;
-                    spans.push(Span::styled(cond_text, Style::default().fg(Color::Gray)));
+                    spans.push(Span::styled(
+                        cond_text,
+                        Style::default().fg(theme().text_muted),
+                    ));
                 }
 
                 // Render colon prefix
@@ -135,7 +141,7 @@ impl FilterStateMachine {
                 if let Some(ghost) = autocomplete.ghost_suffix() {
                     spans.push(Span::styled(
                         ghost.to_string(),
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(theme().text_ghost),
                     ));
                 }
 
@@ -156,7 +162,10 @@ impl FilterStateMachine {
                 for cond in conditions {
                     let cond_text = format!("{}: {} ", cond.field, cond.value);
                     cursor_offset += cond_text.len() as u16;
-                    spans.push(Span::styled(cond_text, Style::default().fg(Color::Gray)));
+                    spans.push(Span::styled(
+                        cond_text,
+                        Style::default().fg(theme().text_muted),
+                    ));
                 }
 
                 // Render field name with colon
@@ -185,7 +194,7 @@ impl FilterStateMachine {
                 if let Some(ghost) = autocomplete.ghost_suffix() {
                     spans.push(Span::styled(
                         ghost.to_string(),
-                        Style::default().fg(Color::DarkGray),
+                        Style::default().fg(theme().text_ghost),
                     ));
                 }
 

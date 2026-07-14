@@ -19,6 +19,10 @@ use ratatui::style::{Color, Style};
 #[allow(dead_code)]
 pub struct Theme {
     pub text_primary: Color,
+    /// Muted foreground for secondary/confirmed text (e.g. applied filter conditions).
+    pub text_muted: Color,
+    /// Dim foreground for placeholder/ghost text (e.g. autocomplete suggestions).
+    pub text_ghost: Color,
     pub purple: Color,
     pub purple_dim: Color,
     pub accent: Color,
