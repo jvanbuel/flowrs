@@ -17,6 +17,7 @@ pub use theme::Theme;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::Result;
 use log::info;
@@ -24,6 +25,9 @@ use serde::{Deserialize, Serialize};
 
 const TICK_RATE_MS: u64 = 200;
 const MIN_POLL_INTERVAL_MS: u64 = 500;
+
+/// Process-local counter that keeps atomic-write temp filenames unique.
+static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 const fn default_poll_interval_ms() -> u64 {
     2000
@@ -99,8 +103,17 @@ impl FlowrsConfig {
                 default_path
             });
 
-        // If no config at the default path, return an empty (default) config
-        let toml_config = std::fs::read_to_string(&path).unwrap_or_default();
+        // Only a missing file becomes an empty config; any other read error must
+        // surface, since silently returning empty would clobber the real file on
+        // the next write.
+        let toml_config = match std::fs::read_to_string(&path) {
+            Ok(contents) => contents,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => String::new(),
+            Err(e) => {
+                return Err(anyhow::Error::new(e)
+                    .context(format!("failed to read config file {}", path.display())))
+            }
+        };
         let mut config = Self::parse_toml(&toml_config)?;
         config.path = Some(path);
         Ok(config)
@@ -127,7 +140,7 @@ impl FlowrsConfig {
         toml::to_string(self).map_err(std::convert::Into::into)
     }
 
-    pub fn write_to_file(&mut self, config_paths: &ConfigPaths) -> Result<()> {
+    pub fn write_to_file(&self, config_paths: &ConfigPaths) -> Result<()> {
         let path = self
             .path
             .clone()
@@ -138,16 +151,31 @@ impl FlowrsConfig {
             std::fs::create_dir_all(parent)?;
         }
 
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .truncate(true)
-            .create(true)
-            .open(path)?;
+        let mut persisted = self.clone();
+        persisted.servers.retain(|server| server.managed.is_none());
+        let contents = persisted.to_str()?;
 
-        // Only write non-managed servers to the config file
-        self.servers.retain(|server| server.managed.is_none());
-        file.write_all(Self::to_str(self)?.as_bytes())?;
+        // Write atomically via a temp file + rename, so a serialization error or
+        // crash can't leave the config truncated: the previous file survives
+        // until the final rename. The pid and a process-local counter keep the
+        // temp name unique across concurrent writers.
+        let unique = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+        let tmp_path = path.with_extension(format!("tmp.{}.{unique}", std::process::id()));
+
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        // The config can hold credentials, so restrict it to the owner; creating
+        // the temp file with 0o600 carries that protection through the rename.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        }
+        let mut file = options.open(&tmp_path)?;
+        file.write_all(contents.as_bytes())?;
+        file.sync_all()?;
+        drop(file);
+        std::fs::rename(&tmp_path, &path)?;
         Ok(())
     }
 }
@@ -268,6 +296,88 @@ password = "airflow"
         let config = FlowrsConfig::parse_toml(toml).unwrap();
         assert_eq!(config.poll_interval_ms, 5000);
         assert_eq!(config.poll_tick_multiplier(), 25);
+    }
+
+    fn unique_temp_path(tag: &str) -> PathBuf {
+        use std::sync::atomic::{AtomicU64, Ordering};
+        static COUNTER: AtomicU64 = AtomicU64::new(0);
+        let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+        let dir =
+            std::env::temp_dir().join(format!("flowrs-cfg-test-{}-{tag}-{n}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("config.toml")
+    }
+
+    fn basic_server(name: &str, managed: Option<ManagedService>) -> AirflowConfig {
+        AirflowConfig {
+            name: name.to_string(),
+            endpoint: "http://localhost:8080".to_string(),
+            auth: AirflowAuth::Basic(BasicAuth {
+                username: "airflow".to_string(),
+                password: "airflow".to_string(),
+            }),
+            managed,
+            version: AirflowVersion::V2,
+            timeout_secs: server::default_timeout(),
+            insecure: false,
+        }
+    }
+
+    fn config_with(servers: Vec<AirflowConfig>, path: PathBuf) -> FlowrsConfig {
+        FlowrsConfig {
+            servers,
+            managed_services: Vec::new(),
+            active_server: None,
+            poll_interval_ms: default_poll_interval_ms(),
+            theme: Theme::default(),
+            gcc: None,
+            path: Some(path),
+        }
+    }
+
+    #[test]
+    fn write_to_file_excludes_managed_servers() {
+        let path = unique_temp_path("managed");
+        let paths = ConfigPaths::resolve();
+        let config = config_with(
+            vec![
+                basic_server("managed", Some(ManagedService::Conveyor)),
+                basic_server("local", None),
+            ],
+            path.clone(),
+        );
+
+        config.write_to_file(&paths).unwrap();
+
+        let persisted = FlowrsConfig::from_file(Some(&path), &paths).unwrap();
+        assert_eq!(persisted.servers.len(), 1);
+        assert_eq!(persisted.servers[0].name, "local");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn write_to_file_restricts_permissions_to_owner() {
+        use std::os::unix::fs::PermissionsExt;
+        let path = unique_temp_path("perms");
+        let paths = ConfigPaths::resolve();
+        let config = config_with(vec![basic_server("local", None)], path.clone());
+
+        config.write_to_file(&paths).unwrap();
+
+        let mode = std::fs::metadata(&path).unwrap().permissions().mode();
+        assert_eq!(mode & 0o777, 0o600);
+    }
+
+    #[test]
+    fn from_file_propagates_read_error_other_than_not_found() {
+        let path = unique_temp_path("bad-utf8");
+        // Invalid UTF-8 fails `read_to_string` with `InvalidData`, exercising a
+        // read error that is not `NotFound`.
+        std::fs::write(&path, [0xff, 0xfe, 0x00]).unwrap();
+        let paths = ConfigPaths::resolve();
+
+        let result = FlowrsConfig::from_file(Some(&path), &paths);
+        assert!(result.is_err());
     }
 
     #[test]
