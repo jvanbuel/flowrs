@@ -53,7 +53,7 @@ impl Widget for &mut LogModel {
             .constraints([Constraint::Length(3), Constraint::Min(0)])
             .split(area);
 
-        if let Some(log) = self.all.get(self.current_index()) {
+        if let Some(log) = self.current_log() {
             let mut content = Text::default();
             for line in log.content.lines() {
                 content.push_line(Line::raw(line));
@@ -61,7 +61,6 @@ impl Widget for &mut LogModel {
 
             let line_count = self.current_line_count();
             let scroll_pos = self.scroll_mode.position(line_count);
-            self.vertical_scroll_state = self.vertical_scroll_state.position(scroll_pos);
 
             #[allow(clippy::cast_possible_truncation)]
             let paragraph = Paragraph::new(content)
@@ -84,6 +83,10 @@ impl Widget for &mut LogModel {
 
             // Render the selected log's content
             paragraph.render(chunks[1], buffer);
+
+            // The log borrow (held by `content`) has ended, so the scroll state
+            // can now be updated before rendering the scrollbar.
+            self.vertical_scroll_state = self.vertical_scroll_state.position(scroll_pos);
 
             let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
                 .begin_symbol(Some("↑"))
