@@ -4,10 +4,11 @@ use ratatui::{
     layout::Rect,
     style::{Modifier, Style},
     text::{Line, Span, Text},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
+    widgets::{Clear, Paragraph, Widget, Wrap},
 };
 
 use super::popup_area;
+use crate::ui::common::titled_popup_block;
 use crate::ui::theme::theme;
 
 pub struct ErrorPopup {
@@ -39,17 +40,7 @@ impl Widget for &ErrorPopup {
         let error_color = t.state_failed;
 
         let popup_area = popup_area(area, 80, 50);
-        let popup = Block::default()
-            .border_type(BorderType::Rounded)
-            .title("Errors - Press <Esc> or <q> to close")
-            .title_style(
-                Style::default()
-                    .fg(error_color)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .borders(Borders::ALL)
-            .border_style(t.border_style)
-            .style(t.default_style);
+        let popup = titled_popup_block("Errors - Press <Esc> or <q> to close", error_color);
 
         Clear.render(popup_area, buf);
 

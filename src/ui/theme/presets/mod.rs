@@ -8,6 +8,8 @@ use super::Theme;
 
 pub(super) struct ThemePalette {
     pub(super) text_primary: Color,
+    pub(super) text_muted: Color,
+    pub(super) text_ghost: Color,
     pub(super) purple: Color,
     pub(super) purple_dim: Color,
     pub(super) accent: Color,
@@ -37,6 +39,8 @@ impl Theme {
     pub(super) fn build(p: &ThemePalette) -> Self {
         Self {
             text_primary: p.text_primary,
+            text_muted: p.text_muted,
+            text_ghost: p.text_ghost,
             purple: p.purple,
             purple_dim: p.purple_dim,
             accent: p.accent,

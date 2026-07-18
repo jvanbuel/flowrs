@@ -8,6 +8,8 @@ impl Theme {
     pub fn light() -> Self {
         Self::build(&ThemePalette {
             text_primary: Color::Rgb(46, 46, 58),               // #2E2E3A
+            text_muted: Color::Rgb(120, 120, 132),              // #787884
+            text_ghost: Color::Rgb(170, 170, 182),              // #AAAAB6
             purple: Color::Rgb(110, 86, 230),                   // #6E56E6
             purple_dim: Color::Rgb(155, 143, 204),              // #9B8FCC
             accent: Color::Rgb(0, 140, 100),                    // #008C64

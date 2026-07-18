@@ -66,7 +66,7 @@ impl Widget for &mut LogModel {
             let paragraph = Paragraph::new(content)
                 .block(
                     Block::default()
-                        .border_type(BorderType::Plain)
+                        .border_type(BorderType::Rounded)
                         .borders(Borders::ALL)
                         .title(" Content ")
                         .title_bottom(if self.scroll_mode.is_following() {
