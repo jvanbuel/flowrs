@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.0...flowrs-tui-v0.13.1) - 2026-07-18
+
+### Fixed
+
+- prevent panic when opening Airflow UI with empty log list ([#667](https://github.com/jvanbuel/flowrs/pull/667))
+
+### Other
+
+- *(tui)* unify popup chrome, round the logs pane, theme filter greys ([#666](https://github.com/jvanbuel/flowrs/pull/666))
+
 ## [0.13.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.12.10...flowrs-tui-v0.13.0) - 2026-07-10
 
 ### Added
