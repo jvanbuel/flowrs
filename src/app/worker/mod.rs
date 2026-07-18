@@ -302,7 +302,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         }
         // Browser operations
         WorkerMessage::OpenItem(item) => {
-            browser::handle_open_item(&app, &client, item)?;
+            browser::handle_open_item(&app, &client, item);
         }
     }
 

@@ -9,6 +9,7 @@ pub use navigation::NavigationContext;
 
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
+use crate::app::model::popup::error::ErrorPopup;
 use crate::app::model::popup::warning::WarningPopup;
 use environment_state::EnvironmentStateContainer;
 use flowrs_config::FlowrsConfig;
@@ -113,6 +114,17 @@ impl App {
             Panel::DAGRun => self.active_panel = Panel::Dag,
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
             Panel::Logs => self.active_panel = Panel::TaskInstance,
+        }
+    }
+
+    /// Show an error popup on whichever panel is currently active.
+    pub fn show_error(&mut self, errors: Vec<String>) {
+        match self.active_panel {
+            Panel::Config => self.configs.popup.show_error(errors),
+            Panel::Dag => self.dags.popup.show_error(errors),
+            Panel::DAGRun => self.dagruns.popup.show_error(errors),
+            Panel::TaskInstance => self.task_instances.popup.show_error(errors),
+            Panel::Logs => self.logs.error_popup = Some(ErrorPopup::from_strings(errors)),
         }
     }
 

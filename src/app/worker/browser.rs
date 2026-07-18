@@ -1,13 +1,23 @@
 use std::sync::{Arc, Mutex};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::airflow::model::common::OpenItem;
 use crate::airflow::traits::AirflowClient;
 use crate::app::state::App;
 
-/// Handle opening an item (DAG, DAG run, task instance, etc.) in the browser.
-pub fn handle_open_item(
+/// Open an item (DAG, DAG run, task instance, etc.) in the browser.
+///
+/// Any failure (no active server, an unbuildable URL, or the browser refusing
+/// to launch) is surfaced to the user via the active panel's error popup
+/// instead of being silently logged.
+pub fn handle_open_item(app: &Arc<Mutex<App>>, client: &Arc<dyn AirflowClient>, item: OpenItem) {
+    if let Err(e) = try_open_item(app, client, item) {
+        app.lock().unwrap().show_error(vec![e.to_string()]);
+    }
+}
+
+fn try_open_item(
     app: &Arc<Mutex<App>>,
     client: &Arc<dyn AirflowClient>,
     item: OpenItem,
@@ -37,8 +47,6 @@ pub fn handle_open_item(
     };
 
     let url = client.build_open_url(&final_item)?;
-    if let Err(e) = webbrowser::open(&url) {
-        log::error!("Failed to open browser with URL {url}: {e}");
-    }
+    webbrowser::open(&url).with_context(|| format!("failed to open browser for {url}"))?;
     Ok(())
 }
