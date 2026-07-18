@@ -2,7 +2,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Args, Parser};
 use flowrs_config::{FlowrsConfig, ManagedService, Theme};
 use inquire::validator::Validation;
@@ -188,5 +188,54 @@ pub fn validate_endpoint(
     match Url::parse(endpoint) {
         Ok(_) => Ok(Validation::Valid),
         Err(error) => Ok(Validation::Invalid(error.into())),
+    }
+}
+
+/// Run a token command via `sh -c` and return its trimmed standard output.
+///
+/// Only the command string is persisted; running it here validates that it
+/// actually yields a token, so a broken command is rejected at config time
+/// rather than saved and left to fail on every later API call.
+pub fn run_token_command(cmd: &str) -> Result<String> {
+    let output = std::process::Command::new("sh")
+        .arg("-c")
+        .arg(cmd)
+        .output()
+        .with_context(|| format!("failed to run token command: {cmd}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!("token command exited with {}: {}", output.status, stderr.trim());
+    }
+
+    let token = String::from_utf8(output.stdout)
+        .context("token command produced non-UTF-8 output")?
+        .trim()
+        .to_string();
+
+    if token.is_empty() {
+        anyhow::bail!("token command produced no output: {cmd}");
+    }
+
+    Ok(token)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn token_command_returns_trimmed_output() {
+        assert_eq!(run_token_command("echo my-token").unwrap(), "my-token");
+    }
+
+    #[test]
+    fn token_command_errors_on_non_zero_exit() {
+        assert!(run_token_command("exit 1").is_err());
+    }
+
+    #[test]
+    fn token_command_errors_on_empty_output() {
+        assert!(run_token_command("true").is_err());
     }
 }
