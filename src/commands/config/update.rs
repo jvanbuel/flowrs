@@ -8,7 +8,7 @@ use super::model::UpdateCommand;
 use crate::commands::config::model::{validate_endpoint, ConfigOption};
 use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
 
-use anyhow::Result;
+use anyhow::{anyhow, Context, Result};
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
@@ -22,20 +22,17 @@ impl UpdateCommand {
 
         let mut servers = config.servers;
 
-        let name: String = if self.name.is_none() {
-            Select::new(
+        let name: String = match &self.name {
+            Some(name) => name.clone(),
+            None => Select::new(
                 "name",
                 servers.iter().map(|server| server.name.clone()).collect(),
             )
-            .prompt()?
-        } else {
-            self.name.clone().unwrap()
+            .prompt()?,
         };
 
-        let airflow_config: &mut AirflowConfig = servers
-            .iter_mut()
-            .find(|server| server.name == name)
-            .expect("🤔 Airflow config not found ...");
+        let index = find_server(&servers, &name)?;
+        let airflow_config: &mut AirflowConfig = &mut servers[index];
 
         let name = inquire::Text::new("name")
             .with_default(&airflow_config.name)
@@ -76,7 +73,7 @@ impl UpdateCommand {
                     .arg("-c")
                     .arg(&cmd)
                     .output()
-                    .expect("failed to execute process");
+                    .with_context(|| format!("failed to run token command: {cmd}"))?;
                 // Validate the command produces a token
                 let _token = String::from_utf8(output.stdout)?;
                 airflow_config.auth = AirflowAuth::Token(TokenSource::Command { cmd });
@@ -88,5 +85,45 @@ impl UpdateCommand {
 
         println!("✅ Config updated successfully!");
         Ok(())
+    }
+}
+
+fn find_server(servers: &[AirflowConfig], name: &str) -> Result<usize> {
+    servers
+        .iter()
+        .position(|server| server.name == name)
+        .ok_or_else(|| anyhow!("no server named '{name}' found in config"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use flowrs_config::{AirflowVersion, BasicAuth};
+
+    fn server(name: &str) -> AirflowConfig {
+        AirflowConfig {
+            name: name.to_string(),
+            endpoint: "http://localhost:8080".to_string(),
+            auth: AirflowAuth::Basic(BasicAuth {
+                username: "airflow".to_string(),
+                password: "airflow".to_string(),
+            }),
+            managed: None,
+            version: AirflowVersion::V2,
+            timeout_secs: 30,
+            insecure: false,
+        }
+    }
+
+    #[test]
+    fn find_server_locates_known_name() {
+        let servers = vec![server("dev"), server("prod")];
+        assert_eq!(find_server(&servers, "prod").unwrap(), 1);
+    }
+
+    #[test]
+    fn find_server_errors_on_unknown_name() {
+        let servers = vec![server("dev")];
+        assert!(find_server(&servers, "typo").is_err());
     }
 }
