@@ -46,16 +46,15 @@ impl ConfigPaths {
     /// Returns the XDG config path: `$XDG_CONFIG_HOME/flowrs/config.toml`
     /// Falls back to `~/.config/flowrs/config.toml` if `XDG_CONFIG_HOME` is unset or empty.
     fn xdg_config_path() -> PathBuf {
-        // Check XDG_CONFIG_HOME first, fall back to ~/.config (per XDG spec)
+        // Check XDG_CONFIG_HOME first, fall back to ~/.config (per XDG spec).
+        // If the home directory can't be determined (e.g. HOME is unset), fall
+        // back to the current directory rather than aborting during the
+        // CONFIG_PATHS static initialization.
         let base_dir = std::env::var("XDG_CONFIG_HOME")
             .ok()
             .filter(|s| !s.is_empty())
             .map_or_else(
-                || {
-                    home_dir()
-                        .expect("Could not determine user home directory")
-                        .join(".config")
-                },
+                || home_dir().unwrap_or_default().join(".config"),
                 PathBuf::from,
             );
 
@@ -64,9 +63,7 @@ impl ConfigPaths {
 
     /// Returns the legacy config path: `~/.flowrs`
     fn legacy_config_path() -> PathBuf {
-        home_dir()
-            .expect("Could not determine user home directory")
-            .join(".flowrs")
+        home_dir().unwrap_or_default().join(".flowrs")
     }
 
     /// Returns the XDG config directory (for creating if needed).
