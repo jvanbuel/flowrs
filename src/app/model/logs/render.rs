@@ -41,7 +41,7 @@ impl Widget for &mut LogModel {
                     .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                     .border_style(t.border_style),
             )
-            .select(self.current % self.all.len())
+            .select(self.current_index())
             .highlight_style(Style::default().fg(t.accent).add_modifier(Modifier::BOLD))
             .style(t.default_style);
 
@@ -53,7 +53,7 @@ impl Widget for &mut LogModel {
             .constraints([Constraint::Length(3), Constraint::Min(0)])
             .split(area);
 
-        if let Some(log) = self.all.get(self.current % self.all.len()) {
+        if let Some(log) = self.all.get(self.current_index()) {
             let mut content = Text::default();
             for line in log.content.lines() {
                 content.push_line(Line::raw(line));

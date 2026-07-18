@@ -83,12 +83,26 @@ impl LogModel {
         self.all = logs;
     }
 
+    /// Index of the currently selected log (task try), wrapped into range.
+    ///
+    /// `current` can exceed `all.len()` after `update_logs` replaces the list
+    /// with fewer tries, so the selection is wrapped rather than assumed valid.
+    /// Returns 0 for an empty list; pair with [`current_log`](Self::current_log)
+    /// to distinguish "empty" from "first entry".
+    fn current_index(&self) -> usize {
+        self.current % self.all.len().max(1)
+    }
+
+    /// Returns the currently selected log (the task try being viewed), if any.
+    /// `None` when no logs are loaded.
+    fn current_log(&self) -> Option<&Log> {
+        self.all.get(self.current_index())
+    }
+
     /// Returns the total number of lines in the current log content
     pub(crate) fn current_line_count(&self) -> usize {
-        let Some(log) = self.all.get(self.current % self.all.len().max(1)) else {
-            return 0;
-        };
-        log.content.lines().count()
+        self.current_log()
+            .map_or(0, |log| log.content.lines().count())
     }
 }
 
@@ -168,7 +182,7 @@ impl Model for LogModel {
                         };
                     }
                     KeyCode::Char('o') => {
-                        if self.all.get(self.current % self.all.len().max(1)).is_some() {
+                        if self.current_log().is_some() {
                             if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
                                 (ctx.dag_id(), ctx.dag_run_id(), ctx.task_id())
                             {
@@ -247,5 +261,49 @@ mod tests {
         // Must not panic and must not emit an OpenItem message for empty logs.
         let (_, messages) = model.update(&event, &ctx);
         assert!(messages.is_empty());
+    }
+
+    fn log(content: &str) -> Log {
+        Log {
+            continuation_token: None,
+            content: content.to_string(),
+        }
+    }
+
+    #[test]
+    fn current_log_is_none_when_empty() {
+        let model = LogModel::default();
+        assert_eq!(model.current_index(), 0);
+        assert!(model.current_log().is_none());
+        assert_eq!(model.current_line_count(), 0);
+    }
+
+    #[test]
+    fn current_log_tracks_selection() {
+        let mut model = LogModel {
+            all: vec![log("try one\nline"), log("try two")],
+            ..Default::default()
+        };
+
+        assert_eq!(model.current_index(), 0);
+        assert_eq!(model.current_line_count(), 2);
+
+        model.current = 1;
+        assert_eq!(model.current_index(), 1);
+        assert_eq!(model.current_line_count(), 1);
+    }
+
+    #[test]
+    fn current_index_wraps_when_selection_exceeds_len() {
+        // After `update_logs` shrinks the list, a stale `current` must wrap into
+        // range rather than point past the end (or panic).
+        let mut model = LogModel {
+            current: 3,
+            ..Default::default()
+        };
+        model.update_logs(vec![log("a"), log("b")]);
+
+        assert_eq!(model.current_index(), 1); // 3 % 2
+        assert!(model.current_log().is_some());
     }
 }
