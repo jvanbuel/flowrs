@@ -168,7 +168,7 @@ impl Model for LogModel {
                         };
                     }
                     KeyCode::Char('o') => {
-                        if self.all.get(self.current % self.all.len()).is_some() {
+                        if self.all.get(self.current % self.all.len().max(1)).is_some() {
                             if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
                                 (ctx.dag_id(), ctx.dag_run_id(), ctx.task_id())
                             {
@@ -216,5 +216,36 @@ impl Model for LogModel {
         }
 
         (None, vec![])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    use super::*;
+    use crate::app::state::NavigationContext;
+
+    /// Regression test: pressing `o` to open the Airflow UI while the log list
+    /// is empty must not panic. Previously `self.current % self.all.len()`
+    /// computed a remainder with a zero divisor when `all` was empty.
+    #[test]
+    fn open_ui_with_empty_logs_does_not_panic() {
+        let mut model = LogModel::default();
+        assert!(model.all.is_empty());
+
+        let ctx = NavigationContext::Task {
+            environment: "env".to_string(),
+            dag_id: "dag".into(),
+            dag_run_id: "run".into(),
+            task_id: "task".into(),
+            task_try: 1,
+        };
+
+        let event = FlowrsEvent::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::empty()));
+
+        // Must not panic and must not emit an OpenItem message for empty logs.
+        let (_, messages) = model.update(&event, &ctx);
+        assert!(messages.is_empty());
     }
 }
