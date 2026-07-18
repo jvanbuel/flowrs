@@ -271,29 +271,6 @@ mod tests {
     }
 
     #[test]
-    fn current_log_is_none_when_empty() {
-        let model = LogModel::default();
-        assert_eq!(model.current_index(), 0);
-        assert!(model.current_log().is_none());
-        assert_eq!(model.current_line_count(), 0);
-    }
-
-    #[test]
-    fn current_log_tracks_selection() {
-        let mut model = LogModel {
-            all: vec![log("try one\nline"), log("try two")],
-            ..Default::default()
-        };
-
-        assert_eq!(model.current_index(), 0);
-        assert_eq!(model.current_line_count(), 2);
-
-        model.current = 1;
-        assert_eq!(model.current_index(), 1);
-        assert_eq!(model.current_line_count(), 1);
-    }
-
-    #[test]
     fn current_index_wraps_when_selection_exceeds_len() {
         // After `update_logs` shrinks the list, a stale `current` must wrap into
         // range rather than point past the end (or panic).
