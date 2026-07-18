@@ -192,7 +192,10 @@ impl Model for LogModel {
                                         dag_id: dag_id.clone(),
                                         dag_run_id: dag_run_id.clone(),
                                         task_id: task_id.clone(),
-                                        #[allow(clippy::cast_possible_truncation)]
+                                        #[expect(
+                                            clippy::cast_possible_truncation,
+                                            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                                        )]
                                         task_try: (self.current_index() + 1) as u32,
                                     })],
                                 );

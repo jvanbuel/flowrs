@@ -62,7 +62,10 @@ impl Widget for &mut LogModel {
             let line_count = self.current_line_count();
             let scroll_pos = self.scroll_mode.position(line_count);
 
-            #[allow(clippy::cast_possible_truncation)]
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+            )]
             let paragraph = Paragraph::new(content)
                 .block(
                     Block::default()

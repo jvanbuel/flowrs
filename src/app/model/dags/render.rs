@@ -115,7 +115,10 @@ fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -
 
 fn format_remaining_time(dt: OffsetDateTime, now: OffsetDateTime) -> String {
     let duration = dt.unix_timestamp() - now.unix_timestamp();
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(
+        clippy::cast_sign_loss,
+        reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+    )]
     let duration = if duration < 0 { 0 } else { duration as u64 };
     let days = duration / (24 * 3600);
     let hours = (duration % (24 * 3600)) / 3600;

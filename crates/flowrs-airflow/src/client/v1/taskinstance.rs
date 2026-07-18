@@ -42,7 +42,11 @@ impl V1Client {
                 "Fetched {fetched_count} task instances, offset: {offset}, total: {total_entries}"
             );
 
-            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            #[expect(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                reason = "duration/count values from the API are small and non-negative in practice"
+            )]
             if fetched_count < limit || all_task_instances.len() >= total_entries as usize {
                 break;
             }

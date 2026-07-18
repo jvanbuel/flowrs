@@ -91,7 +91,6 @@ pub struct Trigger {
     pub triggerer_id: Option<i64>,
 }
 
-#[allow(clippy::struct_field_names)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Job {
     pub id: i64,

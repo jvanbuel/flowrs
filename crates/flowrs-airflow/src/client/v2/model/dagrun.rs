@@ -10,7 +10,6 @@ pub struct DagRunList {
     pub total_entries: i64,
 }
 
-#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DagRun {
     pub dag_run_id: String,

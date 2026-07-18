@@ -23,7 +23,7 @@ pub struct ManagedServiceConfig {
 /// Expands managed services by resolving their environments and returning server configs.
 /// Returns a tuple of (new servers, errors) where errors contains any non-fatal errors encountered.
 pub async fn expand_managed_services(
-    #[allow(unused_variables)] config: ManagedServiceConfig,
+    config: ManagedServiceConfig,
 ) -> Result<(Vec<AirflowConfig>, Vec<String>)> {
     let mut all_servers = Vec::new();
     let mut all_errors = Vec::new();
