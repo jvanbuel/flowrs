@@ -25,8 +25,8 @@ toml = "1.1.2"
 # Shared lint configuration for every crate in the workspace. Crates opt in with
 # `[lints] workspace = true`. See the Microsoft Pragmatic Rust Guidelines
 # (M-STATIC-VERIFICATION). Higher-churn lints (missing_debug_implementations,
-# allow_attributes_without_reason, clone_on_ref_ptr) are intentionally deferred
-# to follow-up changes so this one stays warning-clean.
+# clone_on_ref_ptr) are intentionally deferred to follow-up changes so this one
+# stays warning-clean.
 [workspace.lints.rust]
 ambiguous_negative_literals = "warn"
 redundant_lifetimes = "warn"
@@ -40,7 +40,19 @@ pedantic = { level = "warn", priority = -1 }
 perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
+allow_attributes_without_reason = "warn"
 undocumented_unsafe_blocks = "warn"
+
+# Pedantic/nursery lints the project opts out of workspace-wide. These are
+# blanket policy choices, so they live here rather than as `#![allow]` on each
+# crate root: doc-completeness and must-use lints are noise for an application,
+# and the remaining style lints disagree with the codebase's conventions.
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+option_if_let_else = "allow"
+significant_drop_tightening = "allow"
+useless_let_if_seq = "allow"
 
 [package]
 name = "flowrs-tui"

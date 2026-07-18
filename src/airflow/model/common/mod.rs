@@ -10,7 +10,10 @@ pub mod taskinstance;
 
 // Re-export common types for easier access
 pub use dag::{Dag, DagList, Tag};
-#[allow(unused_imports)]
+#[allow(
+    unused_imports,
+    reason = "re-exported for API completeness; unused under some configurations"
+)]
 pub use dagrun::{DagRun, DagRunList, DagRunState, RunType};
 pub use dagstats::{DagStatistic, DagStatsResponse};
 pub use duration::{calculate_duration, format_duration};

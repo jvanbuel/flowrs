@@ -7,7 +7,10 @@ pub struct DagList {
     pub total_entries: i64,
 }
 
-#[allow(clippy::struct_excessive_bools, clippy::struct_field_names)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "boolean flags mirror the Airflow API response schema"
+)]
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Dag {

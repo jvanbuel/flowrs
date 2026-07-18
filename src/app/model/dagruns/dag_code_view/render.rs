@@ -23,7 +23,10 @@ impl DagCodeView {
             .style(t.default_style)
             .title_style(t.title_style);
 
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+        )]
         let code_text = Paragraph::new(self.lines.clone())
             .block(popup)
             .style(t.default_style)

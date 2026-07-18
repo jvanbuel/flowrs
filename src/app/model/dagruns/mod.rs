@@ -73,10 +73,11 @@ impl DagRunModel {
         };
 
         // Calculate how many characters should be filled
-        #[allow(
+        #[expect(
             clippy::cast_possible_truncation,
             clippy::cast_sign_loss,
-            clippy::cast_precision_loss
+            clippy::cast_precision_loss,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
         )]
         let filled_width = (ratio * width as f64).round() as usize;
         let empty_width = width.saturating_sub(filled_width);

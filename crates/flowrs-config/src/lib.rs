@@ -1,8 +1,3 @@
-// Clippy pedantic allows
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::missing_panics_doc)]
-#![allow(clippy::must_use_candidate)]
-
 pub mod auth;
 pub mod paths;
 pub mod server;
@@ -87,7 +82,10 @@ impl FlowrsConfig {
         } else {
             self.poll_interval_ms
         };
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "poll interval divided by the tick rate is a small multiplier well within u32"
+        )]
         let multiplier = (interval / TICK_RATE_MS) as u32;
         multiplier.max(1)
     }

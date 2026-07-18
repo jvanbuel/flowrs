@@ -12,9 +12,15 @@ pub fn render_init_screen(f: &mut Frame, index: u32) {
 
     let area = center(
         f.area(),
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+        )]
         Constraint::Length(text.width() as u16),
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+        )]
         Constraint::Length(text.height() as u16),
     );
 

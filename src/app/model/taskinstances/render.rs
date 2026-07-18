@@ -23,7 +23,10 @@ impl Widget for &mut TaskInstanceModel {
         let legend = Paragraph::new(gantt_legend_line())
             .wrap(Wrap { trim: true })
             .alignment(Alignment::Center);
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+        )]
         let legend_height = legend.line_count(panel_area.width).max(1) as u16;
 
         let [content_area, legend_area] =
