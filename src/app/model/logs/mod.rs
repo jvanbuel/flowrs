@@ -83,12 +83,26 @@ impl LogModel {
         self.all = logs;
     }
 
+    /// Index of the currently selected log (task try), wrapped into range.
+    ///
+    /// `current` can exceed `all.len()` after `update_logs` replaces the list
+    /// with fewer tries, so the selection is wrapped rather than assumed valid.
+    /// Returns 0 for an empty list; pair with [`current_log`](Self::current_log)
+    /// to distinguish "empty" from "first entry".
+    fn current_index(&self) -> usize {
+        self.current % self.all.len().max(1)
+    }
+
+    /// Returns the currently selected log (the task try being viewed), if any.
+    /// `None` when no logs are loaded.
+    fn current_log(&self) -> Option<&Log> {
+        self.all.get(self.current_index())
+    }
+
     /// Returns the total number of lines in the current log content
     pub(crate) fn current_line_count(&self) -> usize {
-        let Some(log) = self.all.get(self.current % self.all.len().max(1)) else {
-            return 0;
-        };
-        log.content.lines().count()
+        self.current_log()
+            .map_or(0, |log| log.content.lines().count())
     }
 }
 
@@ -168,7 +182,7 @@ impl Model for LogModel {
                         };
                     }
                     KeyCode::Char('o') => {
-                        if self.all.get(self.current % self.all.len()).is_some() {
+                        if self.current_log().is_some() {
                             if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
                                 (ctx.dag_id(), ctx.dag_run_id(), ctx.task_id())
                             {
@@ -179,7 +193,7 @@ impl Model for LogModel {
                                         dag_run_id: dag_run_id.clone(),
                                         task_id: task_id.clone(),
                                         #[allow(clippy::cast_possible_truncation)]
-                                        task_try: (self.current + 1) as u32,
+                                        task_try: (self.current_index() + 1) as u32,
                                     })],
                                 );
                             }
@@ -216,5 +230,57 @@ impl Model for LogModel {
         }
 
         (None, vec![])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    use super::*;
+    use crate::app::state::NavigationContext;
+
+    /// Regression test: pressing `o` to open the Airflow UI while the log list
+    /// is empty must not panic. Previously `self.current % self.all.len()`
+    /// computed a remainder with a zero divisor when `all` was empty.
+    #[test]
+    fn open_ui_with_empty_logs_does_not_panic() {
+        let mut model = LogModel::default();
+        assert!(model.all.is_empty());
+
+        let ctx = NavigationContext::Task {
+            environment: "env".to_string(),
+            dag_id: "dag".into(),
+            dag_run_id: "run".into(),
+            task_id: "task".into(),
+            task_try: 1,
+        };
+
+        let event = FlowrsEvent::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::empty()));
+
+        // Must not panic and must not emit an OpenItem message for empty logs.
+        let (_, messages) = model.update(&event, &ctx);
+        assert!(messages.is_empty());
+    }
+
+    fn log(content: &str) -> Log {
+        Log {
+            continuation_token: None,
+            content: content.to_string(),
+        }
+    }
+
+    #[test]
+    fn current_index_wraps_when_selection_exceeds_len() {
+        // After `update_logs` shrinks the list, a stale `current` must wrap into
+        // range rather than point past the end (or panic).
+        let mut model = LogModel {
+            current: 3,
+            ..Default::default()
+        };
+        model.update_logs(vec![log("a"), log("b")]);
+
+        assert_eq!(model.current_index(), 1); // 3 % 2
+        assert!(model.current_log().is_some());
     }
 }
