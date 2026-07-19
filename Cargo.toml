@@ -24,9 +24,8 @@ toml = "1.1.2"
 
 # Shared lint configuration for every crate in the workspace. Crates opt in with
 # `[lints] workspace = true`. See the Microsoft Pragmatic Rust Guidelines
-# (M-STATIC-VERIFICATION). Higher-churn lints (missing_debug_implementations,
-# clone_on_ref_ptr) are intentionally deferred to follow-up changes so this one
-# stays warning-clean.
+# (M-STATIC-VERIFICATION). missing_debug_implementations is intentionally
+# deferred to a follow-up change so this one stays warning-clean.
 [workspace.lints.rust]
 ambiguous_negative_literals = "warn"
 redundant_lifetimes = "warn"
@@ -41,6 +40,7 @@ perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
 allow_attributes_without_reason = "warn"
+clone_on_ref_ptr = "warn"
 undocumented_unsafe_blocks = "warn"
 
 # Pedantic/nursery lints the project opts out of workspace-wide. These are
