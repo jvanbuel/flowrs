@@ -22,9 +22,28 @@ pub struct ManagedServiceConfig {
 
 /// Expands managed services by resolving their environments and returning server configs.
 /// Returns a tuple of (new servers, errors) where errors contains any non-fatal errors encountered.
+#[cfg_attr(
+    not(any(feature = "mwaa", feature = "astronomer", feature = "composer")),
+    allow(
+        clippy::unused_async,
+        reason = "the awaited service resolvers are gated behind async features"
+    )
+)]
 pub async fn expand_managed_services(
     config: ManagedServiceConfig,
 ) -> Result<(Vec<AirflowConfig>, Vec<String>)> {
+    #[cfg_attr(
+        not(any(
+            feature = "conveyor",
+            feature = "mwaa",
+            feature = "astronomer",
+            feature = "composer"
+        )),
+        allow(
+            unused_mut,
+            reason = "no service features are enabled, so all_servers is never extended"
+        )
+    )]
     let mut all_servers = Vec::new();
     let mut all_errors = Vec::new();
 
