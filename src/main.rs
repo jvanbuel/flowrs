@@ -3,6 +3,12 @@ use std::sync::LazyLock;
 use clap::Parser;
 use ui::constants::ASCII_LOGO;
 
+// mimalloc handles this application's many short-lived allocations (per-poll
+// clones, log/format strings, render buffers) more efficiently than the system
+// allocator (M-MIMALLOC-APPS).
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 mod airflow;
 mod app;
 mod commands;

@@ -87,6 +87,7 @@ dirs = { workspace = true }
 futures = "0.3.32"
 inquire = "0.9.3"
 log = { workspace = true }
+mimalloc = "0.1"
 ratatui = { version = "0.30.0", features = [
     "unstable-widget-ref",
     "unstable-rendered-line-info",
