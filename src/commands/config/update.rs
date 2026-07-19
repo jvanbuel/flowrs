@@ -5,10 +5,10 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
-use crate::commands::config::model::{validate_endpoint, ConfigOption};
+use crate::commands::config::model::{run_token_command, validate_endpoint, ConfigOption};
 use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 
 impl UpdateCommand {
     pub fn run(&self) -> Result<()> {
@@ -69,13 +69,7 @@ impl UpdateCommand {
             ConfigOption::Token(_) => {
                 let cmd = inquire::Text::new("cmd").prompt()?;
                 info!("🔑 Running command: {cmd}");
-                let output = std::process::Command::new("sh")
-                    .arg("-c")
-                    .arg(&cmd)
-                    .output()
-                    .with_context(|| format!("failed to run token command: {cmd}"))?;
-                // Validate the command produces a token
-                let _token = String::from_utf8(output.stdout)?;
+                run_token_command(&cmd)?;
                 airflow_config.auth = AirflowAuth::Token(TokenSource::Command { cmd });
             }
         }
