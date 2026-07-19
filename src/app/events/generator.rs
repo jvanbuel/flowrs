@@ -26,11 +26,17 @@ impl EventGenerator {
                     .unwrap_or_else(|| Duration::from_secs(0));
                 if matches!(event::poll(timeout), Ok(true)) {
                     if let Ok(ev) = event::read() {
-                        let _ = tx_event_thread.send(FlowrsEvent::from(ev)).await;
+                        // A send error means the receiver is gone (the app is
+                        // exiting), so stop the loop instead of spinning forever.
+                        if tx_event_thread.send(FlowrsEvent::from(ev)).await.is_err() {
+                            break;
+                        }
                     }
                 }
                 if last_tick.elapsed() > tick_rate {
-                    let _ = tx_event_thread.send(FlowrsEvent::Tick).await;
+                    if tx_event_thread.send(FlowrsEvent::Tick).await.is_err() {
+                        break;
+                    }
                     last_tick = Instant::now();
                 }
             }
