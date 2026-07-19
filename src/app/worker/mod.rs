@@ -130,8 +130,8 @@ impl Dispatcher {
             }
 
             // Spawn each message processing as a concurrent task
-            let app = self.app.clone();
-            let in_flight = in_flight.clone();
+            let app = Arc::clone(&self.app);
+            let in_flight = Arc::clone(&in_flight);
             tasks.spawn(async move {
                 if let Err(e) = process_message(app, message).await {
                     log::error!("Error processing message: {e}");
@@ -177,7 +177,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         (
             app.environment_state
                 .get_active_environment()
-                .map(|env| env.client.clone()),
+                .map(|env| Arc::clone(&env.client)),
             app.environment_state.active_environment.clone(),
         )
     };

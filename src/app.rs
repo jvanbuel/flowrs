@@ -24,8 +24,8 @@ where
     <B as Backend>::Error: 'static + std::marker::Send + std::marker::Sync,
 {
     let mut events = EventGenerator::new(200);
-    let ui_app = app.clone();
-    let worker_app = app.clone();
+    let ui_app = Arc::clone(&app);
+    let worker_app = Arc::clone(&app);
 
     let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
 
