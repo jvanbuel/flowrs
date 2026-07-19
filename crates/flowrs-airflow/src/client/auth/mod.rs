@@ -44,7 +44,7 @@ pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>>
             Ok(Box::new(CommandTokenProvider::new(cmd.clone())))
         }
         #[cfg(feature = "conveyor")]
-        AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider)),
+        AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider::new())),
         #[cfg(not(feature = "conveyor"))]
         AirflowAuth::Conveyor => {
             anyhow::bail!("Conveyor support not compiled. Enable the 'conveyor' feature.")
