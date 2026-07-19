@@ -22,6 +22,26 @@ time = { version = "0.3.47", features = ["serde", "serde-human-readable", "parsi
 tokio = { version = "1.51.1", features = ["rt-multi-thread", "sync", "macros"] }
 toml = "1.1.2"
 
+# Shared lint configuration for every crate in the workspace. Crates opt in with
+# `[lints] workspace = true`. See the Microsoft Pragmatic Rust Guidelines
+# (M-STATIC-VERIFICATION). Higher-churn lints (missing_debug_implementations,
+# allow_attributes_without_reason, clone_on_ref_ptr) are intentionally deferred
+# to follow-up changes so this one stays warning-clean.
+[workspace.lints.rust]
+ambiguous_negative_literals = "warn"
+redundant_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unused_lifetimes = "warn"
+
+[workspace.lints.clippy]
+complexity = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "warn"
+
 [package]
 name = "flowrs-tui"
 version = "0.13.1"
@@ -81,8 +101,8 @@ codegen-units = 1
 strip = true
 panic = "abort"
 
-[lints.clippy]
-pedantic = "warn"
+[lints]
+workspace = true
 
 
 [profile.dist]

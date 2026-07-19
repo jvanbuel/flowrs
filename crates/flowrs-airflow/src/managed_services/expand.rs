@@ -12,7 +12,7 @@ use super::conveyor::get_conveyor_environment_servers;
 #[cfg(feature = "mwaa")]
 use super::mwaa::get_mwaa_environment_servers;
 
-/// Configuration for managed service expansion, decomposed from FlowrsConfig
+/// Configuration for managed service expansion, decomposed from `FlowrsConfig`
 /// so that flowrs-airflow does not depend on the config crate.
 pub struct ManagedServiceConfig {
     pub services: Vec<ManagedService>,

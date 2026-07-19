@@ -33,3 +33,6 @@ time = { workspace = true }
 tokio = { workspace = true }
 toml = { workspace = true }
 url = "2.5.7"
+
+[lints]
+workspace = true
