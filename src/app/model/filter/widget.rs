@@ -59,7 +59,10 @@ impl FilterStateMachine {
                 let mut cursor_offset: u16 = 0;
 
                 // Render confirmed conditions
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 for cond in conditions {
                     let cond_text = format!("{}: {} ", cond.field, cond.value);
                     cursor_offset += cond_text.len() as u16;
@@ -70,7 +73,10 @@ impl FilterStateMachine {
                 }
 
                 // Render primary field name with colon (like ValueInput)
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 if let Some(field) = self.primary_field() {
                     let field_prefix = format!("{field}: ");
                     cursor_offset += field_prefix.len() as u16;
@@ -82,7 +88,10 @@ impl FilterStateMachine {
 
                 // Render typed text
                 let typed = &autocomplete.typed;
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 {
                     cursor_offset += typed.len() as u16;
                 }
@@ -110,7 +119,10 @@ impl FilterStateMachine {
                 let mut cursor_offset: u16 = 0;
 
                 // Render confirmed conditions
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 for cond in conditions {
                     let cond_text = format!("{}: {} ", cond.field, cond.value);
                     cursor_offset += cond_text.len() as u16;
@@ -126,7 +138,10 @@ impl FilterStateMachine {
 
                 // Render typed attribute name
                 let typed = &autocomplete.typed;
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 {
                     cursor_offset += typed.len() as u16;
                 }
@@ -158,7 +173,10 @@ impl FilterStateMachine {
                 let mut cursor_offset: u16 = 0;
 
                 // Render confirmed conditions
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 for cond in conditions {
                     let cond_text = format!("{}: {} ", cond.field, cond.value);
                     cursor_offset += cond_text.len() as u16;
@@ -170,7 +188,10 @@ impl FilterStateMachine {
 
                 // Render field name with colon
                 let field_prefix = format!("{field}: ");
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 {
                     cursor_offset += field_prefix.len() as u16;
                 }
@@ -181,7 +202,10 @@ impl FilterStateMachine {
 
                 // Render typed value
                 let typed = &autocomplete.typed;
-                #[allow(clippy::cast_possible_truncation)]
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+                )]
                 {
                     cursor_offset += typed.len() as u16;
                 }

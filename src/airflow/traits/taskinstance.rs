@@ -11,7 +11,7 @@ pub trait TaskInstanceOperations: Send + Sync {
         -> Result<TaskInstanceList>;
 
     /// List all task instances across all DAG runs
-    #[allow(unused)]
+    #[allow(unused, reason = "trait method kept for API completeness")]
     async fn list_all_taskinstances(&self) -> Result<TaskInstanceList>;
 
     /// List all tries for a specific task instance (for Gantt chart retry visualization)

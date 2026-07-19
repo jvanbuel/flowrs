@@ -15,8 +15,11 @@ use flowrs_config::Theme as ThemePreset;
 use ratatui::style::{Color, Style};
 
 /// Complete theme definition with all colors and pre-built styles.
+#[allow(
+    dead_code,
+    reason = "color fields kept for completeness; not all are read yet"
+)]
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct Theme {
     pub text_primary: Color,
     /// Muted foreground for secondary/confirmed text (e.g. applied filter conditions).

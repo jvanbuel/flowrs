@@ -19,7 +19,6 @@ pub enum OpenItem {
         dag_id: DagId,
         dag_run_id: DagRunId,
         task_id: TaskId,
-        #[allow(dead_code)]
         task_try: u32,
     },
 }

@@ -39,16 +39,18 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
         let start_ratio = gantt.ratio(seg_start);
         let end_ratio = gantt.ratio(seg_end);
 
-        #[allow(
+        #[expect(
             clippy::cast_possible_truncation,
             clippy::cast_sign_loss,
-            clippy::cast_precision_loss
+            clippy::cast_precision_loss,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
         )]
         let start_col = ((start_ratio * width as f64).floor() as usize).min(width);
-        #[allow(
+        #[expect(
             clippy::cast_possible_truncation,
             clippy::cast_sign_loss,
-            clippy::cast_precision_loss
+            clippy::cast_precision_loss,
+            reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
         )]
         let end_col = ((end_ratio * width as f64)
             .ceil()

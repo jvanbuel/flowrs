@@ -48,10 +48,9 @@ pub struct DagGraphPopup {
 
 impl DagGraphPopup {
     /// Build a graph popup from the task graph and current task instance states.
-    #[allow(
+    #[expect(
         clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        clippy::cast_possible_wrap
+        reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
     )]
     pub fn new(graph: &TaskGraph, task_instances: &[TaskInstance]) -> Self {
         // Map task_id -> state for coloring
@@ -194,10 +193,10 @@ impl DagGraphPopup {
     }
 
     /// Set a cell in the buffer if it falls within the visible area.
-    #[allow(
+    #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        clippy::cast_possible_wrap
+        reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
     )]
     pub fn set_cell(
         &self,
