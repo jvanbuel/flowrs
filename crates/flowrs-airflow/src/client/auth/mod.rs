@@ -41,7 +41,7 @@ pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>>
             token: token.clone(),
         })),
         AirflowAuth::Token(TokenSource::Command { cmd }) => {
-            Ok(Box::new(CommandTokenProvider { cmd: cmd.clone() }))
+            Ok(Box::new(CommandTokenProvider::new(cmd.clone())))
         }
         #[cfg(feature = "conveyor")]
         AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider)),
