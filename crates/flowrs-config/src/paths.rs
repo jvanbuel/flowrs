@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use dirs::home_dir;
 
 /// Manages configuration file paths with XDG support and legacy fallback.
+#[derive(Debug)]
 pub struct ConfigPaths {
     /// Path to read config from (XDG if exists, else legacy)
     pub read_path: PathBuf,

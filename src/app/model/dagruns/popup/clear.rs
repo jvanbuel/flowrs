@@ -17,6 +17,7 @@ use crate::ui::theme::theme;
 
 use crate::airflow::model::common::{DagId, DagRunId};
 
+#[derive(Debug)]
 pub struct ClearDagRunPopup {
     pub dag_run_ids: Vec<DagRunId>,
     pub dag_id: DagId,

@@ -9,6 +9,7 @@ use syntect::highlighting::ThemeSet;
 use syntect::parsing::SyntaxSet;
 use syntect::util::LinesWithEndings;
 
+#[derive(Debug)]
 pub struct DagCodeView {
     pub(crate) lines: Vec<Line<'static>>,
     pub(crate) vertical_scroll: usize,

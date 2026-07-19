@@ -14,7 +14,7 @@ use super::Model;
 ///
 /// Eliminates the invalid state where `follow_mode = true` but `vertical_scroll`
 /// points somewhere other than the bottom.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum ScrollMode {
     /// Automatically scroll to bottom when new content arrives (tail mode).
     /// The scroll position is computed from the content length at render time.
@@ -38,6 +38,7 @@ impl ScrollMode {
     }
 }
 
+#[derive(Debug)]
 pub struct LogModel {
     pub all: Vec<Log>,
     pub current: usize,

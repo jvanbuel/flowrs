@@ -12,6 +12,7 @@ pub(crate) enum ParamKind {
     Examples(Vec<String>),
 }
 
+#[derive(Debug)]
 pub(crate) struct ParamEntry {
     pub key: String,
     pub value: String,

@@ -8,6 +8,7 @@ use crate::app::{
 
 use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 
+#[derive(Debug)]
 pub struct ClearTaskInstancePopup {
     pub dag_run_id: DagRunId,
     pub dag_id: DagId,

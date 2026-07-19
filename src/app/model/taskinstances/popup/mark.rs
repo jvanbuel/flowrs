@@ -4,6 +4,7 @@ use strum::Display;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId, TaskInstanceState};
 use crate::app::{events::custom::FlowrsEvent, model::Model, worker::WorkerMessage};
 
+#[derive(Debug)]
 pub struct MarkTaskInstancePopup {
     pub dag_id: DagId,
     pub dag_run_id: DagRunId,

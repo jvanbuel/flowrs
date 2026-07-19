@@ -6,6 +6,7 @@ use crossterm::event;
 
 use super::custom::FlowrsEvent;
 
+#[derive(Debug)]
 pub struct EventGenerator {
     _tick_rate: Duration,
     pub rx_event: Receiver<FlowrsEvent>,

@@ -8,6 +8,7 @@ use trigger::TriggerDagRunPopUp;
 
 use crate::app::model::taskinstances::popup::graph::DagGraphPopup;
 
+#[derive(Debug)]
 pub enum DagRunPopUp {
     Clear(ClearDagRunPopup),
     Mark(MarkDagRunPopup),

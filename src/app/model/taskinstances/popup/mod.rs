@@ -7,6 +7,7 @@ use clear::ClearTaskInstancePopup;
 use graph::DagGraphPopup;
 use mark::MarkTaskInstancePopup;
 
+#[derive(Debug)]
 pub enum TaskInstancePopUp {
     Clear(ClearTaskInstancePopup),
     Mark(MarkTaskInstancePopup),

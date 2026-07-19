@@ -21,7 +21,8 @@ use flowrs_airflow::AirflowVersion;
 /// This trait can be implemented by different API versions (v1 for Airflow v2, v2 for Airflow v3)
 /// to provide a consistent interface for interacting with Airflow.
 pub trait AirflowClient:
-    DagOperations
+    std::fmt::Debug
+    + DagOperations
     + DagRunOperations
     + TaskInstanceOperations
     + LogOperations

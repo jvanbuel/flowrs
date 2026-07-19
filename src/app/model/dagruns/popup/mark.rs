@@ -14,6 +14,7 @@ use crate::app::{
 };
 use crate::ui::theme::theme;
 
+#[derive(Debug)]
 pub struct MarkDagRunPopup {
     pub dag_id: DagId,
     pub status: MarkState,

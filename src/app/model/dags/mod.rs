@@ -18,6 +18,7 @@ use crate::app::worker::WorkerMessage;
 use popup::DagPopUp;
 
 /// Model for the DAG panel, managing the list of DAGs and their filtering.
+#[derive(Debug)]
 pub struct DagModel {
     /// Filterable table containing all DAGs and filtered view
     pub table: FilterableTable<Dag>,

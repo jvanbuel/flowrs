@@ -22,6 +22,7 @@ use popup::DagRunPopUp;
 pub use dag_code_view::DagCodeView;
 
 /// Model for the DAG Run panel, managing the list of DAG runs and their filtering.
+#[derive(Debug)]
 pub struct DagRunModel {
     pub dag_code: Option<DagCodeView>,
     /// Filterable table containing all DAG runs and filtered view
