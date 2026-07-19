@@ -98,7 +98,7 @@ impl DagRunModel {
     pub fn sort_dag_runs(&mut self) {
         // Sort by logical_date (execution date) descending, with fallback to start_date
         // This ensures queued runs (which have no start_date yet) appear in chronological order
-        self.table.filtered.items.sort_by(|a, b| {
+        self.table.sort_by(|a, b| {
             b.logical_date
                 .or(b.start_date)
                 .cmp(&a.logical_date.or(a.start_date))
@@ -117,15 +117,11 @@ impl DagRunModel {
 
     /// Mark a DAG run with a new status (optimistic update)
     pub fn mark_dag_run(&mut self, dag_run_id: &DagRunId, status: DagRunState) {
-        if let Some(dag_run) = self
-            .table
-            .filtered
-            .items
-            .iter_mut()
-            .find(|dr| dr.dag_run_id == *dag_run_id)
-        {
-            dag_run.state = status;
-        }
+        self.table.update_all(|all| {
+            if let Some(dag_run) = all.iter_mut().find(|dr| dr.dag_run_id == *dag_run_id) {
+                dag_run.state = status;
+            }
+        });
     }
 }
 
@@ -165,7 +161,7 @@ impl DagRunModel {
                     matches!(custom_popup, DagRunPopUp::Clear(_) | DagRunPopUp::Mark(_));
                 self.popup.close();
                 if exit_visual {
-                    self.table.visual_anchor = None;
+                    self.table.clear_visual_mode();
                 }
             }
         }
@@ -396,14 +392,16 @@ mod tests {
             ..Default::default()
         };
 
-        model.table.all = vec![oldest_run, newest_run, queued_run];
+        model
+            .table
+            .set_items(vec![oldest_run, newest_run, queued_run]);
         model.table.apply_filter();
         model.sort_dag_runs();
 
-        assert_eq!(model.table.filtered.items.len(), 3);
-        assert_eq!(model.table.filtered.items[0].dag_run_id, "run_3");
-        assert_eq!(model.table.filtered.items[1].dag_run_id, "run_2");
-        assert_eq!(model.table.filtered.items[2].dag_run_id, "run_1");
+        assert_eq!(model.table.len(), 3);
+        assert_eq!(model.table.items().next().unwrap().dag_run_id, "run_3");
+        assert_eq!(model.table.items().nth(1).unwrap().dag_run_id, "run_2");
+        assert_eq!(model.table.items().nth(2).unwrap().dag_run_id, "run_1");
     }
 
     #[test]
@@ -430,13 +428,13 @@ mod tests {
             ..Default::default()
         };
 
-        model.table.all = vec![run_with_both, run_with_start];
+        model.table.set_items(vec![run_with_both, run_with_start]);
         model.table.apply_filter();
         model.sort_dag_runs();
 
-        assert_eq!(model.table.filtered.items.len(), 2);
-        assert_eq!(model.table.filtered.items[0].dag_run_id, "run_1");
-        assert_eq!(model.table.filtered.items[1].dag_run_id, "run_2");
+        assert_eq!(model.table.len(), 2);
+        assert_eq!(model.table.items().next().unwrap().dag_run_id, "run_1");
+        assert_eq!(model.table.items().nth(1).unwrap().dag_run_id, "run_2");
     }
 
     #[test]
@@ -461,11 +459,11 @@ mod tests {
             ..Default::default()
         };
 
-        model.table.all = vec![run_manual, run_scheduled];
+        model.table.set_items(vec![run_manual, run_scheduled]);
 
-        model.table.filter.activate();
+        model.table.filter_mut().activate();
         for c in "manual".chars() {
-            model.table.filter.update(
+            model.table.filter_mut().update(
                 &KeyEvent::new(crossterm::event::KeyCode::Char(c), KeyModifiers::empty()),
                 &DagRun::filterable_fields(),
             );
@@ -473,7 +471,10 @@ mod tests {
         model.table.apply_filter();
         model.sort_dag_runs();
 
-        assert_eq!(model.table.filtered.items.len(), 1);
-        assert_eq!(model.table.filtered.items[0].dag_run_id, "manual_run_1");
+        assert_eq!(model.table.len(), 1);
+        assert_eq!(
+            model.table.items().next().unwrap().dag_run_id,
+            "manual_run_1"
+        );
     }
 }

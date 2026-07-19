@@ -98,26 +98,26 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     match app.active_panel {
         Panel::Config => {
             app.configs.render(panel_area, f.buffer_mut());
-            if app.configs.table.filter.is_active() {
-                f.set_cursor_position(app.configs.table.filter.cursor_position);
+            if app.configs.table.filter().is_active() {
+                f.set_cursor_position(app.configs.table.filter().cursor_position);
             }
         }
         Panel::Dag => {
             app.dags.render(panel_area, f.buffer_mut());
-            if app.dags.table.filter.is_active() {
-                f.set_cursor_position(app.dags.table.filter.cursor_position);
+            if app.dags.table.filter().is_active() {
+                f.set_cursor_position(app.dags.table.filter().cursor_position);
             }
         }
         Panel::DAGRun => {
             app.dagruns.render(panel_area, f.buffer_mut());
-            if app.dagruns.table.filter.is_active() {
-                f.set_cursor_position(app.dagruns.table.filter.cursor_position);
+            if app.dagruns.table.filter().is_active() {
+                f.set_cursor_position(app.dagruns.table.filter().cursor_position);
             }
         }
         Panel::TaskInstance => {
             app.task_instances.render(panel_area, f.buffer_mut());
-            if app.task_instances.table.filter.is_active() {
-                f.set_cursor_position(app.task_instances.table.filter.cursor_position);
+            if app.task_instances.table.filter().is_active() {
+                f.set_cursor_position(app.task_instances.table.filter().cursor_position);
             }
         }
         Panel::Logs => app.logs.render(panel_area, f.buffer_mut()),
