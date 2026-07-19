@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.0...flowrs-config-v0.12.1) - 2026-07-19
+
+### Fixed
+
+- *(config)* surface a clean error when the home directory is unavailable ([#672](https://github.com/jvanbuel/flowrs/pull/672))
+- *(config)* make writes atomic and stop swallowing read errors ([#669](https://github.com/jvanbuel/flowrs/pull/669))
+
+### Other
+
+- centralize lints in [workspace.lints] and lint the airflow crate ([#674](https://github.com/jvanbuel/flowrs/pull/674))
+
 ## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.11.7...flowrs-config-v0.12.0) - 2026-07-10
 
 ### Other
