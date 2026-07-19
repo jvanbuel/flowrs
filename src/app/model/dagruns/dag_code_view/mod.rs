@@ -1,5 +1,7 @@
 mod render;
 
+use std::sync::LazyLock;
+
 use crossterm::event::KeyCode;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
@@ -61,17 +63,21 @@ impl DagCodeView {
     }
 }
 
+// Loading the syntect defaults deserializes a few megabytes of bundled syntax
+// and theme data, so do it once instead of on every DAG-code view open.
+static SYNTAX_SET: LazyLock<SyntaxSet> = LazyLock::new(SyntaxSet::load_defaults_newlines);
+static THEME_SET: LazyLock<ThemeSet> = LazyLock::new(ThemeSet::load_defaults);
+
 fn code_to_lines(dag_code: &str) -> Vec<Line<'static>> {
-    let ps = SyntaxSet::load_defaults_newlines();
-    let ts = ThemeSet::load_defaults();
+    let ps = &*SYNTAX_SET;
     let syntax = ps
         .find_syntax_by_extension("py")
         .expect("Python syntax definition should be available in default syntax set");
-    let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+    let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
     let mut lines: Vec<Line<'static>> = vec![];
     for line in LinesWithEndings::from(dag_code) {
         let line_spans: Vec<Span<'static>> = h
-            .highlight_line(line, &ps)
+            .highlight_line(line, ps)
             .expect("Syntax highlighting should succeed for valid Python code")
             .into_iter()
             .map(|(style, text)| {
