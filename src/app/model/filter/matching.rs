@@ -21,16 +21,18 @@ pub fn matches<T: Filterable>(item: &T, conditions: &[FilterCondition]) -> bool 
     item_matches(item, conditions)
 }
 
-/// Filter a collection of items by conditions
-pub fn filter_items<T: Filterable + Clone>(items: &[T], conditions: &[FilterCondition]) -> Vec<T> {
+/// Filter a collection of items by conditions, returning the indices of the
+/// matches so callers can reference the originals instead of cloning them.
+pub fn filter_items<T: Filterable>(items: &[T], conditions: &[FilterCondition]) -> Vec<usize> {
     if conditions.is_empty() {
-        return items.to_vec();
+        return (0..items.len()).collect();
     }
 
     items
         .iter()
-        .filter(|item| item_matches(*item, conditions))
-        .cloned()
+        .enumerate()
+        .filter(|&(_, item)| item_matches(item, conditions))
+        .map(|(i, _)| i)
         .collect()
 }
 
@@ -149,7 +151,7 @@ mod tests {
         ];
         let filtered = filter_items(&items, &conditions);
         assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].id, "item_1");
+        assert_eq!(items[filtered[0]].id, "item_1");
     }
 
     #[test]

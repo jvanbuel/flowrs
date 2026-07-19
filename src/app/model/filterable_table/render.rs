@@ -8,7 +8,7 @@ use crate::ui::theme::theme;
 
 use super::FilterableTable;
 
-impl<T: Filterable + Clone> FilterableTable<T> {
+impl<T: Filterable> FilterableTable<T> {
     /// Renders the filter widget if active and returns the content area.
     ///
     /// This handles the common pattern of splitting the area for filter input.
