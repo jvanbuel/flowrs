@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -12,6 +14,12 @@ use crate::ui::TIME_FORMAT;
 
 use super::popup::DagRunPopUp;
 use super::DagRunModel;
+
+// Parse the row time format once rather than on every row of every frame.
+static ROW_TIME_FORMAT: LazyLock<format_description::OwnedFormatItem> = LazyLock::new(|| {
+    format_description::parse_owned::<2>(TIME_FORMAT)
+        .expect("TIME_FORMAT constant should be a valid time format")
+});
 
 impl Widget for &mut DagRunModel {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
@@ -78,11 +86,8 @@ impl Widget for &mut DagRunModel {
                         Style::default().add_modifier(Modifier::BOLD),
                     )),
                     Line::from(if let Some(date) = item.logical_date {
-                        date.format(
-                            &format_description::parse_borrowed::<2>(TIME_FORMAT)
-                                .expect("TIME_FORMAT constant should be a valid time format"),
-                        )
-                        .expect("Date formatting with TIME_FORMAT should succeed")
+                        date.format(&ROW_TIME_FORMAT)
+                            .expect("Date formatting with TIME_FORMAT should succeed")
                     } else {
                         "None".to_string()
                     }),
