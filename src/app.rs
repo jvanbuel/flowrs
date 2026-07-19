@@ -140,7 +140,12 @@ where
                 // Handle other key events
                 match key.code {
                     KeyCode::Char('q') => {
-                        app.config.write_to_file(&CONFIG_PATHS)?;
+                        // Persist config (e.g. active-server selection) on exit, but
+                        // a save failure should not turn a normal quit into an error
+                        // exit.
+                        if let Err(e) = app.config.write_to_file(&CONFIG_PATHS) {
+                            log::error!("Failed to save config on exit: {e}");
+                        }
                         return Ok(());
                     }
                     KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
