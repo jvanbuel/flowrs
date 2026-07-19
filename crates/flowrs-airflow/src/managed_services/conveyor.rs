@@ -7,11 +7,12 @@ use dirs::home_dir;
 use log::info;
 use reqwest::RequestBuilder;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::io::Read;
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Timeout in seconds for conveyor CLI commands.
 /// If the CLI hangs (e.g., waiting for input), the operation will fail after this duration.
@@ -90,14 +91,62 @@ impl ConveyorClient {
     }
 }
 
-#[derive(Debug)]
-pub struct ConveyorAuthProvider;
+/// How long a fetched Conveyor token is reused before the CLI is run again.
+///
+/// `conveyor auth get` spawns a process (and refreshes the token underneath),
+/// which previously happened on *every* API request. Conveyor tokens are valid
+/// for at least an hour, so a 5-minute window keeps a comfortable safety margin
+/// while eliminating the per-request process spawn.
+const TOKEN_TTL: Duration = Duration::from_secs(5 * 60);
+
+pub struct ConveyorAuthProvider {
+    /// Cached `(token, fetched_at)`, refreshed once `TOKEN_TTL` elapses. The
+    /// async mutex also single-flights concurrent refreshes, so a burst of
+    /// parallel requests triggers at most one `conveyor auth get`.
+    cached: tokio::sync::Mutex<Option<(String, Instant)>>,
+}
+
+impl ConveyorAuthProvider {
+    pub fn new() -> Self {
+        Self {
+            cached: tokio::sync::Mutex::new(None),
+        }
+    }
+}
+
+impl Default for ConveyorAuthProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl fmt::Debug for ConveyorAuthProvider {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Never render the cached token.
+        f.debug_struct("ConveyorAuthProvider")
+            .finish_non_exhaustive()
+    }
+}
 
 #[async_trait]
 impl AuthProvider for ConveyorAuthProvider {
     async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
-        info!("🔑 Conveyor Auth");
-        let token = ConveyorClient::get_token()?;
+        let mut cached = self.cached.lock().await;
+
+        let fresh = cached
+            .as_ref()
+            .is_some_and(|(_, fetched)| fetched.elapsed() < TOKEN_TTL);
+
+        if !fresh {
+            info!("🔑 Conveyor Auth: refreshing token");
+            // Run the blocking CLI off the async runtime.
+            let token = tokio::task::spawn_blocking(ConveyorClient::get_token)
+                .await
+                .context("Conveyor token task panicked")??;
+            *cached = Some((token, Instant::now()));
+        }
+
+        let (token, _) = cached.as_ref().expect("token cached above");
         Ok(request.bearer_auth(token))
     }
 }
