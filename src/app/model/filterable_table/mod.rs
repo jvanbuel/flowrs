@@ -19,7 +19,7 @@ use super::{KeyResult, StatefulTable};
 /// A generic filterable table that combines data storage, filtering, and visual selection.
 ///
 /// This widget is designed to work with any type that implements `Filterable + Clone`.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FilterableTable<T> {
     /// All items from the API (unfiltered)
     pub all: Vec<T>,

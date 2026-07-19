@@ -22,6 +22,7 @@ pub(crate) enum FocusZone {
     Buttons,
 }
 
+#[derive(Debug)]
 pub struct TriggerDagRunPopUp {
     pub dag_id: DagId,
     pub(crate) params: Vec<ParamEntry>,

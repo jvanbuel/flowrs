@@ -17,6 +17,7 @@ use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::ui::common::create_headers;
 use commands::CONFIG_COMMAND_POP_UP;
 
+#[derive(Debug)]
 pub struct ConfigModel {
     /// Filterable table containing all configs and filtered view
     pub table: FilterableTable<AirflowConfig>,

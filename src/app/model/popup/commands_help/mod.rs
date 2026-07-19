@@ -1,16 +1,19 @@
 mod render;
 
+#[derive(Debug)]
 pub struct Command<'a> {
     pub name: &'a str,
     pub key_binding: &'a str,
     pub description: &'a str,
 }
 
+#[derive(Debug)]
 pub struct CommandPopUp<'a> {
     pub title: String,
     pub commands: Vec<Command<'a>>,
 }
 
+#[derive(Debug)]
 pub struct DefaultCommands(pub Vec<Command<'static>>);
 
 impl Default for DefaultCommands {

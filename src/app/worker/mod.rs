@@ -17,6 +17,7 @@ mod logs;
 mod taskinstances;
 mod tasks;
 
+#[derive(Debug)]
 pub struct Dispatcher {
     app: Arc<Mutex<App>>,
 }

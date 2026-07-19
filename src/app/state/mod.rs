@@ -17,6 +17,7 @@ use throbber_widgets_tui::ThrobberState;
 
 use super::model::{config::ConfigModel, logs::LogModel, taskinstances::TaskInstanceModel};
 
+#[derive(Debug)]
 pub struct App {
     pub config: FlowrsConfig,
     pub environment_state: EnvironmentStateContainer,
@@ -36,7 +37,7 @@ pub struct App {
     pub focused: bool,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Panel {
     Config,
     Dag,

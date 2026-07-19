@@ -21,6 +21,7 @@ use popup::mark::MarkTaskInstancePopup;
 use popup::TaskInstancePopUp;
 
 /// Model for the Task Instance panel, managing the list of task instances and their filtering.
+#[derive(Debug)]
 pub struct TaskInstanceModel {
     /// Filterable table containing all task instances and filtered view
     pub table: FilterableTable<TaskInstance>,

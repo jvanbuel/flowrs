@@ -14,6 +14,7 @@ use super::mwaa::get_mwaa_environment_servers;
 
 /// Configuration for managed service expansion, decomposed from `FlowrsConfig`
 /// so that flowrs-airflow does not depend on the config crate.
+#[derive(Debug)]
 pub struct ManagedServiceConfig {
     pub services: Vec<ManagedService>,
     pub gcc_regions: Vec<String>,

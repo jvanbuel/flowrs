@@ -24,6 +24,7 @@ const MARGIN: u16 = 1;
 const SCROLL_STEP: u16 = 3;
 
 /// A node in the graph layout.
+#[derive(Debug)]
 pub struct GraphNode {
     pub task_id: String,
     pub x: u16,
@@ -33,6 +34,7 @@ pub struct GraphNode {
 }
 
 /// Popup that visualizes the DAG task dependency graph.
+#[derive(Debug)]
 pub struct DagGraphPopup {
     pub nodes: Vec<GraphNode>,
     pub edges: Vec<(usize, usize)>,

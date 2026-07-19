@@ -10,6 +10,7 @@ use super::popup_area;
 use crate::ui::common::titled_popup_block;
 use crate::ui::theme::theme;
 
+#[derive(Debug)]
 pub struct WarningPopup {
     pub warnings: Vec<String>,
 }

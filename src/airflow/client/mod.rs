@@ -14,6 +14,7 @@ use crate::airflow::traits::AirflowClient;
 use open_url::{build_v1_open_url, build_v2_open_url};
 
 /// Wrapper enum that owns a versioned Airflow HTTP client and implements the TUI trait layer.
+#[derive(Debug)]
 pub enum FlowrsClient {
     V1(V1Client),
     V2(V2Client),

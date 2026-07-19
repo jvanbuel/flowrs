@@ -24,6 +24,7 @@ pub const ROTATING_LOGO: [&str; 16] = [
     include_str!("../../image/rotation/ascii/15.ascii"),
 ];
 
+#[derive(Debug)]
 pub enum AirflowStateColor {
     Success,
     Failed,

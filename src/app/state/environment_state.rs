@@ -12,7 +12,7 @@ use crate::airflow::traits::AirflowClient as AirflowClientTrait;
 /// it. `task_instances` and `task_logs` use composite tuple keys instead of
 /// nested `HashMap`s, giving single-lookup access and eliminating intermediate
 /// allocations.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EnvironmentData {
     pub client: Arc<dyn AirflowClientTrait>,
 
@@ -98,7 +98,7 @@ impl EnvironmentData {
 }
 
 /// Container for all environment states
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct EnvironmentStateContainer {
     pub environments: HashMap<EnvironmentKey, EnvironmentData>,
     pub active_environment: Option<EnvironmentKey>,

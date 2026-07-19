@@ -57,6 +57,7 @@ pub struct EnvironmentsResponse {
 }
 
 /// Composer client for managing authentication and environment discovery
+#[derive(Debug)]
 pub struct ComposerClient {
     http_client: reqwest::Client,
 }

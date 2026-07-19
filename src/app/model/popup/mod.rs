@@ -19,7 +19,7 @@ use super::KeyResult;
 ///
 /// This simplifies popup handling by providing a single field that can
 /// represent error popups, command help popups, or panel-specific popups.
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub enum Popup<T = ()> {
     /// No popup is shown
     #[default]
@@ -114,7 +114,7 @@ pub fn popup_area(area: Rect, percent_x: u16, percent_y: u16) -> Rect {
 ///
 /// Replaces a raw `bool` to make the selected state self-documenting and
 /// eliminate the ambiguity of which value means "yes" vs "no".
-#[derive(Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum SelectedButton {
     /// The "Yes" / confirm button is highlighted.
     Yes,

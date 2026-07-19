@@ -9,6 +9,7 @@ use unicode_width::UnicodeWidthStr;
 use super::theme::theme;
 
 /// Tab definition with label and icon
+#[derive(Debug)]
 pub struct Tab {
     pub icon: &'static str,
     pub label: &'static str,
@@ -43,6 +44,7 @@ pub const TABS: [Tab; 5] = [
 
 /// Tab bar widget that renders tabs with three-sided borders.
 /// The active tab has no bottom border, creating a visual connection to content below.
+#[derive(Debug)]
 pub struct TabBar {
     /// Index of the currently active tab
     active: usize,

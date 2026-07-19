@@ -13,6 +13,7 @@ pub use v2::V2Client;
 
 /// Enum wrapping the versioned API clients.
 /// V1 is for Airflow v2 (uses /api/v1), V2 is for Airflow v3 (uses /api/v2).
+#[derive(Debug)]
 pub enum AirflowApiClient {
     V1(V1Client),
     V2(V2Client),
