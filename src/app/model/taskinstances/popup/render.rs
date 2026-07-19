@@ -160,7 +160,11 @@ impl Widget for &mut MarkTaskInstancePopup {
 }
 
 impl Widget for &mut DagGraphPopup {
-    #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_possible_wrap,
+        reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
+    )]
     fn render(self, area: Rect, buffer: &mut Buffer) {
         let t = theme();
         // +2 for block borders, +1 for title bottom line

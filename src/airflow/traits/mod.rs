@@ -29,7 +29,7 @@ pub trait AirflowClient:
     + TaskOperations
 {
     /// Get the Airflow version this client is configured for
-    #[allow(unused)]
+    #[allow(unused, reason = "trait method kept for API completeness")]
     fn get_version(&self) -> AirflowVersion;
 
     /// Build the appropriate web UI URL for opening an item in the browser.
@@ -37,6 +37,5 @@ pub trait AirflowClient:
     ///
     /// # Errors
     /// Returns an error if the URL cannot be constructed for the given item.
-    #[allow(unused)]
     fn build_open_url(&self, item: &OpenItem) -> Result<String>;
 }

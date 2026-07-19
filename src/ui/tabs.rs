@@ -67,7 +67,10 @@ impl TabBar {
 }
 
 impl Widget for TabBar {
-    #[allow(clippy::cast_possible_truncation)] // Tab widths are small, truncation won't occur
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "tab widths are small, truncation won't occur"
+    )]
     fn render(self, area: Rect, buf: &mut Buffer) {
         if area.height < 3 {
             return; // Need at least 3 rows for tabs + border

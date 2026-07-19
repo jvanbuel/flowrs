@@ -43,7 +43,10 @@ impl KeyResult {
     }
 
     /// Convert to the `update()` return type
-    #[allow(clippy::match_same_arms)] // PassThrough and Ignored are semantically different
+    #[expect(
+        clippy::match_same_arms,
+        reason = "arms are semantically distinct even though they map to the same value"
+    )]
     pub fn into_result(self, event: &FlowrsEvent) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match self {
             KeyResult::Consumed => (None, vec![]),

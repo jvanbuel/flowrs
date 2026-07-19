@@ -16,7 +16,7 @@ fn item_matches<T: Filterable>(item: &T, conditions: &[FilterCondition]) -> bool
 }
 
 /// Check if an item matches all filter conditions (public API, used by tests)
-#[allow(dead_code)]
+#[allow(dead_code, reason = "public helper exercised only by tests")]
 pub fn matches<T: Filterable>(item: &T, conditions: &[FilterCondition]) -> bool {
     item_matches(item, conditions)
 }

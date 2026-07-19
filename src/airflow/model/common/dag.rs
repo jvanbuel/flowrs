@@ -4,7 +4,10 @@ use time::OffsetDateTime;
 use super::DagId;
 
 /// Common DAG model used by the application
-#[allow(clippy::struct_field_names)]
+#[allow(
+    clippy::struct_field_names,
+    reason = "field names mirror the Airflow API response schema"
+)]
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Dag {
     pub dag_id: DagId,

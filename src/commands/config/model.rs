@@ -181,7 +181,10 @@ pub struct ManagedServiceCommand {
 
 type Command = Option<String>;
 
-#[allow(clippy::unnecessary_wraps)]
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "signature kept uniform with the inquire validator interface"
+)]
 pub fn validate_endpoint(
     endpoint: &str,
 ) -> Result<Validation, Box<dyn std::error::Error + Send + Sync>> {

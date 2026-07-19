@@ -45,7 +45,7 @@ pub enum Panel {
 }
 
 impl App {
-    #[allow(dead_code)]
+    #[allow(dead_code, reason = "constructor used only in tests")]
     pub fn new(config: FlowrsConfig) -> Self {
         Self::new_with_errors_and_warnings(config, vec![], vec![])
     }
