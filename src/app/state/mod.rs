@@ -7,10 +7,13 @@ pub mod environment_state;
 
 pub use navigation::NavigationContext;
 
+use crate::app::events::custom::FlowrsEvent;
 use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::model::popup::warning::WarningPopup;
+use crate::app::model::Model;
+use crate::app::worker::WorkerMessage;
 use environment_state::EnvironmentStateContainer;
 use flowrs_config::FlowrsConfig;
 use throbber_widgets_tui::ThrobberState;
@@ -115,6 +118,23 @@ impl App {
             Panel::DAGRun => self.active_panel = Panel::Dag,
             Panel::TaskInstance => self.active_panel = Panel::DAGRun,
             Panel::Logs => self.active_panel = Panel::TaskInstance,
+        }
+    }
+
+    /// Route an event to the currently active panel's `update`.
+    ///
+    /// Taking `&mut self` lets the panel field and `nav_context` be borrowed as
+    /// disjoint fields, so the context does not need to be cloned per event.
+    pub fn update_active_panel(
+        &mut self,
+        event: &FlowrsEvent,
+    ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
+        match self.active_panel {
+            Panel::Config => self.configs.update(event, &self.nav_context),
+            Panel::Dag => self.dags.update(event, &self.nav_context),
+            Panel::DAGRun => self.dagruns.update(event, &self.nav_context),
+            Panel::TaskInstance => self.task_instances.update(event, &self.nav_context),
+            Panel::Logs => self.logs.update(event, &self.nav_context),
         }
     }
 

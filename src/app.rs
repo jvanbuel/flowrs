@@ -4,9 +4,8 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyModifiers};
 use events::{custom::FlowrsEvent, generator::EventGenerator};
 use log::debug;
-use model::Model;
 use ratatui::{prelude::Backend, Terminal};
-use state::{App, Panel};
+use state::App;
 use worker::{Dispatcher, WorkerMessage};
 
 use crate::airflow::client::FlowrsClient;
@@ -103,17 +102,7 @@ where
             }
 
             // Then handle panel specific events, and send messages to the event channel
-            let (fall_through_event, messages) = {
-                let mut app = app.lock().unwrap();
-                let ctx = app.nav_context.clone();
-                match app.active_panel {
-                    Panel::Config => app.configs.update(&event, &ctx),
-                    Panel::Dag => app.dags.update(&event, &ctx),
-                    Panel::DAGRun => app.dagruns.update(&event, &ctx),
-                    Panel::TaskInstance => app.task_instances.update(&event, &ctx),
-                    Panel::Logs => app.logs.update(&event, &ctx),
-                }
-            };
+            let (fall_through_event, messages) = app.lock().unwrap().update_active_panel(&event);
 
             // Set context IDs on target panels before sending messages to the worker.
             // Data sync from environment_state happens via sync_panel_data() on
