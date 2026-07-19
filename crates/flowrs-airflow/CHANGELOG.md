@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.0...flowrs-airflow-v0.11.1) - 2026-07-19
+
+### Other
+
+- centralize lints in [workspace.lints] and lint the airflow crate ([#674](https://github.com/jvanbuel/flowrs/pull/674))
+
 ## [0.11.0](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.10.8...flowrs-airflow-v0.11.0) - 2026-07-10
 
 ### Added

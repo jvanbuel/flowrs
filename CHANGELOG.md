@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.1...flowrs-tui-v0.13.2) - 2026-07-19
+
+### Fixed
+
+- *(worker)* surface 'open in browser' failures to the user ([#673](https://github.com/jvanbuel/flowrs/pull/673))
+- *(config)* return a clean error when 'config update' gets an unknown server name ([#670](https://github.com/jvanbuel/flowrs/pull/670))
+
+### Other
+
+- centralize lints in [workspace.lints] and lint the airflow crate ([#674](https://github.com/jvanbuel/flowrs/pull/674))
+
 ## [0.13.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.0...flowrs-tui-v0.13.1) - 2026-07-18
 
 ### Fixed
