@@ -207,8 +207,6 @@ impl FilterStateMachine {
 
     /// Handle a key event. Returns true if the event was consumed.
     pub fn update(&mut self, key: &KeyEvent, fields: &[FilterableField]) -> bool {
-        let primary_values = self.primary_values.clone();
-        let field_values = self.field_values.clone();
         let all_field_names = field_names(fields);
 
         match &mut self.state {
@@ -242,13 +240,13 @@ impl FilterStateMachine {
                         true
                     }
                     KeyCode::Backspace => {
-                        if !autocomplete.pop_char(&primary_values) {
+                        if !autocomplete.pop_char(&self.primary_values) {
                             self.state = if let Some(last) = conditions.pop() {
                                 Self::edit_condition_state(
                                     last,
                                     conditions.clone(),
                                     fields,
-                                    &field_values,
+                                    &self.field_values,
                                 )
                             } else {
                                 FilterState::AttributeSelection {
@@ -271,7 +269,7 @@ impl FilterStateMachine {
                         true
                     }
                     KeyCode::Char(c) => {
-                        autocomplete.push_char(c, &primary_values);
+                        autocomplete.push_char(c, &self.primary_values);
                         true
                     }
                     _ => false,
@@ -300,7 +298,7 @@ impl FilterStateMachine {
                         if let Some(selected) = selected {
                             let kind = find_field_kind(&selected, fields);
                             let candidates =
-                                value_candidates_for_field(&selected, &kind, &field_values);
+                                value_candidates_for_field(&selected, &kind, &self.field_values);
                             self.state = FilterState::ValueInput {
                                 field: selected,
                                 field_kind: kind,
@@ -320,13 +318,13 @@ impl FilterStateMachine {
                                     last,
                                     conditions.clone(),
                                     fields,
-                                    &field_values,
+                                    &self.field_values,
                                 )
                             } else {
                                 FilterState::Default {
                                     autocomplete: AutocompleteState::with_typed_and_candidates(
                                         "",
-                                        &primary_values,
+                                        &self.primary_values,
                                     ),
                                     conditions: vec![],
                                 }
@@ -356,7 +354,8 @@ impl FilterStateMachine {
                 autocomplete,
                 conditions,
             } => {
-                let value_candidates = value_candidates_for_field(field, field_kind, &field_values);
+                let value_candidates =
+                    value_candidates_for_field(field, field_kind, &self.field_values);
 
                 match key.code {
                     KeyCode::Esc | KeyCode::Enter => {
@@ -385,7 +384,7 @@ impl FilterStateMachine {
                             FilterState::Default {
                                 autocomplete: AutocompleteState::with_typed_and_candidates(
                                     "",
-                                    &primary_values,
+                                    &self.primary_values,
                                 ),
                                 conditions: vec![],
                             }
