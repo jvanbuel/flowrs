@@ -187,7 +187,7 @@ impl From<&MwaaAuth> for MwaaAuthProvider {
 
 #[async_trait]
 impl AuthProvider for MwaaAuthProvider {
-    async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
+    async fn authenticate(&self, request: RequestBuilder) -> crate::error::Result<RequestBuilder> {
         info!("🔑 MWAA Auth: {}", self.environment_name);
         match &self.token {
             MwaaTokenType::SessionCookie(cookie) => {

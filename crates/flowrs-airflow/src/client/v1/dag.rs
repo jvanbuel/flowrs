@@ -1,9 +1,10 @@
-use anyhow::Result;
 use log::{debug, info};
 use reqwest::Method;
 
 use super::model::dag::DagCollectionResponse;
-use super::{parse_json_response, V1Client};
+use super::V1Client;
+use crate::client::read_json;
+use crate::error::Result;
 
 const PAGE_SIZE: usize = 50;
 
@@ -15,16 +16,12 @@ impl V1Client {
         let mut total_entries;
 
         loop {
-            let response = self
+            let request = self
                 .base_api(Method::GET, "dags")
                 .await?
-                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
-                .send()
-                .await?
-                .error_for_status()?;
-
-            let response_text = response.text().await?;
-            let page: DagCollectionResponse = parse_json_response(&response_text, "DAGs response")?;
+                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())]);
+            let response = self.execute(request).await?;
+            let page: DagCollectionResponse = read_json(response, "DAGs response").await?;
 
             total_entries = page.total_entries;
             let fetched_count = page.dags.len();
@@ -53,34 +50,30 @@ impl V1Client {
     }
 
     pub async fn patch_dag_pause(&self, dag_id: &str, is_paused: bool) -> Result<()> {
-        self.base_api(Method::PATCH, &format!("dags/{dag_id}"))
+        let request = self
+            .base_api(Method::PATCH, &format!("dags/{dag_id}"))
             .await?
             .query(&[("update_mask", "is_paused")])
-            .json(&serde_json::json!({"is_paused": !is_paused}))
-            .send()
-            .await?
-            .error_for_status()?;
+            .json(&serde_json::json!({"is_paused": !is_paused}));
+        self.execute(request).await?;
         Ok(())
     }
 
     pub async fn fetch_dag_code(&self, file_token: &str) -> Result<String> {
-        let r = self
+        let request = self
             .base_api(Method::GET, &format!("dagSources/{file_token}"))
-            .await?
-            .build()?;
-        let response = self.base.client.execute(r).await?.error_for_status()?;
+            .await?;
+        let response = self.execute(request).await?;
         let code = response.text().await?;
         Ok(code)
     }
 
     pub async fn fetch_dag_params(&self, dag_id: &str) -> Result<Option<serde_json::Value>> {
-        let response = self
+        let request = self
             .base_api(Method::GET, &format!("dags/{dag_id}/details"))
-            .await?
-            .send()
-            .await?
-            .error_for_status()?;
-        let body: serde_json::Value = response.json().await?;
+            .await?;
+        let response = self.execute(request).await?;
+        let body: serde_json::Value = read_json(response, "DAG details response").await?;
         Ok(body.get("params").cloned())
     }
 }

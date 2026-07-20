@@ -24,22 +24,23 @@ impl DagOperations for FlowrsClient {
 
     async fn toggle_dag(&self, dag_id: &str, is_paused: bool) -> Result<()> {
         match self {
-            Self::V1(client) => client.patch_dag_pause(dag_id, is_paused).await,
-            Self::V2(client) => client.patch_dag_pause(dag_id, is_paused).await,
+            Self::V1(client) => client.patch_dag_pause(dag_id, is_paused).await?,
+            Self::V2(client) => client.patch_dag_pause(dag_id, is_paused).await?,
         }
+        Ok(())
     }
 
     async fn get_dag_code(&self, dag: &Dag) -> Result<String> {
-        match self {
-            Self::V1(client) => client.fetch_dag_code(&dag.file_token).await,
-            Self::V2(client) => client.fetch_dag_code(&dag.dag_id).await,
-        }
+        Ok(match self {
+            Self::V1(client) => client.fetch_dag_code(&dag.file_token).await?,
+            Self::V2(client) => client.fetch_dag_code(&dag.dag_id).await?,
+        })
     }
 
     async fn get_dag_params(&self, dag_id: &str) -> Result<Option<serde_json::Value>> {
-        match self {
-            Self::V1(client) => client.fetch_dag_params(dag_id).await,
-            Self::V2(client) => client.fetch_dag_params(dag_id).await,
-        }
+        Ok(match self {
+            Self::V1(client) => client.fetch_dag_params(dag_id).await?,
+            Self::V2(client) => client.fetch_dag_params(dag_id).await?,
+        })
     }
 }

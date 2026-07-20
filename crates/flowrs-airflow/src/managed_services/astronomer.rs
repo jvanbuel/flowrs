@@ -212,7 +212,7 @@ impl From<&AstronomerAuth> for AstronomerAuthProvider {
 
 #[async_trait]
 impl AuthProvider for AstronomerAuthProvider {
-    async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
+    async fn authenticate(&self, request: RequestBuilder) -> crate::error::Result<RequestBuilder> {
         info!("🔑 Astronomer Auth");
         Ok(request.bearer_auth(&self.api_token))
     }

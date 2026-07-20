@@ -1,12 +1,13 @@
 use std::fmt;
 use std::time::{Duration, Instant};
 
-use anyhow::{Context, Result};
+use anyhow::Context;
 use async_trait::async_trait;
 use log::info;
 use reqwest::RequestBuilder;
 
 use super::AuthProvider;
+use crate::error::{AirflowError, Result};
 
 /// How long a fetched token is reused before the helper command is run again.
 ///
@@ -32,7 +33,10 @@ impl CommandTokenProvider {
     }
 
     /// Run the helper command and return its trimmed token output.
-    async fn fetch_token(&self) -> Result<String> {
+    ///
+    /// Uses `anyhow` internally for the layered context messages; the chain is
+    /// flattened into `AirflowError::Auth` at the trait boundary.
+    async fn fetch_token(&self) -> anyhow::Result<String> {
         let cmd = self.cmd.clone();
         let output = tokio::task::spawn_blocking(move || {
             std::process::Command::new("sh")
@@ -81,7 +85,10 @@ impl AuthProvider for CommandTokenProvider {
 
         if !fresh {
             info!("🔑 Token Auth (command): refreshing via {}", self.cmd);
-            let token = self.fetch_token().await?;
+            let token = self
+                .fetch_token()
+                .await
+                .map_err(|e| AirflowError::auth("token command", &e))?;
             *cached = Some((token, Instant::now()));
         }
 

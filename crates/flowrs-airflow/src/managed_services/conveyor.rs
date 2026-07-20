@@ -1,6 +1,7 @@
 use crate::auth::AirflowAuth;
 use crate::client::auth::AuthProvider;
 use crate::config::{AirflowConfig, ManagedService};
+use crate::error::AirflowError;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use dirs::home_dir;
@@ -130,7 +131,7 @@ impl fmt::Debug for ConveyorAuthProvider {
 
 #[async_trait]
 impl AuthProvider for ConveyorAuthProvider {
-    async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
+    async fn authenticate(&self, request: RequestBuilder) -> crate::error::Result<RequestBuilder> {
         let mut cached = self.cached.lock().await;
 
         let fresh = cached
@@ -142,7 +143,9 @@ impl AuthProvider for ConveyorAuthProvider {
             // Run the blocking CLI off the async runtime.
             let token = tokio::task::spawn_blocking(ConveyorClient::get_token)
                 .await
-                .context("Conveyor token task panicked")??;
+                .context("Conveyor token task panicked")
+                .and_then(|result| result)
+                .map_err(|e| AirflowError::auth("Conveyor", &e))?;
             *cached = Some((token, Instant::now()));
         }
 

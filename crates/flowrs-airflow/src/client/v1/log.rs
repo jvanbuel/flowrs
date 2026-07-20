@@ -1,11 +1,12 @@
 use std::sync::LazyLock;
 
-use anyhow::Result;
 use regex::Regex;
 use reqwest::Method;
 
 use super::model;
 use super::V1Client;
+use crate::client::read_json;
+use crate::error::Result;
 
 /// Compiled regex for parsing V1 log content (Python tuple format).
 ///
@@ -59,7 +60,7 @@ impl V1Client {
         task_id: &str,
         task_try: u32,
     ) -> Result<model::log::Log> {
-        let response = self
+        let request = self
             .base_api(
                 Method::GET,
                 &format!(
@@ -68,12 +69,9 @@ impl V1Client {
             )
             .await?
             .query(&[("full_content", "true")])
-            .header("Accept", "application/json")
-            .send()
-            .await?
-            .error_for_status()?;
-        let log = response.json::<model::log::Log>().await?;
-        Ok(log)
+            .header("Accept", "application/json");
+        let response = self.execute(request).await?;
+        read_json(response, "task logs response").await
     }
 }
 
