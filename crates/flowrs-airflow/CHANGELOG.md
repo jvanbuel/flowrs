@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.1...flowrs-airflow-v0.11.2) - 2026-07-20
+
+### Fixed
+
+- *(airflow)* lint-clean expand_managed_services across feature combos; add cargo-hack CI
+
+### Other
+
+- *(conveyor)* cache the auth token instead of running the CLI on every request
+- *(auth)* cache command-token auth instead of running the helper on every request
+- implement Debug for public types; enable missing_debug_implementations
+- convert #[allow] to #[expect] with reasons; enable allow_attributes_without_reason ([#677](https://github.com/jvanbuel/flowrs/pull/677))
+
 ## [0.11.1](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.0...flowrs-airflow-v0.11.1) - 2026-07-19
 
 ### Other

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.1...flowrs-config-v0.12.2) - 2026-07-20
+
+### Other
+
+- implement Debug for public types; enable missing_debug_implementations
+- convert #[allow] to #[expect] with reasons; enable allow_attributes_without_reason ([#677](https://github.com/jvanbuel/flowrs/pull/677))
+
 ## [0.12.1](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.0...flowrs-config-v0.12.1) - 2026-07-19
 
 ### Fixed
