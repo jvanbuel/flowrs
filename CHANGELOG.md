@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.3](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.2...flowrs-tui-v0.13.3) - 2026-07-20
+
+### Fixed
+
+- *(app)* do not error-exit when the on-quit config save fails
+- *(events)* stop the event loop when the receiver is gone ([#681](https://github.com/jvanbuel/flowrs/pull/681))
+
+### Other
+
+- *(deps)* bump serde_json from 1.0.150 to 1.0.151
+- use mimalloc as the global allocator
+- *(filter)* borrow candidate maps instead of cloning them on every keypress
+- *(app)* dispatch panel updates via App method, borrowing the nav context instead of cloning it
+- *(dagruns)* parse the row time format once instead of per row per frame
+- *(logs)* cache syntect sets and avoid per-frame line clones in DAG code view
+- *(events)* read terminal events via async EventStream
+- implement Debug for public types; enable missing_debug_implementations
+- use Arc::clone over .clone(); enable clone_on_ref_ptr lint
+- convert #[allow] to #[expect] with reasons; enable allow_attributes_without_reason ([#677](https://github.com/jvanbuel/flowrs/pull/677))
+
 ## [0.13.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.1...flowrs-tui-v0.13.2) - 2026-07-19
 
 ### Fixed
