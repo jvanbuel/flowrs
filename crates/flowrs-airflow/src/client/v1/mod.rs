@@ -7,32 +7,15 @@ pub mod log;
 mod task;
 mod taskinstance;
 
-use anyhow::Result;
-use reqwest::Method;
+use reqwest::{Method, RequestBuilder, Response, Url};
 
 use super::base::BaseClient;
-
-/// Parse a JSON response body, including a snippet of the body in the error on failure.
-///
-/// Some Airflow deployments return responses that don't match the documented schema
-/// (e.g. older v2.x versions omit `dag_display_name` / `task_display_name`). Surfacing
-/// the response body makes those parse failures actionable.
-pub(crate) fn parse_json_response<T: serde::de::DeserializeOwned>(
-    body: &str,
-    context: &str,
-) -> Result<T> {
-    serde_json::from_str(body).map_err(|e| {
-        anyhow::anyhow!(
-            "Failed to parse {context}: {e}. Response body (first 1000 chars): {}",
-            body.chars().take(1000).collect::<String>()
-        )
-    })
-}
+use crate::error::Result;
 
 /// API v1 client implementation (for Airflow v2, uses /api/v1 endpoint)
 #[derive(Debug)]
 pub struct V1Client {
-    pub base: BaseClient,
+    base: BaseClient,
 }
 
 impl V1Client {
@@ -42,18 +25,18 @@ impl V1Client {
         Self { base }
     }
 
-    pub(crate) async fn base_api(
-        &self,
-        method: Method,
-        endpoint: &str,
-    ) -> Result<reqwest::RequestBuilder> {
+    pub(crate) async fn base_api(&self, method: Method, endpoint: &str) -> Result<RequestBuilder> {
         self.base
             .base_api(method, endpoint, Self::API_VERSION)
             .await
     }
 
+    pub(crate) async fn execute(&self, request: RequestBuilder) -> Result<Response> {
+        self.base.execute(request).await
+    }
+
     /// Returns the base endpoint URL for this client
-    pub fn endpoint(&self) -> &str {
-        &self.base.config.endpoint
+    pub const fn endpoint(&self) -> &Url {
+        self.base.endpoint()
     }
 }

@@ -3,8 +3,8 @@ use url::{form_urlencoded, Url};
 
 use crate::airflow::model::common::OpenItem;
 
-pub(super) fn build_v1_open_url(endpoint: &str, item: &OpenItem) -> Result<String> {
-    let mut base_url = Url::parse(endpoint)?;
+pub(super) fn build_v1_open_url(endpoint: &Url, item: &OpenItem) -> Result<String> {
+    let mut base_url = endpoint.clone();
 
     match item {
         OpenItem::Config(config_endpoint) => {
@@ -53,8 +53,8 @@ pub(super) fn build_v1_open_url(endpoint: &str, item: &OpenItem) -> Result<Strin
     Ok(base_url.to_string())
 }
 
-pub(super) fn build_v2_open_url(endpoint: &str, item: &OpenItem) -> Result<String> {
-    let mut base_url = Url::parse(endpoint)?;
+pub(super) fn build_v2_open_url(endpoint: &Url, item: &OpenItem) -> Result<String> {
+    let mut base_url = endpoint.clone();
 
     match item {
         OpenItem::Config(config_endpoint) => {

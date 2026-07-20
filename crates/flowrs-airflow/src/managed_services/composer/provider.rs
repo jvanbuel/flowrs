@@ -1,5 +1,6 @@
 use crate::client::auth::AuthProvider;
-use anyhow::{Context, Result};
+use crate::error::{AirflowError, Result};
+use anyhow::Context;
 use async_trait::async_trait;
 use google_cloud_auth::credentials::{AccessTokenCredentials, Builder};
 use log::info;
@@ -14,10 +15,11 @@ pub struct ComposerAuthProvider {
 }
 
 impl ComposerAuthProvider {
-    pub fn new(auth: &ComposerAuth) -> Result<Self> {
+    pub fn new(auth: &ComposerAuth) -> crate::error::Result<Self> {
         let credentials = Builder::default()
             .build_access_token_credentials()
-            .context("Failed to build GCP credentials")?;
+            .context("Failed to build GCP credentials")
+            .map_err(|e| AirflowError::auth("Composer", &e))?;
         Ok(Self {
             project_id: auth.project_id.clone(),
             environment_name: auth.environment_name.clone(),
@@ -47,7 +49,8 @@ impl AuthProvider for ComposerAuthProvider {
             .credentials
             .access_token()
             .await
-            .context("Failed to get GCP access token")?;
+            .context("Failed to get GCP access token")
+            .map_err(|e| AirflowError::auth("Composer", &e))?;
         Ok(request.bearer_auth(token.token))
     }
 }

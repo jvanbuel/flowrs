@@ -37,16 +37,18 @@ impl DagRunOperations for FlowrsClient {
 
     async fn mark_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()> {
         match self {
-            Self::V1(client) => client.patch_dag_run(dag_id, dag_run_id, status).await,
-            Self::V2(client) => client.patch_dag_run(dag_id, dag_run_id, status).await,
+            Self::V1(client) => client.patch_dag_run(dag_id, dag_run_id, status).await?,
+            Self::V2(client) => client.patch_dag_run(dag_id, dag_run_id, status).await?,
         }
+        Ok(())
     }
 
     async fn clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
         match self {
-            Self::V1(client) => client.post_clear_dagrun(dag_id, dag_run_id).await,
-            Self::V2(client) => client.post_clear_dagrun(dag_id, dag_run_id).await,
+            Self::V1(client) => client.post_clear_dagrun(dag_id, dag_run_id).await?,
+            Self::V2(client) => client.post_clear_dagrun(dag_id, dag_run_id).await?,
         }
+        Ok(())
     }
 
     async fn trigger_dag_run(
@@ -59,13 +61,14 @@ impl DagRunOperations for FlowrsClient {
             Self::V1(client) => {
                 client
                     .post_trigger_dag_run(dag_id, logical_date, conf)
-                    .await
+                    .await?;
             }
             Self::V2(client) => {
                 client
                     .post_trigger_dag_run(dag_id, logical_date, conf)
-                    .await
+                    .await?;
             }
         }
+        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use crate::error::Result;
 use async_trait::async_trait;
 use log::info;
 use reqwest::RequestBuilder;
