@@ -26,7 +26,7 @@ impl App {
         }
 
         if self.active_panel == Panel::TaskInstance || self.active_panel == Panel::Logs {
-            if let Some(task_instance) = self.task_instances.table.filtered.items.first() {
+            if let Some(task_instance) = self.task_instances.table.items().next() {
                 if let Some(logical_date) = task_instance.logical_date {
                     let formatted = logical_date
                         .format(&BREADCRUMB_DATE_FORMAT)

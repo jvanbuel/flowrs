@@ -20,11 +20,9 @@ impl Widget for &mut DagModel {
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(theme.table_header_style);
-        let rows = self
+        let rows: Vec<Row> = self
             .table
-            .filtered
-            .items
-            .iter()
+            .items()
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
@@ -34,12 +32,16 @@ impl Widget for &mut DagModel {
                         Line::from(Span::styled("𖣘", Style::default().fg(theme.dag_active)))
                     },
                     Line::from(Span::styled(
-                        &*item.dag_id,
+                        item.dag_id.to_string(),
                         Style::default().add_modifier(Modifier::BOLD),
                     )),
                     Line::from(item.owners.join(", ")),
-                    Line::from(item.timetable_description.as_deref().unwrap_or("None"))
-                        .style(Style::default().fg(theme.schedule_fg)),
+                    Line::from(
+                        item.timetable_description
+                            .clone()
+                            .unwrap_or_else(|| "None".to_string()),
+                    )
+                    .style(Style::default().fg(theme.schedule_fg)),
                     Line::from(item.next_dagrun_create_after.map_or_else(
                         || "None".to_string(),
                         convert_datetimeoffset_to_human_readable_remaining_time,
@@ -66,7 +68,8 @@ impl Widget for &mut DagModel {
                     )),
                 ])
                 .style(self.table.row_style(idx))
-            });
+            })
+            .collect();
         let table = Table::new(
             rows,
             &[
@@ -93,7 +96,7 @@ impl Widget for &mut DagModel {
         })
         .row_highlight_style(theme.selected_row_style);
 
-        StatefulWidget::render(table, content_area, buf, &mut self.table.filtered.state);
+        StatefulWidget::render(table, content_area, buf, self.table.state_mut());
 
         if let Some(view) = &mut self.dag_code {
             view.render(area, buf);
