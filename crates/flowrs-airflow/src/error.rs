@@ -89,7 +89,12 @@ impl AirflowError {
     ) -> Self {
         Self::Status {
             method: method.to_string(),
-            path: url.path().to_string(),
+            // Keep the query string so pagination and filter parameters stay
+            // visible in the error message.
+            path: match url.query() {
+                Some(query) => format!("{}?{query}", url.path()),
+                None => url.path().to_string(),
+            },
             status: status.as_u16(),
             // An empty body would render as a message ending in a bare colon, so fall
             // back to the status' canonical reason.
@@ -150,6 +155,23 @@ mod tests {
         "http://localhost:8080/api/v2/dags/x/dagRuns"
             .parse()
             .expect("test URL")
+    }
+
+    #[test]
+    fn status_error_preserves_the_query_string() {
+        let url: url::Url = "http://localhost:8080/api/v2/dags?limit=100&offset=200"
+            .parse()
+            .expect("test URL");
+        let error = AirflowError::status(
+            &reqwest::Method::GET,
+            &url,
+            reqwest::StatusCode::BAD_REQUEST,
+            "bad request",
+        );
+        assert!(
+            error.to_string().contains("?limit=100&offset=200"),
+            "got: {error}"
+        );
     }
 
     #[test]
