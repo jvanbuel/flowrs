@@ -1,9 +1,10 @@
-use anyhow::Result;
 use log::{debug, info};
-use reqwest::{Method, Response};
+use reqwest::Method;
 
 use super::model;
 use super::V2Client;
+use crate::client::read_json;
+use crate::error::Result;
 
 const PAGE_SIZE: usize = 100;
 
@@ -19,18 +20,16 @@ impl V2Client {
         let mut total_entries;
 
         loop {
-            let response: Response = self
+            let request = self
                 .base_api(
                     Method::GET,
                     &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"),
                 )
                 .await?
-                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
-                .send()
-                .await?
-                .error_for_status()?;
-
-            let page: model::taskinstance::TaskInstanceList = response.json().await?;
+                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())]);
+            let response = self.execute(request).await?;
+            let page: model::taskinstance::TaskInstanceList =
+                read_json(response, "task instances response").await?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -67,15 +66,13 @@ impl V2Client {
         let mut total_entries;
 
         loop {
-            let response: Response = self
+            let request = self
                 .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")
                 .await?
-                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
-                .send()
-                .await?
-                .error_for_status()?;
-
-            let page: model::taskinstance::TaskInstanceList = response.json().await?;
+                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())]);
+            let response = self.execute(request).await?;
+            let page: model::taskinstance::TaskInstanceList =
+                read_json(response, "all task instances response").await?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -115,17 +112,15 @@ impl V2Client {
         dag_run_id: &str,
         task_id: &str,
     ) -> Result<model::taskinstance::TaskInstanceTriesResponse> {
-        let response: Response = self
+        let request = self
             .base_api(
                 Method::GET,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries"),
             )
-            .await?
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let tries: model::taskinstance::TaskInstanceTriesResponse = response.json().await?;
+            .await?;
+        let response = self.execute(request).await?;
+        let tries: model::taskinstance::TaskInstanceTriesResponse =
+            read_json(response, "task instance tries response").await?;
         debug!(
             "Fetched {} tries for task {task_id}",
             tries.task_instances.len()
@@ -141,7 +136,7 @@ impl V2Client {
         task_id: &str,
         status: &str,
     ) -> Result<()> {
-        let resp: Response = self
+        let request = self
             .base_api(
                 Method::PATCH,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
@@ -150,10 +145,8 @@ impl V2Client {
             // Airflow 3's `/api/v2` PatchTaskInstanceBody uses a strict schema that
             // forbids unknown fields; unlike the `/api/v1` endpoint it does not accept
             // `dry_run` (dry-run is a separate endpoint), so sending it yields a 422.
-            .json(&serde_json::json!({"new_state": status}))
-            .send()
-            .await?
-            .error_for_status()?;
+            .json(&serde_json::json!({"new_state": status}));
+        let resp = self.execute(request).await?;
         debug!("{resp:?}");
         Ok(())
     }
@@ -164,7 +157,7 @@ impl V2Client {
         dag_run_id: &str,
         task_id: &str,
     ) -> Result<()> {
-        let resp: Response = self
+        let request = self
             .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))
             .await?
             .json(&serde_json::json!(
@@ -176,10 +169,8 @@ impl V2Client {
                     "only_failed": false,
                     "reset_dag_runs": true,
                 }
-            ))
-            .send()
-            .await?
-            .error_for_status()?;
+            ));
+        let resp = self.execute(request).await?;
         debug!("{resp:?}");
         Ok(())
     }

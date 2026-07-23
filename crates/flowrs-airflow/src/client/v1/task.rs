@@ -1,19 +1,16 @@
-use anyhow::Result;
 use reqwest::Method;
 
 use super::model;
 use super::V1Client;
+use crate::client::read_json;
+use crate::error::Result;
 
 impl V1Client {
     pub async fn fetch_tasks(&self, dag_id: &str) -> Result<model::task::TaskCollectionResponse> {
-        let response = self
+        let request = self
             .base_api(Method::GET, &format!("dags/{dag_id}/tasks"))
-            .await?
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let task_collection: model::task::TaskCollectionResponse = response.json().await?;
-        Ok(task_collection)
+            .await?;
+        let response = self.execute(request).await?;
+        read_json(response, "tasks response").await
     }
 }

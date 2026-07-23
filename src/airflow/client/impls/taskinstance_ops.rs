@@ -84,14 +84,15 @@ impl TaskInstanceOperations for FlowrsClient {
             Self::V1(client) => {
                 client
                     .patch_task_instance(dag_id, dag_run_id, task_id, status)
-                    .await
+                    .await?;
             }
             Self::V2(client) => {
                 client
                     .patch_task_instance(dag_id, dag_run_id, task_id, status)
-                    .await
+                    .await?;
             }
         }
+        Ok(())
     }
 
     async fn clear_task_instance(
@@ -104,13 +105,14 @@ impl TaskInstanceOperations for FlowrsClient {
             Self::V1(client) => {
                 client
                     .post_clear_task_instance(dag_id, dag_run_id, task_id)
-                    .await
+                    .await?;
             }
             Self::V2(client) => {
                 client
                     .post_clear_task_instance(dag_id, dag_run_id, task_id)
-                    .await
+                    .await?;
             }
         }
+        Ok(())
     }
 }

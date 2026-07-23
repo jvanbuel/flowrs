@@ -2,7 +2,7 @@ mod basic;
 mod command;
 mod static_token;
 
-use anyhow::Result;
+use crate::error::Result;
 
 pub use basic::BasicAuthProvider;
 pub use command::CommandTokenProvider;
@@ -46,33 +46,35 @@ pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>>
         #[cfg(feature = "conveyor")]
         AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider::new())),
         #[cfg(not(feature = "conveyor"))]
-        AirflowAuth::Conveyor => {
-            anyhow::bail!("Conveyor support not compiled. Enable the 'conveyor' feature.")
-        }
+        AirflowAuth::Conveyor => Err(crate::error::AirflowError::FeatureNotEnabled {
+            service: "Conveyor",
+            feature: "conveyor",
+        }),
         #[cfg(feature = "mwaa")]
         AirflowAuth::Mwaa(mwaa_auth) => Ok(Box::new(MwaaAuthProvider::from(mwaa_auth))),
         #[cfg(not(feature = "mwaa"))]
-        AirflowAuth::Mwaa(_) => {
-            anyhow::bail!("MWAA support not compiled. Enable the 'mwaa' feature.")
-        }
+        AirflowAuth::Mwaa(_) => Err(crate::error::AirflowError::FeatureNotEnabled {
+            service: "MWAA",
+            feature: "mwaa",
+        }),
         #[cfg(feature = "astronomer")]
         AirflowAuth::Astronomer(astro_auth) => {
             Ok(Box::new(AstronomerAuthProvider::from(astro_auth)))
         }
         #[cfg(not(feature = "astronomer"))]
-        AirflowAuth::Astronomer(_) => {
-            anyhow::bail!("Astronomer support not compiled. Enable the 'astronomer' feature.")
-        }
+        AirflowAuth::Astronomer(_) => Err(crate::error::AirflowError::FeatureNotEnabled {
+            service: "Astronomer",
+            feature: "astronomer",
+        }),
         #[cfg(feature = "composer")]
         AirflowAuth::Composer(composer_auth) => {
             Ok(Box::new(ComposerAuthProvider::new(composer_auth)?))
         }
         #[cfg(not(feature = "composer"))]
-        AirflowAuth::Composer(_) => {
-            anyhow::bail!(
-                "Google Cloud Composer support not compiled. Enable the 'composer' feature."
-            )
-        }
+        AirflowAuth::Composer(_) => Err(crate::error::AirflowError::FeatureNotEnabled {
+            service: "Google Cloud Composer",
+            feature: "composer",
+        }),
     }
 }
 

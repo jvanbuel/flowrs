@@ -1,62 +1,54 @@
-use anyhow::Result;
 use log::debug;
-use reqwest::{Method, Response};
+use reqwest::Method;
 
 use super::model;
 use super::V1Client;
+use crate::client::read_json;
+use crate::error::Result;
 
 impl V1Client {
     pub async fn fetch_dagruns(
         &self,
         dag_id: &str,
     ) -> Result<model::dagrun::DAGRunCollectionResponse> {
-        let response: Response = self
+        let request = self
             .base_api(Method::GET, &format!("dags/{dag_id}/dagRuns"))
             .await?
-            .query(&[("order_by", "-execution_date"), ("limit", "50")])
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let dagruns: model::dagrun::DAGRunCollectionResponse = response.json().await?;
-        Ok(dagruns)
+            .query(&[("order_by", "-execution_date"), ("limit", "50")]);
+        let response = self.execute(request).await?;
+        read_json(response, "DAG runs response").await
     }
 
     pub async fn fetch_all_dagruns(&self) -> Result<model::dagrun::DAGRunCollectionResponse> {
-        let response: Response = self
+        let request = self
             .base_api(Method::POST, "dags/~/dagRuns/list")
             .await?
-            .json(&serde_json::json!({"page_limit": 200}))
-            .send()
-            .await?
-            .error_for_status()?;
-        let dagruns: model::dagrun::DAGRunCollectionResponse = response.json().await?;
-        Ok(dagruns)
+            .json(&serde_json::json!({"page_limit": 200}));
+        let response = self.execute(request).await?;
+        read_json(response, "DAG runs response").await
     }
 
     pub async fn patch_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()> {
-        self.base_api(
-            Method::PATCH,
-            &format!("dags/{dag_id}/dagRuns/{dag_run_id}"),
-        )
-        .await?
-        .json(&serde_json::json!({"state": status}))
-        .send()
-        .await?
-        .error_for_status()?;
+        let request = self
+            .base_api(
+                Method::PATCH,
+                &format!("dags/{dag_id}/dagRuns/{dag_run_id}"),
+            )
+            .await?
+            .json(&serde_json::json!({"state": status}));
+        self.execute(request).await?;
         Ok(())
     }
 
     pub async fn post_clear_dagrun(&self, dag_id: &str, dag_run_id: &str) -> Result<()> {
-        self.base_api(
-            Method::POST,
-            &format!("dags/{dag_id}/dagRuns/{dag_run_id}/clear"),
-        )
-        .await?
-        .json(&serde_json::json!({"dry_run": false}))
-        .send()
-        .await?
-        .error_for_status()?;
+        let request = self
+            .base_api(
+                Method::POST,
+                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/clear"),
+            )
+            .await?
+            .json(&serde_json::json!({"dry_run": false}));
+        self.execute(request).await?;
         Ok(())
     }
 
@@ -75,13 +67,11 @@ impl V1Client {
             body["conf"] = conf;
         }
 
-        let resp: Response = self
+        let request = self
             .base_api(Method::POST, &format!("dags/{dag_id}/dagRuns"))
             .await?
-            .json(&body)
-            .send()
-            .await?
-            .error_for_status()?;
+            .json(&body);
+        let resp = self.execute(request).await?;
         debug!("{resp:?}");
         Ok(())
     }

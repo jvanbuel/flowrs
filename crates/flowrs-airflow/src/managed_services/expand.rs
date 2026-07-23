@@ -1,7 +1,7 @@
-use anyhow::Result;
 use log::info;
 
 use crate::config::{AirflowConfig, ManagedService};
+use crate::error::{AirflowError, Result};
 
 #[cfg(feature = "astronomer")]
 use super::astronomer::get_astronomer_environment_servers;
@@ -57,26 +57,38 @@ pub async fn expand_managed_services(
             ManagedService::Conveyor => {
                 #[cfg(feature = "conveyor")]
                 {
-                    let conveyor_servers = get_conveyor_environment_servers()?;
+                    let conveyor_servers = get_conveyor_environment_servers()
+                        .map_err(|e| AirflowError::discovery("Conveyor", &e))?;
                     all_servers.extend(conveyor_servers);
                 }
                 #[cfg(not(feature = "conveyor"))]
                 {
                     all_errors.push(
-                        "Conveyor support not compiled. Enable the 'conveyor' feature.".to_string(),
+                        AirflowError::FeatureNotEnabled {
+                            service: "Conveyor",
+                            feature: "conveyor",
+                        }
+                        .to_string(),
                     );
                 }
             }
             ManagedService::Mwaa => {
                 #[cfg(feature = "mwaa")]
                 {
-                    let mwaa_servers = get_mwaa_environment_servers().await?;
+                    let mwaa_servers = get_mwaa_environment_servers()
+                        .await
+                        .map_err(|e| AirflowError::discovery("MWAA", &e))?;
                     all_servers.extend(mwaa_servers);
                 }
                 #[cfg(not(feature = "mwaa"))]
                 {
-                    all_errors
-                        .push("MWAA support not compiled. Enable the 'mwaa' feature.".to_string());
+                    all_errors.push(
+                        AirflowError::FeatureNotEnabled {
+                            service: "MWAA",
+                            feature: "mwaa",
+                        }
+                        .to_string(),
+                    );
                 }
             }
             ManagedService::Astronomer => {
@@ -89,8 +101,11 @@ pub async fn expand_managed_services(
                 #[cfg(not(feature = "astronomer"))]
                 {
                     all_errors.push(
-                        "Astronomer support not compiled. Enable the 'astronomer' feature."
-                            .to_string(),
+                        AirflowError::FeatureNotEnabled {
+                            service: "Astronomer",
+                            feature: "astronomer",
+                        }
+                        .to_string(),
                     );
                 }
             }
@@ -139,8 +154,11 @@ pub async fn expand_managed_services(
                 #[cfg(not(feature = "composer"))]
                 {
                     all_errors.push(
-                        "Google Cloud Composer support not compiled. Enable the 'composer' feature."
-                            .to_string(),
+                        AirflowError::FeatureNotEnabled {
+                            service: "Google Cloud Composer",
+                            feature: "composer",
+                        }
+                        .to_string(),
                     );
                 }
             }
