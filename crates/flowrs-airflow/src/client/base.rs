@@ -37,8 +37,15 @@ impl BaseClient {
                 config.name
             );
         }
-        let endpoint = Url::parse(&config.endpoint)
+        let mut endpoint = Url::parse(&config.endpoint)
             .map_err(|e| AirflowError::invalid_url(config.endpoint.clone(), e))?;
+        // Ensure the base path ends with a slash so `base_api`'s relative `join`
+        // extends the endpoint rather than replacing its final segment. Without
+        // this, a reverse-proxy prefix such as `/airflow` would be dropped.
+        if !endpoint.path().ends_with('/') {
+            let with_slash = format!("{}/", endpoint.path());
+            endpoint.set_path(&with_slash);
+        }
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.timeout_secs))
@@ -144,5 +151,13 @@ mod tests {
     fn accepts_a_valid_endpoint() {
         let client = BaseClient::new(config("http://localhost:8080")).expect("should accept");
         assert_eq!(client.endpoint().host_str(), Some("localhost"));
+    }
+
+    #[test]
+    fn preserves_a_reverse_proxy_prefix_when_building_requests() {
+        let client =
+            BaseClient::new(config("http://localhost:8080/airflow")).expect("should accept");
+        let url = client.endpoint().join("api/v2/dags").expect("should join");
+        assert_eq!(url.as_str(), "http://localhost:8080/airflow/api/v2/dags");
     }
 }
