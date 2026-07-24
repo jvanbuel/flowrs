@@ -12,7 +12,7 @@ use crate::app::model::dagruns::DagRunModel;
 use crate::app::model::dags::DagModel;
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::model::popup::warning::WarningPopup;
-use crate::app::model::Model;
+use crate::app::model::{FilterableTable, Model};
 use crate::app::worker::WorkerMessage;
 use environment_state::EnvironmentStateContainer;
 use flowrs_config::FlowrsConfig;
@@ -152,9 +152,9 @@ impl App {
     pub fn clear_state(&mut self) {
         self.loading = true;
         self.nav_context.reset_to_environment();
-        self.dags.table.all.clear();
-        self.dagruns.table.all.clear();
-        self.task_instances.table.all.clear();
+        self.dags.table = FilterableTable::new();
+        self.dagruns.table = FilterableTable::new();
+        self.task_instances.table = FilterableTable::new();
         self.logs.all.clear();
     }
 }
