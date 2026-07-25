@@ -14,7 +14,6 @@ pub use taskinstance::TaskInstanceOperations;
 
 use super::model::common::OpenItem;
 use anyhow::Result;
-use flowrs_airflow::AirflowVersion;
 
 /// Super-trait combining all Airflow API operations.
 ///
@@ -29,10 +28,6 @@ pub trait AirflowClient:
     + DagStatsOperations
     + TaskOperations
 {
-    /// Get the Airflow version this client is configured for
-    #[allow(unused, reason = "trait method kept for API completeness")]
-    fn get_version(&self) -> AirflowVersion;
-
     /// Build the appropriate web UI URL for opening an item in the browser.
     /// The URL structure differs between Airflow v2 and v3.
     ///

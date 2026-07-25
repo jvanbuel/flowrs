@@ -30,19 +30,6 @@ impl TaskInstanceOperations for FlowrsClient {
         }
     }
 
-    async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
-        match self {
-            Self::V1(client) => {
-                let response = client.fetch_all_task_instances().await?;
-                Ok(v1_task_instance_collection_to_list(response))
-            }
-            Self::V2(client) => {
-                let response = client.fetch_all_task_instances().await?;
-                Ok(v2_task_instance_list_to_list(response))
-            }
-        }
-    }
-
     async fn list_task_instance_tries(
         &self,
         dag_id: &str,

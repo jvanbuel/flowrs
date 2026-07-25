@@ -56,15 +56,6 @@ impl KeyResult {
             KeyResult::Ignored => (Some(event.clone()), vec![]),
         }
     }
-
-    /// Create from a simple bool (true = consumed, false = ignored)
-    pub fn from_consumed(consumed: bool) -> Self {
-        if consumed {
-            KeyResult::Consumed
-        } else {
-            KeyResult::Ignored
-        }
-    }
 }
 
 pub trait Model {
