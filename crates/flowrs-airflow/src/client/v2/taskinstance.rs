@@ -59,53 +59,6 @@ impl V2Client {
         })
     }
 
-    pub async fn fetch_all_task_instances(&self) -> Result<model::taskinstance::TaskInstanceList> {
-        let mut all_task_instances = Vec::new();
-        let mut offset = 0;
-        let limit = 100;
-        let mut total_entries;
-
-        loop {
-            let request = self
-                .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")
-                .await?
-                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())]);
-            let response = self.execute(request).await?;
-            let page: model::taskinstance::TaskInstanceList =
-                read_json(response, "all task instances response").await?;
-
-            total_entries = page.total_entries;
-            let fetched_count = page.task_instances.len();
-            all_task_instances.extend(page.task_instances);
-
-            debug!(
-                "Fetched {fetched_count} task instances (all), offset: {offset}, total: {total_entries}"
-            );
-
-            #[expect(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                reason = "duration/count values from the API are small and non-negative in practice"
-            )]
-            if fetched_count < limit || all_task_instances.len() >= total_entries as usize {
-                break;
-            }
-
-            offset += limit;
-        }
-
-        info!(
-            "Fetched total {} task instances (all) out of {}",
-            all_task_instances.len(),
-            total_entries
-        );
-
-        Ok(model::taskinstance::TaskInstanceList {
-            task_instances: all_task_instances,
-            total_entries,
-        })
-    }
-
     pub async fn fetch_task_instance_tries(
         &self,
         dag_id: &str,

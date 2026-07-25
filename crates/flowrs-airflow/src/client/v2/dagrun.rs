@@ -16,15 +16,6 @@ impl V2Client {
         read_json(response, "DAG runs response").await
     }
 
-    pub async fn fetch_all_dagruns(&self) -> Result<model::dagrun::DagRunList> {
-        let request = self
-            .base_api(Method::POST, "dags/~/dagRuns/list")
-            .await?
-            .json(&serde_json::json!({"page_limit": 200}));
-        let response = self.execute(request).await?;
-        read_json(response, "DAG runs response").await
-    }
-
     pub async fn patch_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()> {
         let request = self
             .base_api(
