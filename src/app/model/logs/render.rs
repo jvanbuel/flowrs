@@ -41,7 +41,7 @@ impl Widget for &mut LogModel {
                     .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                     .border_style(t.border_style),
             )
-            .select(self.current_index())
+            .select(Some(self.current))
             .highlight_style(Style::default().fg(t.accent).add_modifier(Modifier::BOLD))
             .style(t.default_style);
 

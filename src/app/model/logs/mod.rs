@@ -78,26 +78,20 @@ impl LogModel {
         self.scroll_mode = ScrollMode::Following;
     }
 
-    /// Update the logs content. When in follow mode, the scroll position
-    /// will automatically track the bottom at render time.
+    /// Update the logs content, keeping the selected try in range.
+    ///
+    /// Clamping here rather than on every read means `current` is always a
+    /// valid index, so readers can use it directly. When in follow mode, the
+    /// scroll position tracks the bottom at render time.
     pub fn update_logs(&mut self, logs: Vec<Log>) {
         self.all = logs;
-    }
-
-    /// Index of the currently selected log (task try), wrapped into range.
-    ///
-    /// `current` can exceed `all.len()` after `update_logs` replaces the list
-    /// with fewer tries, so the selection is wrapped rather than assumed valid.
-    /// Returns 0 for an empty list; pair with [`current_log`](Self::current_log)
-    /// to distinguish "empty" from "first entry".
-    fn current_index(&self) -> usize {
-        self.current % self.all.len().max(1)
+        self.current = self.current.min(self.all.len().saturating_sub(1));
     }
 
     /// Returns the currently selected log (the task try being viewed), if any.
     /// `None` when no logs are loaded.
     fn current_log(&self) -> Option<&Log> {
-        self.all.get(self.current_index())
+        self.all.get(self.current)
     }
 
     /// Returns the total number of lines in the current log content
@@ -197,7 +191,7 @@ impl Model for LogModel {
                                             clippy::cast_possible_truncation,
                                             reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
                                         )]
-                                        task_try: (self.current_index() + 1) as u32,
+                                        task_try: (self.current + 1) as u32,
                                     })],
                                 );
                             }
@@ -275,16 +269,29 @@ mod tests {
     }
 
     #[test]
-    fn current_index_wraps_when_selection_exceeds_len() {
-        // After `update_logs` shrinks the list, a stale `current` must wrap into
-        // range rather than point past the end (or panic).
+    fn update_logs_clamps_selection_to_the_last_try() {
+        // A stale `current` is pulled back to the last try, not wrapped: after a
+        // shrink you want the newest try, not an arbitrary one modular arithmetic
+        // happens to land on.
+        let mut model = LogModel {
+            current: 4,
+            ..Default::default()
+        };
+        model.update_logs(vec![log("a"), log("b"), log("c")]);
+
+        assert_eq!(model.current, 2); // clamped to last; wrapping would give 1
+        assert!(model.current_log().is_some());
+    }
+
+    #[test]
+    fn update_logs_with_empty_list_resets_selection() {
         let mut model = LogModel {
             current: 3,
             ..Default::default()
         };
-        model.update_logs(vec![log("a"), log("b")]);
+        model.update_logs(vec![]);
 
-        assert_eq!(model.current_index(), 1); // 3 % 2
-        assert!(model.current_log().is_some());
+        assert_eq!(model.current, 0);
+        assert!(model.current_log().is_none());
     }
 }
