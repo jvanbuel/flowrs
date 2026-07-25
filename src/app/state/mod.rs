@@ -156,5 +156,7 @@ impl App {
         self.dagruns.table = FilterableTable::new();
         self.task_instances.table = FilterableTable::new();
         self.logs.all.clear();
+        self.logs.current = 0;
+        self.logs.reset_scroll();
     }
 }
