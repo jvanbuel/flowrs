@@ -1,12 +1,12 @@
-pub mod auth;
 pub mod paths;
-pub mod server;
 pub mod theme;
 
-// Re-export all public types at crate root for ergonomic imports
-pub use auth::{AirflowAuth, BasicAuth, TokenSource};
+// Auth and server config types are owned by flowrs-airflow; re-export them at
+// the crate root so callers get one ergonomic import path.
+pub use flowrs_airflow::{
+    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, GccConfig, ManagedService, TokenSource,
+};
 pub use paths::ConfigPaths;
-pub use server::{AirflowConfig, AirflowVersion, GccConfig, ManagedService};
 pub use theme::Theme;
 
 use std::fs::OpenOptions;
@@ -223,7 +223,7 @@ password = "airflow"
 
     #[test]
     fn test_write_config_conveyor() {
-        use server::default_timeout;
+        use flowrs_airflow::config::default_timeout;
 
         let config = FlowrsConfig {
             servers: vec![AirflowConfig {
@@ -316,7 +316,7 @@ password = "airflow"
             }),
             managed,
             version: AirflowVersion::V2,
-            timeout_secs: server::default_timeout(),
+            timeout_secs: flowrs_airflow::config::default_timeout(),
             insecure: false,
         }
     }
