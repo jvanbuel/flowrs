@@ -9,7 +9,6 @@ use std::sync::Arc;
 
 use flowrs_config::{AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, TokenSource};
 use flowrs_tui::airflow::client::FlowrsClient;
-use flowrs_tui::airflow::traits::AirflowClient;
 
 /// Check if we should run tests for a specific API version.
 /// Returns false if `TEST_AIRFLOW_URL` is not set (required for all API tests).
@@ -54,7 +53,7 @@ async fn get_jwt_token(url: &str, username: &str, password: &str) -> anyhow::Res
 }
 
 /// Create a test client from environment variables
-pub fn create_test_client() -> anyhow::Result<Arc<dyn AirflowClient>> {
+pub fn create_test_client() -> anyhow::Result<Arc<FlowrsClient>> {
     let url = env::var("TEST_AIRFLOW_URL").expect("TEST_AIRFLOW_URL must be set");
     let username = env::var("TEST_AIRFLOW_USERNAME").unwrap_or_else(|_| "airflow".to_string());
     let password = env::var("TEST_AIRFLOW_PASSWORD").unwrap_or_else(|_| "airflow".to_string());
@@ -80,7 +79,7 @@ pub fn create_test_client() -> anyhow::Result<Arc<dyn AirflowClient>> {
 }
 
 /// Create a test client for Airflow 3.x using JWT authentication
-pub async fn create_test_client_v3() -> anyhow::Result<Arc<dyn AirflowClient>> {
+pub async fn create_test_client_v3() -> anyhow::Result<Arc<FlowrsClient>> {
     let url = env::var("TEST_AIRFLOW_URL").expect("TEST_AIRFLOW_URL must be set");
     let username = env::var("TEST_AIRFLOW_USERNAME").unwrap_or_else(|_| "airflow".to_string());
     let password = env::var("TEST_AIRFLOW_PASSWORD").unwrap_or_else(|_| "airflow".to_string());

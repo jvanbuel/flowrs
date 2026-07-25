@@ -1,10 +1,10 @@
+use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use futures::future::join_all;
 use log::debug;
 
 use crate::airflow::model::common::{DagId, DagRunId, TaskId};
-use crate::airflow::traits::AirflowClient;
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;
 
@@ -14,7 +14,7 @@ use crate::app::state::App;
 /// results are written to the correct environment even if the active one changes.
 pub async fn handle_update_task_logs(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,

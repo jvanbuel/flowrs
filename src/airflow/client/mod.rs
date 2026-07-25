@@ -9,11 +9,10 @@ use flowrs_airflow::client::{BaseClient, V1Client, V2Client};
 use flowrs_airflow::{AirflowConfig, AirflowVersion};
 
 use crate::airflow::model::common::OpenItem;
-use crate::airflow::traits::AirflowClient;
 
 use open_url::{build_v1_open_url, build_v2_open_url};
 
-/// Wrapper enum that owns a versioned Airflow HTTP client and implements the TUI trait layer.
+/// Wrapper enum that owns a versioned Airflow HTTP client and exposes the TUI-facing operations.
 #[derive(Debug)]
 pub enum FlowrsClient {
     V1(V1Client),
@@ -31,8 +30,8 @@ impl FlowrsClient {
     }
 }
 
-impl AirflowClient for FlowrsClient {
-    fn build_open_url(&self, item: &OpenItem) -> Result<String> {
+impl FlowrsClient {
+    pub fn build_open_url(&self, item: &OpenItem) -> Result<String> {
         match self {
             Self::V1(client) => build_v1_open_url(client.endpoint(), item),
             Self::V2(client) => build_v2_open_url(client.endpoint(), item),
