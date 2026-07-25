@@ -1366,7 +1366,6 @@ version = "0.14.1"
 dependencies = [
  "ansi-to-tui",
  "anyhow",
- "async-trait",
  "catppuccin",
  "chrono",
  "clap",

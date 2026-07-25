@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_trait::async_trait;
 
 use crate::airflow::client::convert_v1::{
     v1_task_instance_collection_to_list, v1_task_instance_try_to_gantt,
@@ -9,11 +8,9 @@ use crate::airflow::client::convert_v2::{
 };
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{TaskInstanceList, TaskTryGantt};
-use crate::airflow::traits::TaskInstanceOperations;
 
-#[async_trait]
-impl TaskInstanceOperations for FlowrsClient {
-    async fn list_task_instances(
+impl FlowrsClient {
+    pub async fn list_task_instances(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -30,7 +27,7 @@ impl TaskInstanceOperations for FlowrsClient {
         }
     }
 
-    async fn list_task_instance_tries(
+    pub async fn list_task_instance_tries(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -60,7 +57,7 @@ impl TaskInstanceOperations for FlowrsClient {
         }
     }
 
-    async fn mark_task_instance(
+    pub async fn mark_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -82,7 +79,7 @@ impl TaskInstanceOperations for FlowrsClient {
         Ok(())
     }
 
-    async fn clear_task_instance(
+    pub async fn clear_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
