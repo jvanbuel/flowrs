@@ -1,9 +1,9 @@
+use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 
 use crate::airflow::model::common::OpenItem;
-use crate::airflow::traits::AirflowClient;
 use crate::app::state::App;
 
 /// Open an item (DAG, DAG run, task instance, etc.) in the browser.
@@ -11,17 +11,13 @@ use crate::app::state::App;
 /// Any failure (no active server, an unbuildable URL, or the browser refusing
 /// to launch) is surfaced to the user via the active panel's error popup
 /// instead of being silently logged.
-pub fn handle_open_item(app: &Arc<Mutex<App>>, client: &Arc<dyn AirflowClient>, item: OpenItem) {
+pub fn handle_open_item(app: &Arc<Mutex<App>>, client: &Arc<FlowrsClient>, item: OpenItem) {
     if let Err(e) = try_open_item(app, client, item) {
         app.lock().unwrap().show_error(vec![e.to_string()]);
     }
 }
 
-fn try_open_item(
-    app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
-    item: OpenItem,
-) -> Result<()> {
+fn try_open_item(app: &Arc<Mutex<App>>, client: &Arc<FlowrsClient>, item: OpenItem) -> Result<()> {
     // For Config items, look up the endpoint from active_server instead of using the passed string
     let final_item = if let OpenItem::Config(_) = &item {
         let app_lock = app.lock().unwrap();
