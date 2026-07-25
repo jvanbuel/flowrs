@@ -1,9 +1,8 @@
-mod auth;
 mod client;
 mod provider;
 mod regions;
 
-pub use auth::ComposerAuth;
+pub use crate::auth::ComposerAuth;
 pub use client::{get_composer_environment_servers, ComposerClient};
 pub use provider::ComposerAuthProvider;
 pub use regions::{get_gcloud_default_region, GCP_REGIONS};
