@@ -32,13 +32,6 @@ impl FlowrsClient {
 }
 
 impl AirflowClient for FlowrsClient {
-    fn get_version(&self) -> AirflowVersion {
-        match self {
-            Self::V1(_) => AirflowVersion::V2,
-            Self::V2(_) => AirflowVersion::V3,
-        }
-    }
-
     fn build_open_url(&self, item: &OpenItem) -> Result<String> {
         match self {
             Self::V1(client) => build_v1_open_url(client.endpoint(), item),

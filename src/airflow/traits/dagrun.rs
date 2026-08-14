@@ -9,10 +9,6 @@ pub trait DagRunOperations: Send + Sync {
     /// List DAG runs for a specific DAG
     async fn list_dagruns(&self, dag_id: &str) -> Result<DagRunList>;
 
-    /// List all DAG runs across all DAGs
-    #[allow(unused, reason = "trait method kept for API completeness")]
-    async fn list_all_dagruns(&self) -> Result<DagRunList>;
-
     /// Mark a DAG run with a specific status
     async fn mark_dag_run(&self, dag_id: &str, dag_run_id: &str, status: &str) -> Result<()>;
 
