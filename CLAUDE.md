@@ -59,8 +59,7 @@ Self-contained Airflow API client library. Has no dependencies on other workspac
 TUI-specific configuration management. Depends on `flowrs-airflow` for auth/server types (re-exports them).
 - `src/lib.rs`: `FlowrsConfig` struct (servers, managed_services, poll_interval, etc.), TOML parsing/writing
 - `src/paths.rs`: `ConfigPaths` for XDG-compliant config file resolution
-- `src/auth.rs`: Re-exports auth types from `flowrs-airflow`
-- `src/server.rs`: Re-exports server config types from `flowrs-airflow`
+- Auth and server config types are owned by `flowrs-airflow` and re-exported from `src/lib.rs`
 
 ### flowrs-tui (root crate, `src/`)
 The TUI binary. Depends on both `flowrs-airflow` and `flowrs-config`.

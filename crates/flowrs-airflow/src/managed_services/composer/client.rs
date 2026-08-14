@@ -9,7 +9,7 @@ use std::time::Duration;
 use crate::auth::AirflowAuth;
 use crate::config::{AirflowConfig, AirflowVersion, ManagedService};
 
-use super::auth::ComposerAuth;
+use super::ComposerAuth;
 
 const RESOURCE_MANAGER_URL: &str = "https://cloudresourcemanager.googleapis.com/v1/projects";
 const COMPOSER_API_URL: &str = "https://composer.googleapis.com/v1";
