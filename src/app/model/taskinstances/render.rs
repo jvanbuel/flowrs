@@ -42,15 +42,13 @@ impl Widget for &mut TaskInstanceModel {
         let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
         let gantt_width = (table_inner_width / 2).max(10);
 
-        let rows = self
+        let rows: Vec<Row> = self
             .table
-            .filtered
-            .items
-            .iter()
+            .items()
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    Line::from(item.task_id.as_ref()),
+                    Line::from(item.task_id.to_string()),
                     Line::from(
                         calculate_duration(item).map_or_else(|| "-".to_string(), format_duration),
                     ),
@@ -63,7 +61,8 @@ impl Widget for &mut TaskInstanceModel {
                     create_gantt_bar(&self.gantt_data, &item.task_id, gantt_width.into()),
                 ])
                 .style(self.table.row_style(idx))
-            });
+            })
+            .collect();
         let t = Table::new(
             rows,
             &[
@@ -89,7 +88,7 @@ impl Widget for &mut TaskInstanceModel {
         })
         .row_highlight_style(t.selected_row_style);
 
-        StatefulWidget::render(t, content_area, buffer, &mut self.table.filtered.state);
+        StatefulWidget::render(t, content_area, buffer, self.table.state_mut());
 
         legend.render(legend_area, buffer);
 

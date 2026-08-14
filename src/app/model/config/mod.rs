@@ -31,7 +31,7 @@ impl ConfigModel {
         let mut table = FilterableTable::new();
         table.set_items(configs.to_vec());
         let config_names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
-        table.filter.set_primary_values("name", config_names);
+        table.filter_mut().set_primary_values("name", config_names);
 
         Self {
             table,
@@ -52,12 +52,10 @@ impl ConfigModel {
     fn handle_keys(&mut self, key_event: &KeyEvent) -> KeyResult {
         match key_event.code {
             KeyCode::Char('o') => {
-                if let Some(idx) = self.table.filtered.state.selected() {
-                    if let Some(item) = self.table.filtered.items.get(idx) {
-                        return KeyResult::PassWith(vec![WorkerMessage::OpenItem(
-                            OpenItem::Config(item.endpoint.clone()),
-                        )]);
-                    }
+                if let Some(item) = self.table.current() {
+                    return KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::Config(
+                        item.endpoint.clone(),
+                    ))]);
                 }
                 KeyResult::PassThrough
             }
@@ -66,8 +64,8 @@ impl ConfigModel {
                 KeyResult::Consumed
             }
             KeyCode::Enter => {
-                if let Some(idx) = self.table.filtered.state.selected() {
-                    if let Some(item) = self.table.filtered.items.get(idx) {
+                if let Some(idx) = self.table.selected_position() {
+                    if let Some(item) = self.table.item_at(idx) {
                         debug!("Selected config: {}", item.name);
                         return KeyResult::PassWith(vec![WorkerMessage::ConfigSelected(idx)]);
                     }
@@ -116,16 +114,14 @@ impl Widget for &mut ConfigModel {
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(t.table_header_style);
 
-        let rows = self
+        let rows: Vec<Row> = self
             .table
-            .filtered
-            .items
-            .iter()
+            .items()
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    Line::from(item.name.as_str()),
-                    Line::from(item.endpoint.as_str()),
+                    Line::from(item.name.clone()),
+                    Line::from(item.endpoint.clone()),
                     Line::from(
                         item.managed
                             .as_ref()
@@ -137,7 +133,8 @@ impl Widget for &mut ConfigModel {
                     }),
                 ])
                 .style(self.table.row_style(idx))
-            });
+            })
+            .collect();
 
         let t = Table::new(
             rows,
@@ -162,7 +159,7 @@ impl Widget for &mut ConfigModel {
             }
         })
         .row_highlight_style(t.selected_row_style);
-        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
+        StatefulWidget::render(t, content_area, buf, self.table.state_mut());
 
         // Render any active popup (error or commands)
         (&self.popup).render(area, buf);

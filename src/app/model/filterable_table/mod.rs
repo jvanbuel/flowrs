@@ -9,50 +9,136 @@
 
 mod render;
 
+use std::cmp::Ordering;
 use std::ops::RangeInclusive;
 
 use crossterm::event::{KeyCode, KeyEvent};
+use ratatui::widgets::TableState;
 
 use super::filter::{filter_items, FilterStateMachine, Filterable};
 use super::{KeyResult, StatefulTable};
 
-/// A generic filterable table that combines data storage, filtering, and visual selection.
+/// A generic filterable, selectable table shared by the Dags, `DagRuns`, and
+/// `TaskInstances` panels.
 ///
-/// This widget is designed to work with any type that implements `Filterable + Clone`.
+/// It owns the canonical `all` items and derives a filtered, ordered *view* of
+/// indices into them, so matched items are never cloned. Callers interact
+/// through the item-oriented API (`items`, `current`, `sort_by`, ...) and never
+/// see the index representation, which is free to change (e.g. to shared `Arc`
+/// data) without touching them.
 #[derive(Debug, Clone, Default)]
 pub struct FilterableTable<T> {
-    /// All items from the API (unfiltered)
-    pub all: Vec<T>,
-    /// Filtered items with table state for rendering
-    pub filtered: StatefulTable<T>,
-    /// Filter state machine with autocomplete
-    pub filter: FilterStateMachine,
-    /// Anchor index for visual selection; `Some` means visual mode is active
-    pub visual_anchor: Option<usize>,
+    /// Canonical items, kept in display/sort order.
+    all: Vec<T>,
+    /// Indices into `all` that pass the filter, with the table selection state.
+    view: StatefulTable<usize>,
+    /// Filter state machine with autocomplete.
+    filter: FilterStateMachine,
+    /// Anchor position for visual selection; `Some` means visual mode is active.
+    visual_anchor: Option<usize>,
 }
 
-impl<T: Filterable + Clone> FilterableTable<T> {
+impl<T: Filterable> FilterableTable<T> {
     /// Creates a new empty filterable table
     pub fn new() -> Self {
         Self {
             all: Vec::new(),
-            filtered: StatefulTable::new(Vec::new()),
+            view: StatefulTable::new(Vec::new()),
             filter: FilterStateMachine::default(),
             visual_anchor: None,
         }
     }
 
-    /// Sets the items and applies the current filter
+    // ── Data ────────────────────────────────────────────────
+
+    /// Replace all items and recompute the filtered view.
     pub fn set_items(&mut self, items: Vec<T>) {
         self.all = items;
         self.apply_filter();
     }
 
-    /// Applies the current filter conditions to the items
+    /// Reorder or mutate the canonical items in place, then refresh the view.
+    /// Used for sorting and optimistic updates; the view stays in `all`'s order.
+    pub fn update_all(&mut self, f: impl FnOnce(&mut Vec<T>)) {
+        f(&mut self.all);
+        self.apply_filter();
+    }
+
+    /// Sort the items with `cmp` and refresh the view.
+    pub fn sort_by(&mut self, cmp: impl FnMut(&T, &T) -> Ordering) {
+        self.update_all(|all| all.sort_by(cmp));
+    }
+
+    /// Remove all items (and any selection).
+    pub fn clear(&mut self) {
+        self.all.clear();
+        self.apply_filter();
+    }
+
+    /// Read-only access to the canonical items.
+    pub fn all(&self) -> &[T] {
+        &self.all
+    }
+
+    /// Recompute the filtered view from the current filter conditions.
     pub fn apply_filter(&mut self) {
         let conditions = self.filter.active_conditions();
-        let filtered = filter_items(&self.all, &conditions);
-        self.filtered.items = filtered;
+        self.view.items = filter_items(&self.all, &conditions);
+    }
+
+    // ── The filtered view ───────────────────────────────────
+
+    /// Iterate the filtered items in display order.
+    pub fn items(&self) -> impl Iterator<Item = &T> {
+        self.view.items.iter().filter_map(|&i| self.all.get(i))
+    }
+
+    /// Number of items in the filtered view.
+    pub fn len(&self) -> usize {
+        self.view.items.len()
+    }
+
+    /// Whether the filtered view is empty.
+    pub fn is_empty(&self) -> bool {
+        self.view.items.is_empty()
+    }
+
+    /// Resolve a position in the filtered view to its item.
+    pub fn item_at(&self, pos: usize) -> Option<&T> {
+        self.all.get(*self.view.items.get(pos)?)
+    }
+
+    /// The currently selected item, if any.
+    pub fn current(&self) -> Option<&T> {
+        self.item_at(self.view.state.selected()?)
+    }
+
+    /// The currently selected item, mutably.
+    pub fn current_mut(&mut self) -> Option<&mut T> {
+        let index = *self.view.items.get(self.view.state.selected()?)?;
+        self.all.get_mut(index)
+    }
+
+    /// The selected position within the filtered view.
+    pub fn selected_position(&self) -> Option<usize> {
+        self.view.state.selected()
+    }
+
+    /// Mutable table state, for driving the ratatui `StatefulWidget` render.
+    pub fn state_mut(&mut self) -> &mut TableState {
+        &mut self.view.state
+    }
+
+    // ── Filter ──────────────────────────────────────────────
+
+    /// Read-only access to the filter state (active flag, cursor, display).
+    pub fn filter(&self) -> &FilterStateMachine {
+        &self.filter
+    }
+
+    /// Mutable access to the filter state (e.g. to set autocomplete values).
+    pub fn filter_mut(&mut self) -> &mut FilterStateMachine {
+        &mut self.filter
     }
 
     /// Activates filter mode
@@ -74,32 +160,18 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         }
     }
 
-    /// Returns the currently selected item
-    pub fn current(&self) -> Option<&T> {
-        self.filtered
-            .state
-            .selected()
-            .and_then(|i| self.filtered.items.get(i))
-    }
+    // ── Selection / visual mode ─────────────────────────────
 
-    /// Returns the currently selected item mutably
-    pub fn current_mut(&mut self) -> Option<&mut T> {
-        self.filtered
-            .state
-            .selected()
-            .and_then(|i| self.filtered.items.get_mut(i))
-    }
-
-    /// Returns the inclusive range of selected indices, if in visual mode
+    /// Returns the inclusive range of selected positions, if in visual mode
     pub fn visual_selection(&self) -> Option<RangeInclusive<usize>> {
         let anchor = self.visual_anchor?;
-        let cursor = self.filtered.state.selected()?;
-        let (start, end) = if anchor <= cursor {
-            (anchor, cursor)
-        } else {
-            (cursor, anchor)
-        };
-        Some(start..=end)
+        let cursor = self.view.state.selected()?;
+        Some(anchor.min(cursor)..=anchor.max(cursor))
+    }
+
+    /// Exit visual selection mode.
+    pub fn clear_visual_mode(&mut self) {
+        self.visual_anchor = None;
     }
 
     /// Returns count of selected items (for bottom border display)
@@ -116,14 +188,11 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     {
         match self.visual_selection() {
             Some(range) => range
-                .filter_map(|i| self.filtered.items.get(i))
+                .filter_map(|pos| self.item_at(pos))
                 .map(&key_fn)
                 .collect(),
             None => self
-                .filtered
-                .state
-                .selected()
-                .and_then(|i| self.filtered.items.get(i))
+                .current()
                 .map(|item| vec![key_fn(item)])
                 .unwrap_or_default(),
         }
@@ -137,25 +206,23 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     ) -> KeyResult {
         match key_code {
             KeyCode::Down | KeyCode::Char('j') => {
-                self.filtered.next();
+                self.view.next();
                 KeyResult::Consumed
             }
             KeyCode::Up | KeyCode::Char('k') => {
-                self.filtered.previous();
+                self.view.previous();
                 KeyResult::Consumed
             }
             KeyCode::Char('G') => {
-                if !self.filtered.items.is_empty() {
-                    self.filtered
-                        .state
-                        .select(Some(self.filtered.items.len() - 1));
+                if !self.view.items.is_empty() {
+                    self.view.state.select(Some(self.view.items.len() - 1));
                 }
                 KeyResult::Consumed
             }
             KeyCode::Char('g') => {
                 if let Some(last_key) = event_buffer.pop() {
                     if last_key == KeyCode::Char('g') {
-                        self.filtered.state.select_first();
+                        self.view.state.select_first();
                     } else {
                         event_buffer.push(last_key);
                         event_buffer.push(key_code);
@@ -173,7 +240,7 @@ impl<T: Filterable + Clone> FilterableTable<T> {
     pub fn handle_visual_mode_key(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('V') => {
-                if let Some(cursor) = self.filtered.state.selected() {
+                if let Some(cursor) = self.view.state.selected() {
                     self.visual_anchor = Some(cursor);
                 }
                 KeyResult::Consumed
@@ -222,8 +289,8 @@ mod tests {
     #[test]
     fn test_new_table_is_empty() {
         let table: FilterableTable<TestItem> = FilterableTable::new();
-        assert!(table.filtered.items.is_empty());
-        assert_eq!(table.filtered.items.len(), 0);
+        assert!(table.view.items.is_empty());
+        assert_eq!(table.view.items.len(), 0);
         assert!(table.current().is_none());
     }
 
@@ -241,8 +308,8 @@ mod tests {
             },
         ];
         table.set_items(items);
-        assert_eq!(table.filtered.items.len(), 2);
-        assert!(!table.filtered.items.is_empty());
+        assert_eq!(table.view.items.len(), 2);
+        assert!(!table.view.items.is_empty());
     }
 
     #[test]
@@ -267,22 +334,19 @@ mod tests {
         assert!(table.current().is_none());
 
         // Move next, should select first
-        table.filtered.next();
+        table.view.next();
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
 
         // Move next
-        table.filtered.next();
+        table.view.next();
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("2"));
 
         // Select last
-        table
-            .filtered
-            .state
-            .select(Some(table.filtered.items.len() - 1));
+        table.view.state.select(Some(table.view.items.len() - 1));
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("3"));
 
         // Select first
-        table.filtered.state.select_first();
+        table.view.state.select_first();
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
     }
 
@@ -305,18 +369,18 @@ mod tests {
         ]);
 
         // Select first item
-        table.filtered.next();
+        table.view.next();
         assert!(table.visual_selection().is_none());
 
         // Enter visual mode
-        table.visual_anchor = table.filtered.state.selected();
+        table.visual_anchor = table.view.state.selected();
         assert!(table.visual_anchor.is_some());
         assert_eq!(table.visual_anchor, Some(0));
         assert_eq!(table.visual_selection_count(), 1);
 
         // Move down to expand selection
-        table.filtered.next();
-        table.filtered.next();
+        table.view.next();
+        table.view.next();
         assert_eq!(table.visual_selection_count(), 3);
 
         // Get selected IDs
@@ -347,7 +411,7 @@ mod tests {
         assert!(table.selected_ids(|item| item.id.clone()).is_empty());
 
         // Select first item
-        table.filtered.next();
+        table.view.next();
         let ids = table.selected_ids(|item| item.id.clone());
         assert_eq!(ids, vec!["1"]);
     }
@@ -421,7 +485,7 @@ mod tests {
         ]);
 
         // Select first item
-        table.filtered.next();
+        table.view.next();
         assert!(table.visual_anchor.is_none());
 
         // V key enters visual mode

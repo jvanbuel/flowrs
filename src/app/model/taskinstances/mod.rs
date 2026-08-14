@@ -73,21 +73,17 @@ impl TaskInstanceModel {
     /// Sort task instances by topological order (or timestamp fallback)
     pub fn sort_task_instances(&mut self) {
         if let Some(graph) = &self.task_graph {
-            sort_task_instances(&mut self.table.all, graph);
+            self.table.update_all(|all| sort_task_instances(all, graph));
         }
     }
 
     /// Mark a task instance with a new status (optimistic update)
     pub fn mark_task_instance(&mut self, task_id: &TaskId, status: TaskInstanceState) {
-        if let Some(task_instance) = self
-            .table
-            .filtered
-            .items
-            .iter_mut()
-            .find(|ti| ti.task_id == *task_id)
-        {
-            task_instance.state = Some(status);
-        }
+        self.table.update_all(|all| {
+            if let Some(task_instance) = all.iter_mut().find(|ti| ti.task_id == *task_id) {
+                task_instance.state = Some(status);
+            }
+        });
     }
 
     /// Returns selected task IDs for passing to mark/clear popups
@@ -117,7 +113,7 @@ impl TaskInstanceModel {
                 KeyCode::Enter | KeyCode::Esc | KeyCode::Char('q')
             ) {
                 self.popup.close();
-                self.table.visual_anchor = None;
+                self.table.clear_visual_mode();
             }
         }
         Some(messages)
@@ -171,7 +167,7 @@ impl TaskInstanceModel {
             KeyCode::Char('d') => {
                 if let Some(graph) = &self.task_graph {
                     if !graph.is_empty() {
-                        let popup = DagGraphPopup::new(graph, &self.table.all);
+                        let popup = DagGraphPopup::new(graph, self.table.all());
                         self.popup.show_custom(TaskInstancePopUp::Graph(popup));
                     }
                 }

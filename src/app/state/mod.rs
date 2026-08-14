@@ -152,9 +152,9 @@ impl App {
     pub fn clear_state(&mut self) {
         self.loading = true;
         self.nav_context.reset_to_environment();
-        self.dags.table.all.clear();
-        self.dagruns.table.all.clear();
-        self.task_instances.table.all.clear();
+        self.dags.table.clear();
+        self.dagruns.table.clear();
+        self.task_instances.table.clear();
         self.logs.all.clear();
     }
 }

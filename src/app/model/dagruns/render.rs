@@ -40,9 +40,7 @@ impl Widget for &mut DagRunModel {
         // Calculate max duration for normalization
         let max_duration = self
             .table
-            .filtered
-            .items
-            .iter()
+            .items()
             .filter_map(calculate_duration)
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(1.0);
@@ -56,11 +54,9 @@ impl Widget for &mut DagRunModel {
             .saturating_sub(fixed_columns_width + dag_run_id_width)
             .max(10) as usize;
 
-        let rows = self
+        let rows: Vec<Row> = self
             .table
-            .filtered
-            .items
-            .iter()
+            .items()
             .enumerate()
             .map(|(idx, item)| {
                 let state_color: Color = AirflowStateColor::from(&item.state).into();
@@ -82,7 +78,7 @@ impl Widget for &mut DagRunModel {
                 Row::new(vec![
                     Line::from(Span::styled("■", Style::default().fg(state_color))),
                     Line::from(Span::styled(
-                        &*item.dag_run_id,
+                        item.dag_run_id.to_string(),
                         Style::default().add_modifier(Modifier::BOLD),
                     )),
                     Line::from(if let Some(date) = item.logical_date {
@@ -96,7 +92,8 @@ impl Widget for &mut DagRunModel {
                     time_cell,
                 ])
                 .style(self.table.row_style(idx))
-            });
+            })
+            .collect();
         let t = Table::new(
             rows,
             &[
@@ -122,7 +119,7 @@ impl Widget for &mut DagRunModel {
             }
         })
         .row_highlight_style(t.selected_row_style);
-        StatefulWidget::render(t, content_area, buf, &mut self.table.filtered.state);
+        StatefulWidget::render(t, content_area, buf, self.table.state_mut());
 
         if let Some(view) = &mut self.dag_code {
             view.render(area, buf);
