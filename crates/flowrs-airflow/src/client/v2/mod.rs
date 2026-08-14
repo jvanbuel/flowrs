@@ -7,15 +7,15 @@ mod log;
 mod task;
 mod taskinstance;
 
-use anyhow::Result;
-use reqwest::Method;
+use reqwest::{Method, RequestBuilder, Response, Url};
 
 use super::base::BaseClient;
+use crate::error::Result;
 
 /// API v2 client implementation (for Airflow v3, uses /api/v2 endpoint)
 #[derive(Debug)]
 pub struct V2Client {
-    pub base: BaseClient,
+    base: BaseClient,
 }
 
 impl V2Client {
@@ -25,18 +25,18 @@ impl V2Client {
         Self { base }
     }
 
-    pub(crate) async fn base_api(
-        &self,
-        method: Method,
-        endpoint: &str,
-    ) -> Result<reqwest::RequestBuilder> {
+    pub(crate) async fn base_api(&self, method: Method, endpoint: &str) -> Result<RequestBuilder> {
         self.base
             .base_api(method, endpoint, Self::API_VERSION)
             .await
     }
 
+    pub(crate) async fn execute(&self, request: RequestBuilder) -> Result<Response> {
+        self.base.execute(request).await
+    }
+
     /// Returns the base endpoint URL for this client
-    pub fn endpoint(&self) -> &str {
-        &self.base.config.endpoint
+    pub const fn endpoint(&self) -> &Url {
+        self.base.endpoint()
     }
 }

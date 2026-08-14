@@ -3,28 +3,22 @@ pub mod base;
 pub mod v1;
 pub mod v2;
 
-use anyhow::Result;
+use reqwest::Response;
+use serde::de::DeserializeOwned;
 
-use crate::config::{AirflowConfig, AirflowVersion};
+use crate::error::{AirflowError, Result};
 
 pub use base::BaseClient;
 pub use v1::V1Client;
 pub use v2::V2Client;
 
-/// Enum wrapping the versioned API clients.
-/// V1 is for Airflow v2 (uses /api/v1), V2 is for Airflow v3 (uses /api/v2).
-#[derive(Debug)]
-pub enum AirflowApiClient {
-    V1(V1Client),
-    V2(V2Client),
-}
-
-/// Create an Airflow API client based on the configuration version
-pub fn create_api_client(config: &AirflowConfig) -> Result<AirflowApiClient> {
-    let base = BaseClient::new(config.clone())?;
-
-    match config.version {
-        AirflowVersion::V2 => Ok(AirflowApiClient::V1(V1Client::new(base))), // V2 uses API v1
-        AirflowVersion::V3 => Ok(AirflowApiClient::V2(V2Client::new(base))), // V3 uses API v2
-    }
+/// Deserialize a response body, keeping a snippet of it in the error on failure.
+///
+/// The body is read as text first rather than using `Response::json`, because some
+/// deployments return payloads that do not match the documented schema (older v2.x
+/// versions omit `dag_display_name`, for instance) and the raw body is what makes
+/// those failures diagnosable.
+pub(crate) async fn read_json<T: DeserializeOwned>(response: Response, context: &str) -> Result<T> {
+    let body = response.text().await?;
+    serde_json::from_str(&body).map_err(|e| AirflowError::decode(context, &body, e))
 }
