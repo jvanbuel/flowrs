@@ -55,12 +55,6 @@ impl<T: Filterable + Clone> FilterableTable<T> {
         self.filtered.items = filtered;
     }
 
-    /// Activates filter mode
-    pub fn activate_filter(&mut self) {
-        self.filter.activate();
-        self.apply_filter();
-    }
-
     /// Handles a key event for the filter.
     /// This handles both:
     /// - `/` key when filter is inactive (activates filter)
