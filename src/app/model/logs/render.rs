@@ -15,7 +15,9 @@ use crate::ui::theme::theme;
 use super::search::{Search, SearchData};
 use super::{LogModel, ScrollMode};
 
-const WRAP: Wrap = Wrap { trim: true };
+// `trim: false` keeps leading whitespace on wrapped rows, so indentation in
+// stack traces, JSON and nested log output survives wrapping.
+const WRAP: Wrap = Wrap { trim: false };
 
 impl Widget for &mut LogModel {
     fn render(self, area: Rect, buffer: &mut Buffer) {
@@ -317,5 +319,24 @@ mod tests {
         assert_eq!(wrapped_offset(&content, 0, area), 0);
         assert_eq!(wrapped_offset(&content, 1, area), 3);
         assert_eq!(wrapped_offset(&content, 2, area), 4);
+    }
+
+    #[test]
+    fn wrapping_keeps_indentation() {
+        let mut model = LogModel::default();
+        model.update_logs(vec![crate::airflow::model::common::Log {
+            continuation_token: None,
+            content: format!("    {}", "x".repeat(40)),
+        }]);
+
+        let area = Rect::new(0, 0, 20, 12);
+        let mut buffer = Buffer::empty(area);
+        (&mut model).render(area, &mut buffer);
+
+        // The indent must survive on the first content row
+        let row: String = (0..area.width)
+            .map(|x| buffer[(x, 4)].symbol())
+            .collect::<String>();
+        assert!(row.contains("    xxx"), "indent was trimmed: {row:?}");
     }
 }
