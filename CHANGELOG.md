@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.5...flowrs-tui-v0.14.0) - 2026-08-24
+
+### Added
+
+- add vim-style search to log viewer panel ([#600](https://github.com/jvanbuel/flowrs/pull/600))
+
+### Other
+
+- *(deps)* bump aws-sdk-mwaa from 1.113.0 to 1.114.0 ([#715](https://github.com/jvanbuel/flowrs/pull/715))
+- *(deps)* bump aws-config from 1.10.1 to 1.11.0 ([#714](https://github.com/jvanbuel/flowrs/pull/714))
+
 ## [0.13.5](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.4...flowrs-tui-v0.13.5) - 2026-08-17
 
 ### Other
