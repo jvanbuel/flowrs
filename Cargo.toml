@@ -56,7 +56,7 @@ useless_let_if_seq = "allow"
 
 [package]
 name = "flowrs-tui"
-version = "0.13.5"
+version = "0.13.6"
 edition = "2021"
 rust-version = "1.87.0"
 description = "Flowrs is a Terminal User Interface (TUI) for Apache Airflow"
