@@ -244,9 +244,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-mwaa"
-version = "1.113.0"
+version = "1.114.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "883841f7cc61648ef88ee4165537fa7b1488b8b854baa89c7d6b75dc2416584d"
+checksum = "6ae71f8bbe6453717650a3893bc7dba533a02365575a5ba89a47350984652bee"
 dependencies = [
  "arc-swap",
  "aws-credential-types",
