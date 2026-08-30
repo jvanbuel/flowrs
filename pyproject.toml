@@ -1,0 +1,37 @@
+[build-system]
+requires = ["maturin>=1.9,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "flowrs"
+description = "A Terminal User Interface (TUI) for Apache Airflow"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+keywords = ["airflow", "tui", "terminal", "dag", "ratatui"]
+authors = [{ name = "Jan Vanbuel", email = "jan@lightcone.be" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Rust",
+    "Topic :: System :: Monitoring",
+    "Topic :: Utilities",
+]
+# Read from Cargo.toml by maturin, so release-plz version bumps carry through
+# without a second bump here.
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/jvanbuel/flowrs"
+Repository = "https://github.com/jvanbuel/flowrs"
+Changelog = "https://github.com/jvanbuel/flowrs/blob/main/CHANGELOG.md"
+Issues = "https://github.com/jvanbuel/flowrs/issues"
+
+[tool.maturin]
+# Ship the `flowrs` binary itself; there is no Python extension module here.
+bindings = "bin"
+manifest-path = "Cargo.toml"
+strip = true
