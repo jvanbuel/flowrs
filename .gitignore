@@ -13,3 +13,8 @@ flowrs-debug*
 
 .terraform
 *.tfstate
+
+# Python packaging (maturin / uv)
+dist
+.venv
+uv.lock

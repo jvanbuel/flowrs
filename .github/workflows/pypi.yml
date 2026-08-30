@@ -1,0 +1,159 @@
+name: PyPI
+
+# Builds platform wheels that ship the `flowrs` binary, so it can be installed
+# with `uv tool install flowrs` / `pipx install flowrs`.
+#
+# Publishes on the same `flowrs-tui-v*` tags that trigger the cargo-dist
+# release workflow, so a release-plz tag ships crates.io, GitHub Releases,
+# Homebrew and PyPI together. The wheel version is read from Cargo.toml, so
+# nothing needs bumping here. The `flowrs-airflow-*` and `flowrs-config-*`
+# library tags are deliberately not matched: only the binary crate is shipped
+# to PyPI.
+#
+# Running this workflow manually builds everything and exercises the PyPI
+# trusted-publishing OIDC exchange in --dry-run mode, without uploading. Use
+# that to validate the publisher setup before the first real release. Only a
+# version tag ever uploads.
+#
+# The wheel matrix mirrors the platforms cargo-dist already releases binaries
+# for (see dist-workspace.toml). Windows, musl and linux aarch64 are left out
+# because flowrs ships no binaries for them today; nothing in the build blocks
+# them, so they can be added here whenever those targets are supported.
+
+on:
+  push:
+    tags:
+      - 'flowrs-tui-v[0-9]+.[0-9]+.[0-9]+*'
+  # Verify the packaging still builds when it changes, without publishing.
+  pull_request:
+    paths:
+      - pyproject.toml
+      - .github/workflows/pypi.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Wheel (manylinux x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: x86_64
+          args: --release --out dist
+          # glibc 2.28 (AlmaLinux 8) is still an older baseline than the
+          # ubuntu-22.04 the cargo-dist binaries are built on, and the build
+          # links no system libraries beyond libc, so the wheel bundles nothing.
+          manylinux: '2_28'
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-manylinux-x86_64
+          path: dist
+
+  macos:
+    name: Wheel (macOS ${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            target: aarch64
+          - runner: macos-15-intel
+            target: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist
+          sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.target }}
+          path: dist
+
+  sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+  smoke-test:
+    name: Smoke test (${{ matrix.os }})
+    needs: [linux, macos]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    env:
+      UV_TOOL_BIN_DIR: ${{ github.workspace }}/tool-bin
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: astral-sh/setup-uv@v7
+      - name: Install from the built wheel and run it
+        shell: bash
+        # --no-build asserts a matching wheel exists for this platform rather
+        # than silently falling back to compiling the sdist.
+        run: |
+          uv tool install --no-index --no-build --find-links dist flowrs
+          "${UV_TOOL_BIN_DIR}/flowrs" --version
+
+  publish:
+    name: Publish to PyPI
+    needs: [linux, macos, sdist, smoke-test]
+    # Tags upload for real; a manual run only dry-runs (see the step below).
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/flowrs
+    permissions:
+      contents: read
+      # Required for PyPI Trusted Publishing (OIDC). No API token needed.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - uses: astral-sh/setup-uv@v7
+      - name: Publish
+        # `--trusted-publishing always` fails loudly if the OIDC exchange is
+        # not configured, rather than silently falling back to looking for a
+        # token. `--check-url` makes a re-run skip already-uploaded files.
+        #
+        # A manual run adds --dry-run, which still performs the full OIDC
+        # exchange but uploads nothing, so the publisher setup can be verified
+        # without burning a version number. Uploads are therefore reachable
+        # only from a version tag.
+        run: >-
+          uv publish
+          --trusted-publishing always
+          --check-url https://pypi.org/simple/flowrs/
+          ${{ github.event_name == 'workflow_dispatch' && '--dry-run' || '' }}
+          'dist/*'

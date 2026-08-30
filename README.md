@@ -1,4 +1,4 @@
-![flowrs_logo](./image/README/1683789045509.png)
+![flowrs_logo](https://raw.githubusercontent.com/jvanbuel/flowrs/main/image/README/1683789045509.png)
 
 [![CI](https://github.com/jvanbuel/flowrs/actions/workflows/ci.yml/badge.svg)](https://github.com/jvanbuel/flowrs/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/flowrs-tui.svg)](https://crates.io/crates/flowrs-tui)
@@ -9,7 +9,7 @@
 
 Flowrs is a TUI application for [Apache Airflow](https://airflow.apache.org/). It allows you to monitor, inspect and manage Airflow DAGs from the comforts of your terminal. It is build with the [ratatui](https://ratatui.rs/) library.
 
-![flowrs demo](./vhs/flowrs.gif)
+![flowrs demo](https://raw.githubusercontent.com/jvanbuel/flowrs/main/vhs/flowrs.gif)
 
 ## Installation
 
@@ -19,7 +19,13 @@ You can install `flowrs` via Homebrew if you're on macOS / Linux / WSL2:
 brew install flowrs
 ```
 
-or by downloading the binary directly from GitHub:
+or with `uv` on macOS (Apple silicon and Intel) and Linux x86_64:
+
+```bash
+uv tool install flowrs
+```
+
+You can also download the binary directly from GitHub:
 
 ```bash
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/jvanbuel/flowrs/releases/latest/download/flowrs-tui-installer.sh | sh
@@ -50,7 +56,7 @@ Note that for Astronomer, you need to set the `ASTRO_API_TOKEN` environment vari
 
 If you're self-hosting an Airflow instance, or your favorite managed service is not yet supported, you can register an Airflow server instance with the `flowrs config add` command:
 
-![flowrs config add demo](./vhs/add_config.gif)
+![flowrs config add demo](https://raw.githubusercontent.com/jvanbuel/flowrs/main/vhs/add_config.gif)
 
 This creates an entry in your configuration file at `$XDG_CONFIG_HOME/flowrs/config.toml` (following the XDG Base Directory Specification, which defaults to `~/.config/flowrs/config.toml`). For backwards compatibility, flowrs also reads from `~/.flowrs` if the XDG location doesn't exist. If you have multiple Airflow servers configured, you can easily switch between them in `flowrs` configuration screen.
 
