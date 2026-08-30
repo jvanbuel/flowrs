@@ -25,8 +25,6 @@ or with `uv` on macOS (Apple silicon and Intel) and Linux x86_64:
 uv tool install flowrs
 ```
 
-The wheel ships the same prebuilt binary as every other install method — Python is only used to deliver it, not to run it. `pipx install flowrs` works the same way. Prebuilt wheels are published for those platforms only; on any other platform, install with `cargo` instead.
-
 You can also download the binary directly from GitHub:
 
 ```bash
