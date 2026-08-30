@@ -1,5 +1,7 @@
 [build-system]
-requires = ["maturin>=1.9,<2.0"]
+# >=1.9.3: 1.9.2 fixed PEP 639 `License-Expression`, 1.9.3 fixed
+# `project.license-files` being dropped from source distributions.
+requires = ["maturin>=1.9.3,<2.0"]
 build-backend = "maturin"
 
 [project]
