@@ -16,9 +16,9 @@ name: PyPI
 # version tag ever uploads.
 #
 # The wheel matrix mirrors the platforms cargo-dist already releases binaries
-# for (see dist-workspace.toml). Windows, musl and linux aarch64 are left out:
-# flowrs ships no binaries for them today, and reqwest's default-tls pulls in
-# OpenSSL, which has no headers to link against in the manylinux cross images.
+# for (see dist-workspace.toml). Windows, musl and linux aarch64 are left out
+# because flowrs ships no binaries for them today; nothing in the build blocks
+# them, so they can be added here whenever those targets are supported.
 
 on:
   push:
@@ -48,10 +48,9 @@ jobs:
         with:
           target: x86_64
           args: --release --out dist
-          # manylinux_2_28 rather than the default manylinux2014: reqwest's
-          # default-tls links OpenSSL, and 2_28 carries OpenSSL 1.1 headers
-          # instead of 1.0.2. glibc 2.28 is still an older baseline than the
-          # ubuntu-22.04 the cargo-dist binaries are built on.
+          # glibc 2.28 (AlmaLinux 8) is still an older baseline than the
+          # ubuntu-22.04 the cargo-dist binaries are built on, and the build
+          # links no system libraries beyond libc, so the wheel bundles nothing.
           manylinux: '2_28'
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
       - uses: actions/upload-artifact@v4
