@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.14.0...flowrs-tui-v0.14.1) - 2026-08-30
+
+### Added
+
+- publish flowrs to PyPI ([#717](https://github.com/jvanbuel/flowrs/pull/717))
+
 ## [0.14.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.13.5...flowrs-tui-v0.14.0) - 2026-08-24
 
 ### Added

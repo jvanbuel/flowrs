@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.2...flowrs-config-v0.12.3) - 2026-08-30
+
+### Other
+
+- updated the following local packages: flowrs-airflow
+
 ## [0.12.2](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.1...flowrs-config-v0.12.2) - 2026-07-28
 
 ### Other
