@@ -1,8 +1,8 @@
-use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::graph::TaskGraph;
 use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::taskinstances::popup::graph::DagGraphPopup;

@@ -1,10 +1,10 @@
-use crate::airflow::client::FlowrsClient;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 use futures::future::join_all;
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, GanttData, TaskId, TaskInstanceState};
 use crate::app::model::taskinstances::popup::mark::MarkState;
 use crate::app::state::App;

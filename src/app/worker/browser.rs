@@ -1,8 +1,8 @@
-use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use anyhow::{Context, Result};
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::OpenItem;
 use crate::app::state::App;
 

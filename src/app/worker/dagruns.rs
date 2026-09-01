@@ -1,8 +1,8 @@
-use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::app::model::dagruns::popup::mark::MarkState;
 use crate::app::state::App;

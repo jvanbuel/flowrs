@@ -1,9 +1,9 @@
-use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use futures::future::join_all;
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::app::model::popup::error::ErrorPopup;
 use crate::app::state::App;

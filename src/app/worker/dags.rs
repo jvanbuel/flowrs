@@ -1,8 +1,8 @@
-use crate::airflow::client::FlowrsClient;
 use std::sync::{Arc, Mutex};
 
 use log::warn;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::DagId;
 use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
 use crate::app::model::dagruns::popup::DagRunPopUp;

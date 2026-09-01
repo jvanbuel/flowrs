@@ -1,7 +1,7 @@
-use crate::airflow::client::FlowrsClient;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{
     Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
 };
