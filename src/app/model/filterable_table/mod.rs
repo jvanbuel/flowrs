@@ -69,10 +69,12 @@ impl<T: Filterable> FilterableTable<T> {
         self.update_all(|all| all.sort_by(cmp));
     }
 
-    /// Remove all items (and any selection).
+    /// Remove all items, along with the selection and any visual-mode anchor
+    /// that pointed into them. The filter text is kept.
     pub fn clear(&mut self) {
         self.all.clear();
-        self.apply_filter();
+        self.view = StatefulTable::new(Vec::new());
+        self.visual_anchor = None;
     }
 
     /// Read-only access to the canonical items.
@@ -286,6 +288,32 @@ mod tests {
         assert!(table.view.items.is_empty());
         assert_eq!(table.view.items.len(), 0);
         assert!(table.current().is_none());
+    }
+
+    #[test]
+    fn clear_drops_the_selection_and_visual_anchor() {
+        let mut table: FilterableTable<TestItem> = FilterableTable::new();
+        table.set_items(vec![
+            TestItem {
+                id: "1".to_string(),
+                status: "running".to_string(),
+            },
+            TestItem {
+                id: "2".to_string(),
+                status: "success".to_string(),
+            },
+        ]);
+        table.view.next();
+        table.view.next();
+        table.visual_anchor = Some(0);
+        assert_eq!(table.selected_position(), Some(1));
+
+        table.clear();
+
+        assert!(table.is_empty());
+        assert!(table.current().is_none());
+        assert_eq!(table.selected_position(), None);
+        assert!(table.visual_anchor.is_none());
     }
 
     #[test]

@@ -48,7 +48,7 @@ impl Widget for &mut LogModel {
                     .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                     .border_style(t.border_style),
             )
-            .select(self.current_index())
+            .select(self.current)
             .highlight_style(Style::default().fg(t.accent).add_modifier(Modifier::BOLD))
             .style(t.default_style);
 
@@ -72,8 +72,7 @@ impl Widget for &mut LogModel {
                 .split(area)
         };
 
-        let index = self.current_index();
-        if let Some(log) = self.all.get(index) {
+        if let Some(log) = self.all.get(self.current) {
             let content = match self.search.data() {
                 Some(data) if !data.matches.is_empty() => highlighted_content(&log.content, data),
                 _ => log.content.lines().map(Line::raw).collect(),

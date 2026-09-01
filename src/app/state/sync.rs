@@ -36,7 +36,10 @@ impl App {
                         .iter()
                         .flat_map(|d| d.owners.iter().cloned()),
                 );
-                self.dags.table.filter_mut().set_field_values("owners", owners);
+                self.dags
+                    .table
+                    .filter_mut()
+                    .set_field_values("owners", owners);
                 let tags = distinct(
                     self.dags
                         .table
@@ -129,7 +132,8 @@ impl App {
                     .table
                     .filter_mut()
                     .set_primary_values("name", config_names);
-                let endpoints = distinct(self.configs.table.all().iter().map(|c| c.endpoint.clone()));
+                let endpoints =
+                    distinct(self.configs.table.all().iter().map(|c| c.endpoint.clone()));
                 self.configs
                     .table
                     .filter_mut()
