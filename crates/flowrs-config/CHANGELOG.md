@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.4](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.3...flowrs-config-v0.12.4) - 2026-09-02
+
+### Other
+
+- Remove re-export-only shim modules
+- Remove unreachable API operations and dead helpers
+
 ## [0.12.3](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.2...flowrs-config-v0.12.3) - 2026-08-30
 
 ### Other

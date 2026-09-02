@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.14.1...flowrs-tui-v0.14.2) - 2026-09-02
+
+### Other
+
+- Bound the body read on non-success responses
+- Tidy imports and docs after the trait-layer removal
+- Remove re-export-only shim modules
+- Collapse single-implementation Airflow trait layer
+- Remove unreachable API operations and dead helpers
+- *(airflow)* give the library a canonical error type
+
 ## [0.14.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.14.0...flowrs-tui-v0.14.1) - 2026-08-30
 
 ### Added

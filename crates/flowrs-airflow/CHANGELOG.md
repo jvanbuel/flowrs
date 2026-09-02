@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.3...flowrs-airflow-v0.11.4) - 2026-09-02
+
+### Fixed
+
+- *(airflow)* preserve proxy prefix and query string in the client
+
+### Other
+
+- Bound the body read on non-success responses
+- Remove re-export-only shim modules
+- Remove unreachable API operations and dead helpers
+- *(airflow)* give the library a canonical error type
+
 ## [0.11.3](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.2...flowrs-airflow-v0.11.3) - 2026-08-30
 
 ### Other
