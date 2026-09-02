@@ -1,40 +1,73 @@
 use super::{App, Panel};
 
+/// Collect autocomplete candidates: sorted, de-duplicated, blanks dropped.
+fn distinct(values: impl Iterator<Item = String>) -> Vec<String> {
+    let mut values: Vec<String> = values.filter(|v| !v.is_empty()).collect();
+    values.sort_unstable();
+    values.dedup();
+    values
+}
+
 impl App {
     /// Sync a specific panel's data from `environment_state`.
     pub fn sync_panel(&mut self, panel: &Panel) {
         match panel {
             Panel::Dag => {
-                self.dags.table.all = self.environment_state.get_active_dags();
+                self.dags
+                    .table
+                    .set_items(self.environment_state.get_active_dags());
                 self.dags.dag_stats = self.environment_state.get_active_dag_stats();
                 let dag_ids: Vec<String> = self
                     .dags
                     .table
-                    .all
+                    .all()
                     .iter()
                     .map(|d| d.dag_id.to_string())
                     .collect();
-                self.dags.table.filter.set_primary_values("dag_id", dag_ids);
-                self.dags.table.apply_filter();
+                self.dags
+                    .table
+                    .filter_mut()
+                    .set_primary_values("dag_id", dag_ids);
+                // Free-text fields autocomplete from the values actually present.
+                let owners = distinct(
+                    self.dags
+                        .table
+                        .all()
+                        .iter()
+                        .flat_map(|d| d.owners.iter().cloned()),
+                );
+                self.dags
+                    .table
+                    .filter_mut()
+                    .set_field_values("owners", owners);
+                let tags = distinct(
+                    self.dags
+                        .table
+                        .all()
+                        .iter()
+                        .flat_map(|d| d.tags.iter().map(|t| t.name.clone())),
+                );
+                self.dags.table.filter_mut().set_field_values("tags", tags);
             }
             Panel::DAGRun => {
                 if let Some(dag_id) = self.nav_context.dag_id() {
-                    self.dagruns.table.all = self.environment_state.get_active_dag_runs(dag_id);
+                    self.dagruns
+                        .table
+                        .set_items(self.environment_state.get_active_dag_runs(dag_id));
                     let dag_run_ids: Vec<String> = self
                         .dagruns
                         .table
-                        .all
+                        .all()
                         .iter()
                         .map(|dr| dr.dag_run_id.to_string())
                         .collect();
                     self.dagruns
                         .table
-                        .filter
+                        .filter_mut()
                         .set_primary_values("dag_run_id", dag_run_ids);
-                    self.dagruns.table.apply_filter();
                     self.dagruns.sort_dag_runs();
                 } else {
-                    self.dagruns.table.all.clear();
+                    self.dagruns.table.clear();
                 }
             }
             Panel::TaskInstance => {
@@ -42,24 +75,35 @@ impl App {
                     (self.nav_context.dag_id(), self.nav_context.dag_run_id())
                 {
                     self.task_instances.set_gantt_context(dag_id, dag_run_id);
-                    self.task_instances.table.all = self
-                        .environment_state
-                        .get_active_task_instances(dag_id, dag_run_id);
+                    self.task_instances.table.set_items(
+                        self.environment_state
+                            .get_active_task_instances(dag_id, dag_run_id),
+                    );
                     self.task_instances.sort_task_instances();
                     let task_ids: Vec<String> = self
                         .task_instances
                         .table
-                        .all
+                        .all()
                         .iter()
                         .map(|ti| ti.task_id.to_string())
                         .collect();
                     self.task_instances
                         .table
-                        .filter
+                        .filter_mut()
                         .set_primary_values("task_id", task_ids);
-                    self.task_instances.table.apply_filter();
+                    let operators = distinct(
+                        self.task_instances
+                            .table
+                            .all()
+                            .iter()
+                            .filter_map(|ti| ti.operator.clone()),
+                    );
+                    self.task_instances
+                        .table
+                        .filter_mut()
+                        .set_field_values("operator", operators);
                 } else {
-                    self.task_instances.table.all.clear();
+                    self.task_instances.table.clear();
                 }
             }
             Panel::Logs => {
@@ -73,22 +117,45 @@ impl App {
                             .get_active_task_logs(dag_id, dag_run_id, task_id),
                     );
                 } else {
-                    self.logs.all.clear();
+                    // Go through update_logs so the selected try is clamped and
+                    // the search matches are refreshed, like any other update.
+                    self.logs.update_logs(Vec::new());
                 }
             }
             Panel::Config => {
                 let config_names: Vec<String> = self
                     .configs
                     .table
-                    .all
+                    .all()
                     .iter()
                     .map(|c| c.name.clone())
                     .collect();
                 self.configs
                     .table
-                    .filter
+                    .filter_mut()
                     .set_primary_values("name", config_names);
+                let endpoints =
+                    distinct(self.configs.table.all().iter().map(|c| c.endpoint.clone()));
+                self.configs
+                    .table
+                    .filter_mut()
+                    .set_field_values("endpoint", endpoints);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::distinct;
+
+    #[test]
+    fn distinct_sorts_dedups_and_drops_blanks() {
+        let got = distinct(
+            ["bob", "alice", "bob", "", "alice"]
+                .into_iter()
+                .map(str::to_string),
+        );
+        assert_eq!(got, vec!["alice", "bob"]);
     }
 }

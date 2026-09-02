@@ -8,8 +8,9 @@ use ratatui::{
 use crate::ui::theme::theme;
 
 use super::params::{ParamEntry, ParamKind};
-use super::text::{truncate_cols, value_window, wrap_text};
+use super::text::{value_window, wrap_text};
 use super::TriggerDagRunPopUp;
+use crate::ui::common::truncate_cols;
 
 /// Total inter-column padding the table reserves (1 col between each of 3 columns).
 const COLUMN_GAPS: usize = 2;

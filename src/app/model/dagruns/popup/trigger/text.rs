@@ -63,21 +63,9 @@ pub(super) fn value_window(value: &str, cursor_pos: usize, width: usize) -> (Str
     (before, cursor_char, after)
 }
 
-/// Truncate a string to at most `max_cols` columns, appending `…` if clipped.
-pub(super) fn truncate_cols(s: &str, max_cols: usize) -> String {
-    if s.chars().count() <= max_cols {
-        return s.to_string();
-    }
-    if max_cols == 0 {
-        return String::new();
-    }
-    let kept: String = s.chars().take(max_cols - 1).collect();
-    format!("{kept}…")
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{truncate_cols, value_window, wrap_text};
+    use super::{value_window, wrap_text};
 
     #[test]
     fn wrap_text_breaks_on_word_boundaries() {
@@ -86,13 +74,6 @@ mod tests {
         assert!(wrap_text("", 10).is_empty());
         // A word wider than the column is hard-split.
         assert_eq!(wrap_text("abcdefgh", 3), vec!["abc", "def", "gh"]);
-    }
-
-    #[test]
-    fn truncate_appends_ellipsis_when_clipped() {
-        assert_eq!(truncate_cols("hello", 10), "hello");
-        assert_eq!(truncate_cols("hello world", 5), "hell…");
-        assert_eq!(truncate_cols("hello", 0), "");
     }
 
     #[test]
