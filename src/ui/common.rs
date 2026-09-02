@@ -3,7 +3,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Borders},
 };
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+use unicode_width::UnicodeWidthStr;
 
 use super::constants::AirflowStateColor;
 use super::theme::theme;
@@ -19,17 +19,18 @@ pub fn truncate_cols(s: &str, max_cols: usize) -> String {
     if max_cols == 0 {
         return String::new();
     }
-    // Reserve one column for the ellipsis.
+    // Reserve one column for the ellipsis. The prefix is measured as a string
+    // after each append rather than by summing per-char widths, because a
+    // sequence such as an emoji presentation selector can widen the preceding
+    // char without carrying any width of its own.
     let budget = max_cols - 1;
     let mut out = String::new();
-    let mut used = 0;
     for ch in s.chars() {
-        let w = ch.width().unwrap_or(0);
-        if used + w > budget {
+        out.push(ch);
+        if out.as_str().width() > budget {
+            out.pop();
             break;
         }
-        out.push(ch);
-        used += w;
     }
     out.push('…');
     out
@@ -68,6 +69,7 @@ pub fn state_to_colored_square<'a>(color: AirflowStateColor) -> Span<'a> {
 #[cfg(test)]
 mod tests {
     use super::truncate_cols;
+    use unicode_width::UnicodeWidthStr;
 
     #[test]
     fn truncate_appends_ellipsis_when_clipped() {
@@ -84,5 +86,19 @@ mod tests {
         assert_eq!(truncate_cols("日本語テスト", 6), "日本…");
         // A string of wide chars that exactly fills the cell is left alone.
         assert_eq!(truncate_cols("日本語", 6), "日本語");
+    }
+
+    #[test]
+    fn truncate_bounds_grapheme_sequences_by_string_width() {
+        // U+2639 is one column on its own, but the U+FE0F presentation selector
+        // after it makes the pair render as a two-column emoji. Summing per-char
+        // widths would have kept both and overflowed a two-column cell.
+        let out = truncate_cols("\u{2639}\u{FE0F}x", 2);
+        assert!(
+            out.as_str().width() <= 2,
+            "got {out:?} at width {}",
+            out.as_str().width()
+        );
+        assert!(out.ends_with('…'));
     }
 }

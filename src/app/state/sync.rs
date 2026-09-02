@@ -117,7 +117,9 @@ impl App {
                             .get_active_task_logs(dag_id, dag_run_id, task_id),
                     );
                 } else {
-                    self.logs.all.clear();
+                    // Go through update_logs so the selected try is clamped and
+                    // the search matches are refreshed, like any other update.
+                    self.logs.update_logs(Vec::new());
                 }
             }
             Panel::Config => {
