@@ -61,16 +61,17 @@ impl DagGraphPopup {
             .filter_map(|ti| ti.state.as_ref().map(|s| (ti.task_id.as_ref(), s)))
             .collect();
 
-        let max_level = graph.max_level();
-
-        // Gather tasks per level
-        let levels: Vec<Vec<String>> = (0..=max_level).map(|l| graph.tasks_at_level(l)).collect();
+        let level_count = if graph.is_empty() {
+            0
+        } else {
+            graph.max_level() + 1
+        };
 
         // Column widths: max node width at each level
-        let col_widths: Vec<u16> = levels
-            .iter()
-            .map(|tasks| {
-                tasks
+        let col_widths: Vec<u16> = (0..level_count)
+            .map(|l| {
+                graph
+                    .tasks_at_level(l)
                     .iter()
                     .map(|t| t.len() as u16 + 2 + 2 * NODE_PADDING)
                     .max()
@@ -79,7 +80,7 @@ impl DagGraphPopup {
             .collect();
 
         // Column x-positions
-        let mut col_x: Vec<u16> = Vec::with_capacity(levels.len());
+        let mut col_x: Vec<u16> = Vec::with_capacity(level_count);
         let mut x = MARGIN;
         for &w in &col_widths {
             col_x.push(x);
@@ -87,55 +88,55 @@ impl DagGraphPopup {
         }
 
         // Total content dimensions
-        let max_tasks_at_level = levels.iter().map(Vec::len).max().unwrap_or(0) as u16;
-        let content_height = 2 * MARGIN
-            + max_tasks_at_level * NODE_HEIGHT
-            + max_tasks_at_level.saturating_sub(1) * VERTICAL_SPACING;
+        let column_height = |task_count: u16| {
+            task_count * NODE_HEIGHT + task_count.saturating_sub(1) * VERTICAL_SPACING
+        };
+        let max_tasks_at_level = (0..level_count)
+            .map(|l| graph.level_range(l).len())
+            .max()
+            .unwrap_or(0) as u16;
+        let total_max_height = column_height(max_tasks_at_level);
+        let content_height = 2 * MARGIN + total_max_height;
         let content_width = col_x
             .last()
             .zip(col_widths.last())
             .map_or(0, |(&cx, &cw)| cx + cw + MARGIN);
 
-        // Build nodes with positions, centering shorter columns vertically
-        let mut nodes: Vec<GraphNode> = Vec::new();
-        let mut task_to_idx: HashMap<String, usize> = HashMap::new();
+        // Offset to vertically center columns with fewer tasks
+        let y_offsets: Vec<u16> = (0..level_count)
+            .map(|l| {
+                let col_height = column_height(graph.level_range(l).len() as u16);
+                total_max_height.saturating_sub(col_height) / 2
+            })
+            .collect();
 
-        for (level, tasks) in levels.iter().enumerate() {
-            let task_count = tasks.len() as u16;
-            // Offset to vertically center columns with fewer tasks
-            let total_col_height =
-                task_count * NODE_HEIGHT + task_count.saturating_sub(1) * VERTICAL_SPACING;
-            let total_max_height = max_tasks_at_level * NODE_HEIGHT
-                + max_tasks_at_level.saturating_sub(1) * VERTICAL_SPACING;
-            let y_offset = total_max_height.saturating_sub(total_col_height) / 2;
-
-            for (row, task_id) in tasks.iter().enumerate() {
-                let y = MARGIN + y_offset + row as u16 * (NODE_HEIGHT + VERTICAL_SPACING);
-                let width = col_widths[level];
+        // The graph's dense index order is (level, task_id), which is exactly
+        // the order nodes are laid out in, so node `i` is graph task `i` and
+        // edges can be copied straight from the graph's index tables.
+        let nodes: Vec<GraphNode> = graph
+            .ids()
+            .iter()
+            .enumerate()
+            .map(|(i, task_id)| {
+                let level = graph.level_at(i);
+                let row = (i - graph.level_range(level).start) as u16;
+                let y = MARGIN + y_offsets[level] + row * (NODE_HEIGHT + VERTICAL_SPACING);
                 let border_color: Color = state_map
                     .get(task_id.as_str())
                     .map_or(Color::DarkGray, |s| AirflowStateColor::from(*s).into());
-
-                task_to_idx.insert(task_id.clone(), nodes.len());
-                nodes.push(GraphNode {
+                GraphNode {
                     task_id: task_id.clone(),
                     x: col_x[level],
                     y,
-                    width,
+                    width: col_widths[level],
                     border_color,
-                });
-            }
-        }
-
-        // Build edge list
-        let mut edges: Vec<(usize, usize)> = Vec::new();
-        for (i, node) in nodes.iter().enumerate() {
-            for downstream_id in graph.downstream(&node.task_id) {
-                if let Some(&target_idx) = task_to_idx.get(downstream_id.as_str()) {
-                    edges.push((i, target_idx));
                 }
-            }
-        }
+            })
+            .collect();
+
+        let edges: Vec<(usize, usize)> = (0..graph.len())
+            .flat_map(|i| graph.downstream(i).iter().map(move |&to| (i, to)))
+            .collect();
 
         Self {
             nodes,
