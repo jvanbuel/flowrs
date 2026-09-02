@@ -1,10 +1,12 @@
+use std::borrow::Cow;
+
 /// Describes the kind of filter values a field accepts
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FilterKind {
     /// Free-text field with no predefined values
     FreeText,
     /// Field with known enum-like values for autocomplete
-    Enum(Vec<&'static str>),
+    Enum(&'static [&'static str]),
 }
 
 impl FilterKind {
@@ -17,8 +19,11 @@ impl FilterKind {
     }
 }
 
-/// Describes a field that can be filtered
-#[derive(Clone, Debug)]
+/// Describes a field that can be filtered.
+///
+/// Every constructor is `const`, so a type's field list is a static table
+/// built at compile time rather than a `Vec` re-allocated on each key press.
+#[derive(Clone, Copy, Debug)]
 pub struct FilterableField {
     /// The field name as it appears in the struct
     pub name: &'static str,
@@ -45,7 +50,7 @@ impl FilterableField {
         }
     }
 
-    pub fn enumerated(name: &'static str, values: Vec<&'static str>) -> Self {
+    pub const fn enumerated(name: &'static str, values: &'static [&'static str]) -> Self {
         Self {
             name,
             kind: FilterKind::Enum(values),
@@ -56,44 +61,53 @@ impl FilterableField {
 
 /// Macro to implement `Filterable` for a type with compile-time field validation.
 ///
-/// This macro eliminates stringly-typed field matching by generating both
-/// `filterable_fields()` and `get_field_value()` from a single definition.
+/// This macro eliminates stringly-typed field matching by generating
+/// `filterable_fields()`, `primary_field()` and `get_field_value()` from a
+/// single definition. Accessors are plain expressions over the binding named
+/// after `as`, and evaluate to `Option<Cow<'_, str>>`: borrow fields that are
+/// already strings, build a `String` only when the value has to be derived.
 ///
 /// # Example
 /// ```ignore
 /// impl_filterable! {
-///     Dag,
-///     primary: dag_id => |s| Some(s.dag_id.clone()),
+///     Dag as dag,
+///     primary: dag_id => Some(Cow::Borrowed(&dag.dag_id)),
 ///     fields: [
-///         is_paused: enum["true", "false"] => |s| Some(s.is_paused.to_string()),
-///         owners => |s| Some(s.owners.join(", ")),
+///         is_paused: enum["true", "false"] => Some(Cow::Borrowed(if dag.is_paused { "true" } else { "false" })),
+///         owners => Some(Cow::Owned(dag.owners.join(", "))),
 ///     ]
 /// }
 /// ```
 #[macro_export]
 macro_rules! impl_filterable {
     (
-        $type:ty,
+        $type:ty as $item:ident,
         primary: $primary_field:ident => $primary_accessor:expr,
         fields: [
             $( $field_name:ident $(: enum[$($variant:literal),+ $(,)?])? => $accessor:expr ),* $(,)?
         ]
     ) => {
         impl $crate::app::model::filter::Filterable for $type {
-            fn filterable_fields() -> Vec<$crate::app::model::filter::FilterableField> {
-                vec![
+            fn filterable_fields() -> &'static [$crate::app::model::filter::FilterableField] {
+                const FIELDS: &[$crate::app::model::filter::FilterableField] = &[
                     $crate::app::model::filter::FilterableField::primary(stringify!($primary_field)),
                     $(
                         impl_filterable!(@field $field_name $(: enum[$($variant),+])?),
                     )*
-                ]
+                ];
+                FIELDS
             }
 
-            fn get_field_value(&self, field_name: &str) -> Option<String> {
+            fn primary_field() -> &'static str {
+                stringify!($primary_field)
+            }
+
+            fn get_field_value(&self, field_name: &str) -> Option<std::borrow::Cow<'_, str>> {
+                let $item = self;
                 match field_name {
-                    stringify!($primary_field) => ($primary_accessor)(self),
+                    stringify!($primary_field) => $primary_accessor,
                     $(
-                        stringify!($field_name) => ($accessor)(self),
+                        stringify!($field_name) => $accessor,
                     )*
                     _ => None,
                 }
@@ -105,7 +119,7 @@ macro_rules! impl_filterable {
     (@field $field_name:ident : enum[$($variant:literal),+ $(,)?]) => {
         $crate::app::model::filter::FilterableField::enumerated(
             stringify!($field_name),
-            vec![$($variant),+]
+            &[$($variant),+]
         )
     };
 
@@ -119,10 +133,14 @@ macro_rules! impl_filterable {
 pub trait Filterable {
     /// Returns all filterable fields with their metadata.
     /// The first field marked as primary (via `FilterableField::primary()`) is used as the default.
-    fn filterable_fields() -> Vec<FilterableField>;
+    fn filterable_fields() -> &'static [FilterableField];
 
-    /// Get the value of a field by name for filtering
-    fn get_field_value(&self, field_name: &str) -> Option<String>;
+    /// Get the value of a field by name for filtering.
+    ///
+    /// Returns a borrow whenever the field is already text so the match loop
+    /// does not allocate per item; derived values (joined lists, numbers) are
+    /// returned owned.
+    fn get_field_value(&self, field_name: &str) -> Option<Cow<'_, str>>;
 
     /// Returns the name of the primary filter field.
     /// Default implementation finds the first field with `is_primary: true`.
@@ -144,7 +162,7 @@ mod tests {
         let free = FilterKind::FreeText;
         assert!(free.values().is_empty());
 
-        let enumerated = FilterKind::Enum(vec!["running", "success", "failed"]);
+        let enumerated = FilterKind::Enum(&["running", "success", "failed"]);
         assert_eq!(enumerated.values(), vec!["running", "success", "failed"]);
     }
 
@@ -158,7 +176,7 @@ mod tests {
         assert!(!free.is_primary);
         assert!(matches!(free.kind, FilterKind::FreeText));
 
-        let enumerated = FilterableField::enumerated("state", vec!["running", "success"]);
+        let enumerated = FilterableField::enumerated("state", &["running", "success"]);
         assert!(!enumerated.is_primary);
         assert!(matches!(enumerated.kind, FilterKind::Enum(_)));
     }

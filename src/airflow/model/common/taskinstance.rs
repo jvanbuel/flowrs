@@ -28,23 +28,34 @@ pub enum TaskInstanceState {
     Unknown,
 }
 
+impl TaskInstanceState {
+    /// The wire name of this state, as the Airflow API spells it.
+    ///
+    /// A static lookup so filters and renderers can compare or display the
+    /// state without formatting into a fresh `String`.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Success => "success",
+            Self::Running => "running",
+            Self::Failed => "failed",
+            Self::Queued => "queued",
+            Self::UpForRetry => "up_for_retry",
+            Self::UpForReschedule => "up_for_reschedule",
+            Self::Skipped => "skipped",
+            Self::Deferred => "deferred",
+            Self::Removed => "removed",
+            Self::Restarting => "restarting",
+            Self::UpstreamFailed => "upstream_failed",
+            Self::Scheduled => "scheduled",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 impl fmt::Display for TaskInstanceState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Success => write!(f, "success"),
-            Self::Running => write!(f, "running"),
-            Self::Failed => write!(f, "failed"),
-            Self::Queued => write!(f, "queued"),
-            Self::UpForRetry => write!(f, "up_for_retry"),
-            Self::UpForReschedule => write!(f, "up_for_reschedule"),
-            Self::Skipped => write!(f, "skipped"),
-            Self::Deferred => write!(f, "deferred"),
-            Self::Removed => write!(f, "removed"),
-            Self::Restarting => write!(f, "restarting"),
-            Self::UpstreamFailed => write!(f, "upstream_failed"),
-            Self::Scheduled => write!(f, "scheduled"),
-            Self::Unknown => write!(f, "unknown"),
-        }
+        f.write_str(self.as_str())
     }
 }
 

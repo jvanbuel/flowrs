@@ -6,12 +6,11 @@ fn item_matches<T: Filterable>(item: &T, conditions: &[FilterCondition]) -> bool
         let field_name = if cond.is_primary {
             T::primary_field()
         } else {
-            &cond.field
+            cond.field.as_str()
         };
 
         item.get_field_value(field_name)
-            .as_ref()
-            .is_some_and(|v| cond.matches(v))
+            .is_some_and(|v| cond.matches(&v))
     })
 }
 
@@ -38,6 +37,8 @@ pub fn filter_items<T: Filterable>(items: &[T], conditions: &[FilterCondition]) 
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
     use crate::app::model::filter::FilterableField;
 
@@ -53,17 +54,18 @@ mod tests {
             "id"
         }
 
-        fn filterable_fields() -> Vec<FilterableField> {
-            vec![
+        fn filterable_fields() -> &'static [FilterableField] {
+            const FIELDS: &[FilterableField] = &[
                 FilterableField::primary("id"),
-                FilterableField::enumerated("status", vec!["running", "failed", "success"]),
-            ]
+                FilterableField::enumerated("status", &["running", "failed", "success"]),
+            ];
+            FIELDS
         }
 
-        fn get_field_value(&self, field_name: &str) -> Option<String> {
+        fn get_field_value(&self, field_name: &str) -> Option<Cow<'_, str>> {
             match field_name {
-                "id" => Some(self.id.clone()),
-                "status" => Some(self.status.clone()),
+                "id" => Some(Cow::Borrowed(&self.id)),
+                "status" => Some(Cow::Borrowed(&self.status)),
                 _ => None,
             }
         }

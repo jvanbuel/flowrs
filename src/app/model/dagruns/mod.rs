@@ -465,7 +465,7 @@ mod tests {
         for c in "manual".chars() {
             model.table.filter_mut().update(
                 &KeyEvent::new(crossterm::event::KeyCode::Char(c), KeyModifiers::empty()),
-                &DagRun::filterable_fields(),
+                DagRun::filterable_fields(),
             );
         }
         model.table.apply_filter();

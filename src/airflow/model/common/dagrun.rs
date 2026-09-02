@@ -21,16 +21,27 @@ pub enum DagRunState {
     Unknown,
 }
 
+impl DagRunState {
+    /// The wire name of this state, as the Airflow API spells it.
+    ///
+    /// A static lookup so filters and renderers can compare or display the
+    /// state without formatting into a fresh `String`.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Success => "success",
+            Self::Running => "running",
+            Self::Failed => "failed",
+            Self::Queued => "queued",
+            Self::UpForRetry => "up_for_retry",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 impl fmt::Display for DagRunState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Success => write!(f, "success"),
-            Self::Running => write!(f, "running"),
-            Self::Failed => write!(f, "failed"),
-            Self::Queued => write!(f, "queued"),
-            Self::UpForRetry => write!(f, "up_for_retry"),
-            Self::Unknown => write!(f, "unknown"),
-        }
+        f.write_str(self.as_str())
     }
 }
 
@@ -62,16 +73,27 @@ pub enum RunType {
     Unknown,
 }
 
+impl RunType {
+    /// The wire name of this state, as the Airflow API spells it.
+    ///
+    /// A static lookup so filters and renderers can compare or display the
+    /// state without formatting into a fresh `String`.
+    #[must_use]
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Scheduled => "scheduled",
+            Self::Manual => "manual",
+            Self::Backfill => "backfill",
+            Self::DatasetTriggered => "dataset_triggered",
+            Self::AssetTriggered => "asset_triggered",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 impl fmt::Display for RunType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Scheduled => write!(f, "scheduled"),
-            Self::Manual => write!(f, "manual"),
-            Self::Backfill => write!(f, "backfill"),
-            Self::DatasetTriggered => write!(f, "dataset_triggered"),
-            Self::AssetTriggered => write!(f, "asset_triggered"),
-            Self::Unknown => write!(f, "unknown"),
-        }
+        f.write_str(self.as_str())
     }
 }
 

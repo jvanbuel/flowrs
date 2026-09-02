@@ -2,6 +2,13 @@
 //!
 //! This module centralizes all `Filterable` implementations, keeping them
 //! separate from the domain model definitions.
+//!
+//! Accessors borrow whenever the field is already a string (IDs, state names,
+//! operator) and only build a `String` for derived values such as joined
+//! lists, so a filter pass over the table stays allocation-free for the
+//! common fields.
+
+use std::borrow::Cow;
 
 use crate::airflow::model::common::dag::Dag;
 use crate::airflow::model::common::dagrun::DagRun;
@@ -9,43 +16,69 @@ use crate::airflow::model::common::taskinstance::TaskInstance;
 use crate::impl_filterable;
 use flowrs_config::AirflowConfig;
 
+/// Borrow an existing string field.
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "accessors must evaluate to Option so absent fields can return None"
+)]
+fn borrowed(value: &str) -> Option<Cow<'_, str>> {
+    Some(Cow::Borrowed(value))
+}
+
+/// Hand over a value that had to be built for this lookup.
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "accessors must evaluate to Option so absent fields can return None"
+)]
+fn owned(value: String) -> Option<Cow<'static, str>> {
+    Some(Cow::Owned(value))
+}
+
+const fn bool_str(value: bool) -> &'static str {
+    if value {
+        "true"
+    } else {
+        "false"
+    }
+}
+
 impl_filterable! {
-    Dag,
-    primary: dag_id => |s: &Dag| Some(s.dag_id.to_string()),
+    Dag as dag,
+    primary: dag_id => borrowed(&dag.dag_id),
     fields: [
-        is_paused: enum["true", "false"] => |s: &Dag| Some(s.is_paused.to_string()),
-        owners => |s: &Dag| Some(s.owners.join(", ")),
-        tags => |s: &Dag| Some(s.tags.iter().map(|t| t.name.clone()).collect::<Vec<_>>().join(", ")),
+        is_paused: enum["true", "false"] => borrowed(bool_str(dag.is_paused)),
+        owners => owned(dag.owners.join(", ")),
+        tags => owned(dag.tags.iter().map(|t| t.name.as_str()).collect::<Vec<_>>().join(", ")),
     ]
 }
 
 impl_filterable! {
-    DagRun,
-    primary: dag_run_id => |s: &DagRun| Some(s.dag_run_id.to_string()),
+    DagRun as run,
+    primary: dag_run_id => borrowed(&run.dag_run_id),
     fields: [
-        state: enum["running", "success", "failed", "queued", "up_for_retry"] => |s: &DagRun| Some(s.state.to_string()),
-        run_type: enum["scheduled", "manual", "backfill", "dataset_triggered", "asset_triggered"] => |s: &DagRun| Some(s.run_type.to_string()),
+        state: enum["running", "success", "failed", "queued", "up_for_retry"] => borrowed(run.state.as_str()),
+        run_type: enum["scheduled", "manual", "backfill", "dataset_triggered", "asset_triggered"] => borrowed(run.run_type.as_str()),
     ]
 }
 
 impl_filterable! {
-    TaskInstance,
-    primary: task_id => |s: &TaskInstance| Some(s.task_id.to_string()),
+    TaskInstance as ti,
+    primary: task_id => borrowed(&ti.task_id),
     fields: [
         state: enum[
             "running", "success", "failed", "queued",
             "up_for_retry", "up_for_reschedule", "skipped",
             "deferred", "removed", "restarting"
-        ] => |s: &TaskInstance| s.state.as_ref().map(std::string::ToString::to_string),
-        operator => |s: &TaskInstance| s.operator.clone(),
+        ] => ti.state.as_ref().map(|s| Cow::Borrowed(s.as_str())),
+        operator => ti.operator.as_deref().map(Cow::Borrowed),
     ]
 }
 
 impl_filterable! {
-    AirflowConfig,
-    primary: name => |s: &AirflowConfig| Some(s.name.clone()),
+    AirflowConfig as config,
+    primary: name => borrowed(&config.name),
     fields: [
-        endpoint => |s: &AirflowConfig| Some(s.endpoint.clone()),
+        endpoint => borrowed(&config.endpoint),
     ]
 }
 
@@ -98,12 +131,40 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(dag.get_field_value("dag_id"), Some("test_dag".to_string()));
-        assert_eq!(dag.get_field_value("is_paused"), Some("true".to_string()));
-        assert_eq!(
-            dag.get_field_value("owners"),
-            Some("alice, bob".to_string())
-        );
+        assert_eq!(dag.get_field_value("dag_id").as_deref(), Some("test_dag"));
+        assert_eq!(dag.get_field_value("is_paused").as_deref(), Some("true"));
+        assert_eq!(dag.get_field_value("owners").as_deref(), Some("alice, bob"));
         assert_eq!(dag.get_field_value("unknown"), None);
+    }
+
+    #[test]
+    fn string_fields_are_borrowed_not_copied() {
+        let dag = Dag {
+            dag_id: "test_dag".into(),
+            ..Default::default()
+        };
+        assert!(matches!(
+            dag.get_field_value("dag_id"),
+            Some(Cow::Borrowed(_))
+        ));
+        assert!(matches!(
+            dag.get_field_value("is_paused"),
+            Some(Cow::Borrowed(_))
+        ));
+
+        let ti = TaskInstance {
+            state: Some(crate::airflow::model::common::TaskInstanceState::Running),
+            operator: Some("BashOperator".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(ti.get_field_value("state").as_deref(), Some("running"));
+        assert!(matches!(
+            ti.get_field_value("state"),
+            Some(Cow::Borrowed(_))
+        ));
+        assert!(matches!(
+            ti.get_field_value("operator"),
+            Some(Cow::Borrowed(_))
+        ));
     }
 }

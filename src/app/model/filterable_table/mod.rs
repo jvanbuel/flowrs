@@ -18,6 +18,8 @@ use ratatui::widgets::TableState;
 use super::filter::{filter_items, FilterStateMachine, Filterable};
 use super::{KeyResult, StatefulTable};
 
+pub use render::TableRows;
+
 /// A generic filterable, selectable table shared by the Dags, `DagRuns`, and
 /// `TaskInstances` panels.
 ///
@@ -131,6 +133,24 @@ impl<T: Filterable> FilterableTable<T> {
         &mut self.view.state
     }
 
+    /// Split the table into the filtered rows and the ratatui selection state.
+    ///
+    /// The two borrow disjoint fields, so a render pass can build `Row`s that
+    /// borrow text straight out of the items and still hand the `TableState`
+    /// to `StatefulWidget::render`. Without the split, every cell had to be
+    /// copied into an owned `String` each frame purely to end the borrow.
+    pub fn rows_and_state(&mut self) -> (TableRows<'_, T>, &mut TableState) {
+        let visual = self.visual_selection();
+        (
+            TableRows {
+                all: &self.all,
+                indices: &self.view.items,
+                visual,
+            },
+            &mut self.view.state,
+        )
+    }
+
     // ── Filter ──────────────────────────────────────────────
 
     /// Read-only access to the filter state (active flag, cursor, display).
@@ -148,7 +168,7 @@ impl<T: Filterable> FilterableTable<T> {
     /// - `/` key when filter is inactive (activates filter)
     /// - All filter input keys when filter is active
     pub fn handle_filter_key(&mut self, key_event: &KeyEvent) -> KeyResult {
-        if self.filter.update(key_event, &T::filterable_fields()) {
+        if self.filter.update(key_event, T::filterable_fields()) {
             self.apply_filter();
             KeyResult::Consumed
         } else {
@@ -256,6 +276,8 @@ impl<T: Filterable> FilterableTable<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use super::*;
     use crate::app::model::filter::FilterableField;
 
@@ -266,17 +288,18 @@ mod tests {
     }
 
     impl Filterable for TestItem {
-        fn filterable_fields() -> Vec<FilterableField> {
-            vec![
+        fn filterable_fields() -> &'static [FilterableField] {
+            const FIELDS: &[FilterableField] = &[
                 FilterableField::primary("id"),
-                FilterableField::enumerated("status", vec!["running", "success", "failed"]),
-            ]
+                FilterableField::enumerated("status", &["running", "success", "failed"]),
+            ];
+            FIELDS
         }
 
-        fn get_field_value(&self, field_name: &str) -> Option<String> {
+        fn get_field_value(&self, field_name: &str) -> Option<Cow<'_, str>> {
             match field_name {
-                "id" => Some(self.id.clone()),
-                "status" => Some(self.status.clone()),
+                "id" => Some(Cow::Borrowed(&self.id)),
+                "status" => Some(Cow::Borrowed(&self.status)),
                 _ => None,
             }
         }
@@ -314,6 +337,34 @@ mod tests {
         assert!(table.current().is_none());
         assert_eq!(table.selected_position(), None);
         assert!(table.visual_anchor.is_none());
+    }
+
+    #[test]
+    fn rows_and_state_borrow_disjoint_parts_of_the_table() {
+        let mut table: FilterableTable<TestItem> = FilterableTable::new();
+        table.set_items(vec![
+            TestItem {
+                id: "1".to_string(),
+                status: "running".to_string(),
+            },
+            TestItem {
+                id: "2".to_string(),
+                status: "success".to_string(),
+            },
+        ]);
+        table.view.next();
+        table.visual_anchor = Some(0);
+        table.view.next();
+
+        let (rows, state) = table.rows_and_state();
+        // Row text can be borrowed while the state is mutated.
+        let ids: Vec<&str> = rows.iter().map(|item| item.id.as_str()).collect();
+        state.select(Some(0));
+        assert_eq!(ids, vec!["1", "2"]);
+        assert_eq!(rows.len(), 2);
+        // The visual range was captured before the split.
+        assert_eq!(rows.visual_selection(), Some(0..=1));
+        assert_eq!(table.selected_position(), Some(0));
     }
 
     #[test]

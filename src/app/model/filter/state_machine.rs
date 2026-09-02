@@ -31,7 +31,7 @@ fn find_field_kind(field_name: &str, fields: &[FilterableField]) -> FilterKind {
     fields
         .iter()
         .find(|f| f.name == field_name)
-        .map_or(FilterKind::FreeText, |f| f.kind.clone())
+        .map_or(FilterKind::FreeText, |f| f.kind)
 }
 
 /// The filter state machine that handles keyboard input and state transitions
@@ -455,8 +455,8 @@ mod tests {
                 fsm: FilterStateMachine::new(),
                 fields: vec![
                     FilterableField::primary("dag_run_id"),
-                    FilterableField::enumerated("state", vec!["running", "success", "failed"]),
-                    FilterableField::enumerated("run_type", vec!["scheduled", "manual"]),
+                    FilterableField::enumerated("state", &["running", "success", "failed"]),
+                    FilterableField::enumerated("run_type", &["scheduled", "manual"]),
                 ],
             }
         }
