@@ -4,6 +4,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{
     Block, BorderType, Borders, Paragraph, Row, StatefulWidget, Table, Widget, Wrap,
 };
+use time::OffsetDateTime;
 
 use crate::airflow::model::common::{calculate_duration, format_duration};
 use crate::ui::common::{create_headers, state_to_colored_square};
@@ -41,16 +42,22 @@ impl Widget for &mut TaskInstanceModel {
         // Calculate the width available for the Gantt column (capped at half the panel)
         let table_inner_width = content_area.width.saturating_sub(2); // Subtract borders
         let gantt_width = (table_inner_width / 2).max(10);
+        let status_title = self.table.status_title();
 
-        let rows: Vec<Row> = self
-            .table
-            .items()
+        // One clock read per frame, shared by the duration cells and the
+        // running segments of every Gantt bar.
+        let now = OffsetDateTime::now_utc();
+        let gantt_data = &self.gantt_data;
+        let (view, state) = self.table.rows_and_state();
+        let rows: Vec<Row> = view
+            .iter()
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    Line::from(item.task_id.to_string()),
+                    Line::from(&*item.task_id),
                     Line::from(
-                        calculate_duration(item).map_or_else(|| "-".to_string(), format_duration),
+                        calculate_duration(item, now)
+                            .map_or_else(|| "-".to_string(), format_duration),
                     ),
                     Line::from(state_to_colored_square(
                         item.state
@@ -58,9 +65,9 @@ impl Widget for &mut TaskInstanceModel {
                             .map_or(AirflowStateColor::None, AirflowStateColor::from),
                     )),
                     Line::from(item.try_number.to_string()),
-                    create_gantt_bar(&self.gantt_data, &item.task_id, gantt_width.into()),
+                    create_gantt_bar(gantt_data, &item.task_id, gantt_width.into(), now),
                 ])
-                .style(self.table.row_style(idx))
+                .style(view.row_style(idx))
             })
             .collect();
         let t = Table::new(
@@ -80,7 +87,7 @@ impl Widget for &mut TaskInstanceModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(t.border_style)
                 .title(" Press <?> to see available commands ");
-            if let Some(title) = self.table.status_title() {
+            if let Some(title) = status_title {
                 block.title_bottom(title)
             } else {
                 block
@@ -88,7 +95,7 @@ impl Widget for &mut TaskInstanceModel {
         })
         .row_highlight_style(t.selected_row_style);
 
-        StatefulWidget::render(t, content_area, buffer, self.table.state_mut());
+        StatefulWidget::render(t, content_area, buffer, state);
 
         legend.render(legend_area, buffer);
 

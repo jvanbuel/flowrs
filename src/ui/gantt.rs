@@ -11,7 +11,15 @@ use super::constants::AirflowStateColor;
 
 /// Create a Gantt bar `Line` for a specific task, sized to `width` characters.
 /// Each try renders as a colored segment; gaps between tries are empty.
-pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Line<'static> {
+///
+/// `now` closes any phase that has not ended yet; the caller samples it once
+/// per frame so every bar in the table agrees on the current instant.
+pub fn create_gantt_bar(
+    gantt: &GanttData,
+    task_id: &TaskId,
+    width: usize,
+    now: OffsetDateTime,
+) -> Line<'static> {
     const FILLED_CHAR: &str = "▃";
     const EMPTY_CHAR: &str = " ";
 
@@ -62,7 +70,6 @@ pub fn create_gantt_bar(gantt: &GanttData, task_id: &TaskId, width: usize) -> Li
         }
     };
 
-    let now = OffsetDateTime::now_utc();
     let queued_color: Color = AirflowStateColor::Queued.into();
     let scheduled_color: Color = AirflowStateColor::Scheduled.into();
 
@@ -191,7 +198,7 @@ mod tests {
             Some(TaskInstanceState::Success),
         )];
         let gantt = GanttData::from_task_instances(&tasks);
-        let bar = create_gantt_bar(&gantt, &"nonexistent".into(), 20);
+        let bar = create_gantt_bar(&gantt, &"nonexistent".into(), 20, OffsetDateTime::now_utc());
         let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
         assert_eq!(total_chars, 20);
     }
@@ -214,7 +221,7 @@ mod tests {
         // Window starts at the scheduled time, not the start time.
         assert_eq!(gantt.window_start, Some(datetime!(2024-01-01 10:00:00 UTC)));
 
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
+        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20, OffsetDateTime::now_utc());
         let total_chars: usize = bar.spans.iter().map(|s| s.content.chars().count()).sum();
         assert_eq!(total_chars, 20);
 
@@ -258,7 +265,7 @@ mod tests {
         // The window starts at the queued time, so the bar fills from the left.
         assert_eq!(gantt.window_start, Some(datetime!(2024-01-01 10:00:00 UTC)));
 
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
+        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20, OffsetDateTime::now_utc());
         let colors: Vec<Option<Color>> = bar
             .spans
             .iter()
@@ -299,7 +306,7 @@ mod tests {
             ..Default::default()
         };
         let gantt = GanttData::from_task_instances(&[task]);
-        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20);
+        let bar = create_gantt_bar(&gantt, &"task_1".into(), 20, OffsetDateTime::now_utc());
         let queued: Color = AirflowStateColor::Queued.into();
         let has_queued = bar.spans.iter().any(|s| s.style.fg == Some(queued));
         assert!(has_queued, "queued task should render a queued segment");

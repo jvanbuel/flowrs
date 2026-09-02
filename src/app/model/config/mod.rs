@@ -113,15 +113,16 @@ impl Widget for &mut ConfigModel {
         let headers = ["Name", "Endpoint", "Managed", "Version"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(t.table_header_style);
+        let status_title = self.table.status_title();
 
-        let rows: Vec<Row> = self
-            .table
-            .items()
+        let (view, state) = self.table.rows_and_state();
+        let rows: Vec<Row> = view
+            .iter()
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    Line::from(item.name.clone()),
-                    Line::from(item.endpoint.clone()),
+                    Line::from(item.name.as_str()),
+                    Line::from(item.endpoint.as_str()),
                     Line::from(
                         item.managed
                             .as_ref()
@@ -132,7 +133,7 @@ impl Widget for &mut ConfigModel {
                         flowrs_config::AirflowVersion::V3 => "v3",
                     }),
                 ])
-                .style(self.table.row_style(idx))
+                .style(view.row_style(idx))
             })
             .collect();
 
@@ -152,14 +153,14 @@ impl Widget for &mut ConfigModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(t.border_style)
                 .title(" Press <?> to see available commands ");
-            if let Some(title) = self.table.status_title() {
+            if let Some(title) = status_title {
                 block.title_bottom(title)
             } else {
                 block
             }
         })
         .row_highlight_style(t.selected_row_style);
-        StatefulWidget::render(t, content_area, buf, self.table.state_mut());
+        StatefulWidget::render(t, content_area, buf, state);
 
         // Render any active popup (error or commands)
         (&self.popup).render(area, buf);

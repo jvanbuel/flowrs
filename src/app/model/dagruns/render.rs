@@ -4,7 +4,7 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, Widget};
-use time::format_description;
+use time::{format_description, OffsetDateTime};
 
 use crate::airflow::model::common::{calculate_duration, format_duration};
 use crate::ui::common::create_headers;
@@ -36,12 +36,20 @@ impl Widget for &mut DagRunModel {
         ];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(t.table_header_style);
+        let status_title = self.table.status_title();
+        let (view, state) = self.table.rows_and_state();
 
-        // Calculate max duration for normalization
-        let max_duration = self
-            .table
-            .items()
-            .filter_map(calculate_duration)
+        // Durations are computed once per row against a single clock read,
+        // then reused for the gauge, the time cell and the normalisation max.
+        let now = OffsetDateTime::now_utc();
+        let durations: Vec<Option<f64>> = view
+            .iter()
+            .map(|item| calculate_duration(item, now))
+            .collect();
+        let max_duration = durations
+            .iter()
+            .flatten()
+            .copied()
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(1.0);
 
@@ -54,14 +62,15 @@ impl Widget for &mut DagRunModel {
             .saturating_sub(fixed_columns_width + dag_run_id_width)
             .max(10) as usize;
 
-        let rows: Vec<Row> = self
-            .table
-            .items()
+        let id_style = Style::default().add_modifier(Modifier::BOLD);
+        let rows: Vec<Row> = view
+            .iter()
+            .zip(&durations)
             .enumerate()
-            .map(|(idx, item)| {
+            .map(|(idx, (item, duration))| {
                 let state_color: Color = AirflowStateColor::from(&item.state).into();
 
-                let (duration_cell, time_cell) = if let Some(duration) = calculate_duration(item) {
+                let (duration_cell, time_cell) = if let Some(duration) = *duration {
                     (
                         DagRunModel::create_duration_gauge(
                             duration,
@@ -77,21 +86,18 @@ impl Widget for &mut DagRunModel {
 
                 Row::new(vec![
                     Line::from(Span::styled("■", Style::default().fg(state_color))),
-                    Line::from(Span::styled(
-                        item.dag_run_id.to_string(),
-                        Style::default().add_modifier(Modifier::BOLD),
-                    )),
+                    Line::from(Span::styled(&*item.dag_run_id, id_style)),
                     Line::from(if let Some(date) = item.logical_date {
                         date.format(&ROW_TIME_FORMAT)
                             .expect("Date formatting with TIME_FORMAT should succeed")
                     } else {
                         "None".to_string()
                     }),
-                    Line::from(item.run_type.to_string()),
+                    Line::from(item.run_type.as_str()),
                     duration_cell,
                     time_cell,
                 ])
-                .style(self.table.row_style(idx))
+                .style(view.row_style(idx))
             })
             .collect();
         let t = Table::new(
@@ -112,14 +118,14 @@ impl Widget for &mut DagRunModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(t.border_style)
                 .title(" Press <?> to see available commands ");
-            if let Some(title) = self.table.status_title() {
+            if let Some(title) = status_title {
                 block.title_bottom(title)
             } else {
                 block
             }
         })
         .row_highlight_style(t.selected_row_style);
-        StatefulWidget::render(t, content_area, buf, self.table.state_mut());
+        StatefulWidget::render(t, content_area, buf, state);
 
         if let Some(view) = &mut self.dag_code {
             view.render(area, buf);

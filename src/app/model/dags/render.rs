@@ -20,34 +20,43 @@ impl Widget for &mut DagModel {
         let headers = ["Active", "Name", "Owners", "Schedule", "Next Run", "Stats"];
         let header_row = create_headers(headers);
         let header = Row::new(header_row).style(theme.table_header_style);
-        let rows: Vec<Row> = self
-            .table
-            .items()
+        let status_title = self.table.status_title();
+
+        // One clock read per frame; every "next run" cell is relative to it.
+        let now = OffsetDateTime::now_utc();
+        let dag_id_style = Style::default().add_modifier(Modifier::BOLD);
+        let schedule_style = Style::default().fg(theme.schedule_fg);
+        let paused_style = Style::default().fg(theme.text_primary);
+        let active_style = Style::default().fg(theme.dag_active);
+
+        // Rows borrow their text from the items; only derived cells allocate.
+        let dag_stats = &self.dag_stats;
+        let (view, state) = self.table.rows_and_state();
+        let rows: Vec<Row> = view
+            .iter()
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    if item.is_paused {
-                        Line::from(Span::styled("𖣘", Style::default().fg(theme.text_primary)))
-                    } else {
-                        Line::from(Span::styled("𖣘", Style::default().fg(theme.dag_active)))
-                    },
                     Line::from(Span::styled(
-                        item.dag_id.to_string(),
-                        Style::default().add_modifier(Modifier::BOLD),
+                        "𖣘",
+                        if item.is_paused {
+                            paused_style
+                        } else {
+                            active_style
+                        },
                     )),
+                    Line::from(Span::styled(&*item.dag_id, dag_id_style)),
                     Line::from(item.owners.join(", ")),
+                    Line::from(item.timetable_description.as_deref().unwrap_or("None"))
+                        .style(schedule_style),
                     Line::from(
-                        item.timetable_description
-                            .clone()
-                            .unwrap_or_else(|| "None".to_string()),
-                    )
-                    .style(Style::default().fg(theme.schedule_fg)),
-                    Line::from(item.next_dagrun_create_after.map_or_else(
-                        || "None".to_string(),
-                        convert_datetimeoffset_to_human_readable_remaining_time,
-                    )),
-                    Line::from(self.dag_stats.get(&item.dag_id).map_or_else(
-                        || vec![Span::styled("None".to_string(), Style::default())],
+                        item.next_dagrun_create_after.map_or_else(
+                            || "None".to_string(),
+                            |dt| format_remaining_time(dt, now),
+                        ),
+                    ),
+                    Line::from(dag_stats.get(&item.dag_id).map_or_else(
+                        || vec![Span::raw("None")],
                         |stats| {
                             stats
                                 .iter()
@@ -67,7 +76,7 @@ impl Widget for &mut DagModel {
                         },
                     )),
                 ])
-                .style(self.table.row_style(idx))
+                .style(view.row_style(idx))
             })
             .collect();
         let table = Table::new(
@@ -88,7 +97,7 @@ impl Widget for &mut DagModel {
                 .borders(Borders::LEFT | Borders::RIGHT | Borders::BOTTOM)
                 .border_style(theme.border_style)
                 .title(" Press <?> to see available commands ");
-            if let Some(title) = self.table.status_title() {
+            if let Some(title) = status_title {
                 block.title_bottom(title)
             } else {
                 block
@@ -96,7 +105,7 @@ impl Widget for &mut DagModel {
         })
         .row_highlight_style(theme.selected_row_style);
 
-        StatefulWidget::render(table, content_area, buf, self.table.state_mut());
+        StatefulWidget::render(table, content_area, buf, state);
 
         if let Some(view) = &mut self.dag_code {
             view.render(area, buf);
@@ -110,10 +119,6 @@ impl Widget for &mut DagModel {
             trigger_popup.render(area, buf);
         }
     }
-}
-
-fn convert_datetimeoffset_to_human_readable_remaining_time(dt: OffsetDateTime) -> String {
-    format_remaining_time(dt, OffsetDateTime::now_utc())
 }
 
 fn format_remaining_time(dt: OffsetDateTime, now: OffsetDateTime) -> String {

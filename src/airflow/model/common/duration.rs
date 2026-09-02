@@ -13,13 +13,17 @@ pub trait TimeBounded {
 
 /// Calculate duration in seconds for any time-bounded entity.
 /// Returns None if `start_date` is not available or if `end_date` precedes `start_date`.
-/// For running entities (no `end_date`), uses current time.
+/// For running entities (no `end_date`), uses `now` as the end.
 /// For non-running entities without `end_date`, returns None.
-pub fn calculate_duration<T: TimeBounded>(item: &T) -> Option<f64> {
+///
+/// The clock read is supplied by the caller: render loops evaluate many rows
+/// per frame, and sampling `now` once keeps every row on the same instant and
+/// hoists the syscall out of the loop.
+pub fn calculate_duration<T: TimeBounded>(item: &T, now: OffsetDateTime) -> Option<f64> {
     let start = item.start_date()?;
     let end = match item.end_date() {
         Some(end) => end,
-        None if item.is_running() => OffsetDateTime::now_utc(),
+        None if item.is_running() => now,
         None => return None,
     };
     if end < start {
@@ -106,7 +110,7 @@ mod tests {
             end: Some(now),
             running: false,
         };
-        let duration = calculate_duration(&entity).unwrap();
+        let duration = calculate_duration(&entity, OffsetDateTime::now_utc()).unwrap();
         assert!((duration - 120.0).abs() < 1.0);
     }
 
@@ -117,7 +121,7 @@ mod tests {
             end: Some(OffsetDateTime::now_utc()),
             running: false,
         };
-        assert!(calculate_duration(&entity).is_none());
+        assert!(calculate_duration(&entity, OffsetDateTime::now_utc()).is_none());
     }
 
     #[test]
@@ -127,7 +131,7 @@ mod tests {
             end: None,
             running: true,
         };
-        let duration = calculate_duration(&entity).unwrap();
+        let duration = calculate_duration(&entity, OffsetDateTime::now_utc()).unwrap();
         assert!((59.0..=62.0).contains(&duration));
     }
 
@@ -138,7 +142,7 @@ mod tests {
             end: None,
             running: false,
         };
-        assert!(calculate_duration(&entity).is_none());
+        assert!(calculate_duration(&entity, OffsetDateTime::now_utc()).is_none());
     }
 
     #[test]
@@ -149,6 +153,6 @@ mod tests {
             end: Some(now - Duration::seconds(60)),
             running: false,
         };
-        assert!(calculate_duration(&entity).is_none());
+        assert!(calculate_duration(&entity, OffsetDateTime::now_utc()).is_none());
     }
 }
