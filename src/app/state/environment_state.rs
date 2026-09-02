@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{
     Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
 };
-use crate::airflow::traits::AirflowClient as AirflowClientTrait;
 
 /// Flat, request-keyed cache for a single Airflow environment.
 ///
@@ -14,7 +14,7 @@ use crate::airflow::traits::AirflowClient as AirflowClientTrait;
 /// allocations.
 #[derive(Debug, Clone)]
 pub struct EnvironmentData {
-    pub client: Arc<dyn AirflowClientTrait>,
+    pub client: Arc<FlowrsClient>,
 
     /// Result of `list_dags()` — sorted alphabetically by `dag_id` on write.
     pub dags: Vec<Dag>,
@@ -38,7 +38,7 @@ pub struct EnvironmentData {
 }
 
 impl EnvironmentData {
-    pub fn new(client: Arc<dyn AirflowClientTrait>) -> Self {
+    pub fn new(client: Arc<FlowrsClient>) -> Self {
         Self {
             client,
             dags: Vec::new(),

@@ -2,18 +2,14 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::graph::TaskGraph;
-use crate::airflow::traits::AirflowClient;
 use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::taskinstances::popup::graph::DagGraphPopup;
 use crate::app::state::App;
 
 /// Handle fetching task definitions and building the task graph
-pub async fn handle_update_tasks(
-    app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
-    dag_id: &str,
-) {
+pub async fn handle_update_tasks(app: &Arc<Mutex<App>>, client: &Arc<FlowrsClient>, dag_id: &str) {
     debug!("Fetching tasks for DAG: {dag_id}");
 
     match client.list_tasks(dag_id).await {
@@ -40,7 +36,7 @@ pub async fn handle_update_tasks(
 /// then builds the graph popup and displays it on the dagrun panel.
 pub async fn handle_show_dag_graph(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &str,
     dag_run_id: &str,
 ) {

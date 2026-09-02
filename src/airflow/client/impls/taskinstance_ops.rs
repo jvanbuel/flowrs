@@ -1,5 +1,4 @@
 use anyhow::Result;
-use async_trait::async_trait;
 
 use crate::airflow::client::convert_v1::{
     v1_task_instance_collection_to_list, v1_task_instance_try_to_gantt,
@@ -9,11 +8,9 @@ use crate::airflow::client::convert_v2::{
 };
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{TaskInstanceList, TaskTryGantt};
-use crate::airflow::traits::TaskInstanceOperations;
 
-#[async_trait]
-impl TaskInstanceOperations for FlowrsClient {
-    async fn list_task_instances(
+impl FlowrsClient {
+    pub async fn list_task_instances(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -30,20 +27,7 @@ impl TaskInstanceOperations for FlowrsClient {
         }
     }
 
-    async fn list_all_taskinstances(&self) -> Result<TaskInstanceList> {
-        match self {
-            Self::V1(client) => {
-                let response = client.fetch_all_task_instances().await?;
-                Ok(v1_task_instance_collection_to_list(response))
-            }
-            Self::V2(client) => {
-                let response = client.fetch_all_task_instances().await?;
-                Ok(v2_task_instance_list_to_list(response))
-            }
-        }
-    }
-
-    async fn list_task_instance_tries(
+    pub async fn list_task_instance_tries(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -73,7 +57,7 @@ impl TaskInstanceOperations for FlowrsClient {
         }
     }
 
-    async fn mark_task_instance(
+    pub async fn mark_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -84,17 +68,18 @@ impl TaskInstanceOperations for FlowrsClient {
             Self::V1(client) => {
                 client
                     .patch_task_instance(dag_id, dag_run_id, task_id, status)
-                    .await
+                    .await?;
             }
             Self::V2(client) => {
                 client
                     .patch_task_instance(dag_id, dag_run_id, task_id, status)
-                    .await
+                    .await?;
             }
         }
+        Ok(())
     }
 
-    async fn clear_task_instance(
+    pub async fn clear_task_instance(
         &self,
         dag_id: &str,
         dag_run_id: &str,
@@ -104,13 +89,14 @@ impl TaskInstanceOperations for FlowrsClient {
             Self::V1(client) => {
                 client
                     .post_clear_task_instance(dag_id, dag_run_id, task_id)
-                    .await
+                    .await?;
             }
             Self::V2(client) => {
                 client
                     .post_clear_task_instance(dag_id, dag_run_id, task_id)
-                    .await
+                    .await?;
             }
         }
+        Ok(())
     }
 }

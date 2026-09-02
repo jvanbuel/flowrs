@@ -66,14 +66,6 @@ impl ConfigPaths {
     fn legacy_config_path() -> PathBuf {
         home_dir().unwrap_or_default().join(".flowrs")
     }
-
-    /// Returns the XDG config directory (for creating if needed).
-    pub fn xdg_config_dir(&self) -> PathBuf {
-        self.write_path
-            .parent()
-            .expect("Config write path should have a parent directory")
-            .to_path_buf()
-    }
 }
 
 #[cfg(test)]

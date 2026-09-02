@@ -1,9 +1,10 @@
-use anyhow::Result;
 use log::{debug, info};
-use reqwest::{Method, Response};
+use reqwest::Method;
 
 use super::model;
-use super::{parse_json_response, V1Client};
+use super::V1Client;
+use crate::client::read_json;
+use crate::error::Result;
 
 const PAGE_SIZE: usize = 100;
 
@@ -19,20 +20,16 @@ impl V1Client {
         let mut total_entries;
 
         loop {
-            let response: Response = self
+            let request = self
                 .base_api(
                     Method::GET,
                     &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances"),
                 )
                 .await?
-                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
-                .send()
-                .await?
-                .error_for_status()?;
-
-            let response_text = response.text().await?;
+                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())]);
+            let response = self.execute(request).await?;
             let page: model::taskinstance::TaskInstanceCollectionResponse =
-                parse_json_response(&response_text, "task instances response")?;
+                read_json(response, "task instances response").await?;
 
             total_entries = page.total_entries;
             let fetched_count = page.task_instances.len();
@@ -66,72 +63,21 @@ impl V1Client {
         })
     }
 
-    pub async fn fetch_all_task_instances(
-        &self,
-    ) -> Result<model::taskinstance::TaskInstanceCollectionResponse> {
-        let mut all_task_instances = Vec::new();
-        let mut offset = 0;
-        let limit = 100;
-        let mut total_entries;
-
-        loop {
-            let response: Response = self
-                .base_api(Method::GET, "dags/~/dagRuns/~/taskInstances")
-                .await?
-                .query(&[("limit", limit.to_string()), ("offset", offset.to_string())])
-                .send()
-                .await?
-                .error_for_status()?;
-
-            let response_text = response.text().await?;
-            let page: model::taskinstance::TaskInstanceCollectionResponse =
-                parse_json_response(&response_text, "all task instances response")?;
-
-            total_entries = page.total_entries;
-            let fetched_count = page.task_instances.len();
-            all_task_instances.extend(page.task_instances);
-
-            debug!("Fetched {fetched_count} task instances (all), offset: {offset}, total: {total_entries}");
-
-            let total_usize = usize::try_from(total_entries).unwrap_or(usize::MAX);
-            if fetched_count < limit || all_task_instances.len() >= total_usize {
-                break;
-            }
-
-            offset += fetched_count;
-        }
-
-        info!(
-            "Fetched total {} task instances (all) out of {}",
-            all_task_instances.len(),
-            total_entries
-        );
-
-        Ok(model::taskinstance::TaskInstanceCollectionResponse {
-            task_instances: all_task_instances,
-            total_entries,
-        })
-    }
-
     pub async fn fetch_task_instance_tries(
         &self,
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
     ) -> Result<model::taskinstance::TaskInstanceTriesResponse> {
-        let response: Response = self
+        let request = self
             .base_api(
                 Method::GET,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries"),
             )
-            .await?
-            .send()
-            .await?
-            .error_for_status()?;
-
-        let response_text = response.text().await?;
+            .await?;
+        let response = self.execute(request).await?;
         let tries: model::taskinstance::TaskInstanceTriesResponse =
-            parse_json_response(&response_text, "task instance tries response")?;
+            read_json(response, "task instance tries response").await?;
         debug!(
             "Fetched {} tries for task {task_id}",
             tries.task_instances.len()
@@ -147,16 +93,14 @@ impl V1Client {
         task_id: &str,
         status: &str,
     ) -> Result<()> {
-        let resp: Response = self
+        let request = self
             .base_api(
                 Method::PATCH,
                 &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
             )
             .await?
-            .json(&serde_json::json!({"new_state": status, "dry_run": false}))
-            .send()
-            .await?
-            .error_for_status()?;
+            .json(&serde_json::json!({"new_state": status, "dry_run": false}));
+        let resp = self.execute(request).await?;
         debug!("{resp:?}");
         Ok(())
     }
@@ -167,7 +111,7 @@ impl V1Client {
         dag_run_id: &str,
         task_id: &str,
     ) -> Result<()> {
-        let resp: Response = self
+        let request = self
             .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))
             .await?
             .json(&serde_json::json!(
@@ -179,10 +123,8 @@ impl V1Client {
                     "only_failed": false,
                     "reset_dag_runs": true,
                 }
-            ))
-            .send()
-            .await?
-            .error_for_status()?;
+            ));
+        let resp = self.execute(request).await?;
         debug!("{resp:?}");
         Ok(())
     }

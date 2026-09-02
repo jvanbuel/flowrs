@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 use futures::future::join_all;
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, GanttData, TaskId, TaskInstanceState};
-use crate::airflow::traits::AirflowClient;
 use crate::app::model::taskinstances::popup::mark::MarkState;
 use crate::app::state::App;
 
@@ -19,7 +19,7 @@ use crate::app::state::App;
 /// atomically under a single lock.
 pub async fn handle_update_task_instances(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     env_name: &str,
@@ -77,7 +77,7 @@ pub async fn handle_update_task_instances(
 /// Handle clearing a task instance (resets it to be re-run).
 pub async fn handle_clear_task_instance(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,
@@ -96,7 +96,7 @@ pub async fn handle_clear_task_instance(
 /// Handle marking a task instance with a new state (success/failed).
 pub async fn handle_mark_task_instance(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,

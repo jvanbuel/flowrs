@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use log::warn;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::DagId;
-use crate::airflow::traits::AirflowClient;
 use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
 use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::dagruns::DagCodeView;
@@ -19,7 +19,7 @@ use crate::app::state::{App, Panel};
 /// results are written to the correct environment even if the active one changes.
 pub async fn handle_update_dags_and_stats(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     env_name: &str,
 ) {
     // Snapshot cached DAG IDs from the originating environment for the stats request
@@ -121,7 +121,7 @@ pub async fn handle_update_dags_and_stats(
 /// Handle toggling the paused state of a DAG.
 pub async fn handle_toggle_dag(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     is_paused: bool,
 ) {
@@ -135,7 +135,7 @@ pub async fn handle_toggle_dag(
 /// Handle fetching the DAG source code.
 pub async fn handle_get_dag_code(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
 ) {
     let current_dag = {
@@ -179,7 +179,7 @@ pub async fn handle_get_dag_code(
 /// fallback when the fetch fails.
 pub async fn handle_get_dag_params(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     env_name: &str,
 ) {

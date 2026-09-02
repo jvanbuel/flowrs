@@ -2,8 +2,8 @@ use std::sync::{Arc, Mutex};
 
 use log::debug;
 
+use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
-use crate::airflow::traits::AirflowClient;
 use crate::app::model::dagruns::popup::mark::MarkState;
 use crate::app::state::App;
 
@@ -13,7 +13,7 @@ use crate::app::state::App;
 /// results are written to the correct environment even if the active one changes.
 pub async fn handle_update_dag_runs(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     env_name: &str,
 ) {
@@ -40,7 +40,7 @@ pub async fn handle_update_dag_runs(
 /// Handle clearing a DAG run (resets all task instances).
 pub async fn handle_clear_dag_run(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
 ) {
@@ -56,7 +56,7 @@ pub async fn handle_clear_dag_run(
 /// Handle marking a DAG run with a new state (success/failed).
 pub async fn handle_mark_dag_run(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     status: MarkState,
@@ -81,7 +81,7 @@ pub async fn handle_mark_dag_run(
 /// Handle triggering a new DAG run.
 pub async fn handle_trigger_dag_run(
     app: &Arc<Mutex<App>>,
-    client: &Arc<dyn AirflowClient>,
+    client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     env_name: &str,
     conf: Option<serde_json::Value>,

@@ -40,7 +40,7 @@ flowrs-airflow  (self-contained Airflow HTTP client library, zero workspace deps
       ↑
 flowrs-config   (TUI configuration: FlowrsConfig, ConfigPaths, TOML parsing)
       ↑
-flowrs-tui      (binary: TUI app, view models, traits, UI, commands)
+flowrs-tui      (binary: TUI app, view models, UI, commands)
 ```
 
 ### flowrs-airflow (`crates/flowrs-airflow/`)
@@ -59,15 +59,13 @@ Self-contained Airflow API client library. Has no dependencies on other workspac
 TUI-specific configuration management. Depends on `flowrs-airflow` for auth/server types (re-exports them).
 - `src/lib.rs`: `FlowrsConfig` struct (servers, managed_services, poll_interval, etc.), TOML parsing/writing
 - `src/paths.rs`: `ConfigPaths` for XDG-compliant config file resolution
-- `src/auth.rs`: Re-exports auth types from `flowrs-airflow`
-- `src/server.rs`: Re-exports server config types from `flowrs-airflow`
+- Auth and server config types are owned by `flowrs-airflow` and re-exported from `src/lib.rs`
 
 ### flowrs-tui (root crate, `src/`)
 The TUI binary. Depends on both `flowrs-airflow` and `flowrs-config`.
-- `src/airflow/`: Airflow integration layer (view models, traits, client wrapper)
-  - `client.rs`: `FlowrsClient` enum wrapping `V1Client`/`V2Client`, implements all TUI traits, contains From conversions and URL building
+- `src/airflow/`: Airflow integration layer (view models, client wrapper)
+  - `client/`: `FlowrsClient` enum wrapping `V1Client`/`V2Client`, exposes the TUI-facing operations as inherent methods (`impls/`), contains From conversions (`convert_v1.rs`, `convert_v2.rs`) and URL building (`open_url.rs`)
   - `model/`: Domain/view model types (`Dag`, `DagRun`, `TaskInstance`, `Log`, `Task`, `DagStatistic`, `GanttData`, `OpenItem`, newtype IDs, duration utils)
-  - `traits/`: Async operation traits (`AirflowClient`, `DagOperations`, `DagRunOperations`, `TaskInstanceOperations`, `LogOperations`, `DagStatsOperations`, `TaskOperations`)
   - `graph.rs`: `TaskGraph` for topological sorting of task instances
 - `src/app.rs`: Main event loop
 - `src/app/worker/`: Async worker processing `WorkerMessage`s via mpsc channel
@@ -121,7 +119,8 @@ Each panel has:
 
 ### Client Architecture
 - `flowrs-airflow` provides raw HTTP clients (`V1Client`, `V2Client`) returning API response types
-- `FlowrsClient` (in `src/airflow/client.rs`) wraps these and implements TUI operation traits
+- `flowrs-airflow` returns `flowrs_airflow::AirflowError` (`error.rs`) from every fallible operation; the TUI converts it into `anyhow::Error` at the `FlowrsClient` boundary
+- `FlowrsClient` (in `src/airflow/client/`) wraps these and exposes the TUI-facing operations as inherent async methods, dispatching on the API version internally
 - From impls in `FlowrsClient` convert API response types to TUI view models
 - Auth providers handle Basic, Token, Conveyor, MWAA, Astronomer, and Composer authentication
 
@@ -143,11 +142,10 @@ Shared state via `Arc<Mutex<App>>`:
 ### Adding a New API Operation
 1. Add raw HTTP method to `V1Client`/`V2Client` in `crates/flowrs-airflow/src/client/v{1,2}/`
 2. Add response model types if needed in `v{1,2}/model/`
-3. Add/update the operation trait in `src/airflow/traits/`
-4. Implement the trait method in `FlowrsClient` (`src/airflow/client.rs`) with From conversion
-5. Add variant to `WorkerMessage` enum in `src/app/worker/`
-6. Implement handler in worker
-7. Emit message from panel's `update()` method
+3. Add the method to `FlowrsClient` in `src/airflow/client/impls/` with From conversion
+4. Add variant to `WorkerMessage` enum in `src/app/worker/`
+5. Implement handler in worker
+6. Emit message from panel's `update()` method
 
 ### Adding a New Panel
 1. Create model in `src/app/model/<name>.rs`
