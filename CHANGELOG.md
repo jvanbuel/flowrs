@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.14.1...flowrs-tui-v0.15.0) - 2026-09-02
+
+### Added
+
+- Autocomplete for the free-text `owners`, `tags`, `operator` and `endpoint` filter fields
+- The error popup shows Airflow's own reason when a trigger, clear or mark request is rejected
+
+### Fixed
+
+- DAG list cursor and filter no longer carry over when switching environments
+- Log try selection and scroll position no longer carry over when switching environments
+- Optimistic mark updates on DAG runs and task instances are no longer reverted by the next refresh
+- Reverse-proxy path prefixes are preserved in API requests and "open in browser" URLs
+- Truncated text is measured in terminal columns, so wide characters no longer overflow their cell; breadcrumbs clip with `…`
+
+### Other
+
+- Encapsulate `FilterableTable` behind an item-oriented API and stop cloning matched rows on every keystroke and refresh
+- Unify the two truncate helpers
+
+- Bound the body read on non-success responses
+- Tidy imports and docs after the trait-layer removal
+- Remove re-export-only shim modules
+- Collapse single-implementation Airflow trait layer
+- Remove unreachable API operations and dead helpers
+- *(airflow)* give the library a canonical error type
+
 ## [0.14.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.14.0...flowrs-tui-v0.14.1) - 2026-08-30
 
 ### Added

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.3...flowrs-airflow-v0.12.0) - 2026-09-02
+
+### Changed
+
+- **Breaking:** every fallible operation returns `AirflowError` instead of `anyhow::Error`; non-success responses carry Airflow's response body and parse failures include a body snippet
+- **Breaking:** `endpoint()` returns the parsed `&Url`; `BaseClient` fields, `V1Client::base` / `V2Client::base` and `base_api` are no longer public
+- **Breaking:** removed the unused `AirflowApiClient`, `create_api_client`, `fetch_all_dagruns` and `fetch_all_task_instances`
+
+### Fixed
+
+- *(airflow)* preserve proxy prefix and query string in the client
+
+### Other
+
+- Bound the body read on non-success responses
+- Remove re-export-only shim modules
+- Remove unreachable API operations and dead helpers
+- *(airflow)* give the library a canonical error type
+
 ## [0.11.3](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.2...flowrs-airflow-v0.11.3) - 2026-08-30
 
 ### Other

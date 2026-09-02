@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.3...flowrs-config-v0.13.0) - 2026-09-02
+
+### Changed
+
+- **Breaking:** removed the `auth` and `server` re-export modules; import the types from the crate root
+- **Breaking:** removed the unused `ConfigPaths::xdg_config_dir`
+
+### Other
+
+- Remove re-export-only shim modules
+- Remove unreachable API operations and dead helpers
+
 ## [0.12.3](https://github.com/jvanbuel/flowrs/compare/flowrs-config-v0.12.2...flowrs-config-v0.12.3) - 2026-08-30
 
 ### Other
