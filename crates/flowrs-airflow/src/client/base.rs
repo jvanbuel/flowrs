@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use super::auth::{create_auth_provider, AuthProvider};
 use crate::config::AirflowConfig;
-use crate::error::{AirflowError, Result};
+use crate::error::{AirflowError, Result, SNIPPET_LEN};
 
 /// Base HTTP client for Airflow API communication.
 /// Handles authentication and provides base request building functionality.
@@ -106,9 +106,28 @@ impl BaseClient {
             return Ok(response);
         }
 
-        let body = response.text().await.unwrap_or_default();
+        // Only the first SNIPPET_LEN chars end up in the error, so never buffer
+        // more than their UTF-8 upper bound: a misrouted request can come back
+        // with an arbitrarily large HTML page rather than Airflow's small JSON.
+        let body = read_body_prefix(response, SNIPPET_LEN * 4).await;
         Err(AirflowError::status(&method, &url, status, &body))
     }
+}
+
+/// Read at most `max_bytes` of the response body, stopping at the first read
+/// error. Returns whatever was read so far (possibly nothing), lossily decoded.
+async fn read_body_prefix(mut response: Response, max_bytes: usize) -> String {
+    let mut buf = Vec::new();
+    while buf.len() < max_bytes {
+        match response.chunk().await {
+            Ok(Some(chunk)) => {
+                let take = chunk.len().min(max_bytes - buf.len());
+                buf.extend_from_slice(&chunk[..take]);
+            }
+            Ok(None) | Err(_) => break,
+        }
+    }
+    String::from_utf8_lossy(&buf).into_owned()
 }
 
 impl TryFrom<&AirflowConfig> for BaseClient {
@@ -151,6 +170,17 @@ mod tests {
     fn accepts_a_valid_endpoint() {
         let client = BaseClient::new(config("http://localhost:8080")).expect("should accept");
         assert_eq!(client.endpoint().host_str(), Some("localhost"));
+    }
+
+    #[tokio::test]
+    async fn read_body_prefix_is_bounded_and_keeps_a_short_body_intact() {
+        let short = Response::from(http::Response::new("short body"));
+        assert_eq!(read_body_prefix(short, 64).await, "short body");
+
+        let big = "x".repeat(100_000);
+        let response = Response::from(http::Response::new(big));
+        let prefix = read_body_prefix(response, SNIPPET_LEN * 4).await;
+        assert_eq!(prefix.len(), SNIPPET_LEN * 4);
     }
 
     #[test]

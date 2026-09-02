@@ -35,5 +35,8 @@ tokio = { workspace = true }
 toml = { workspace = true }
 url = "2.5.7"
 
+[dev-dependencies]
+http = "1.5.0"
+
 [lints]
 workspace = true

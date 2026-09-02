@@ -1333,6 +1333,7 @@ dependencies = [
  "dirs",
  "futures",
  "google-cloud-auth",
+ "http 1.5.0",
  "log",
  "regex",
  "reqwest 0.12.28",

@@ -71,7 +71,7 @@ pub enum AirflowError {
 }
 
 /// How much of a response body to keep in an error message.
-const SNIPPET_LEN: usize = 1000;
+pub(crate) const SNIPPET_LEN: usize = 1000;
 
 impl AirflowError {
     pub(crate) fn invalid_url(url: impl Into<String>, source: url::ParseError) -> Self {
