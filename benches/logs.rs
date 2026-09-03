@@ -1,9 +1,8 @@
-//! Log panel: ingesting a log body, scrolling it, and searching it.
-//!
-//! Scrolling and searching go through `Model::update` with key events, which
-//! is the path the UI takes and the only public entry point to the search.
+//! Log panel: ingest, one scroll step, and a search, driven through key events.
 
 mod common;
+
+use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -11,9 +10,6 @@ use flowrs_tui::app::events::custom::FlowrsEvent;
 use flowrs_tui::app::model::logs::LogModel;
 use flowrs_tui::app::model::Model;
 use flowrs_tui::app::state::NavigationContext;
-use std::hint::black_box;
-
-use common::AllocCount;
 
 const SIZES: [usize; 3] = [64 * 1024, 1024 * 1024, 16 * 1024 * 1024];
 
@@ -46,18 +42,14 @@ fn update_logs(c: &mut Criterion) {
     for bytes in SIZES {
         let logs = common::logs(bytes, 1);
         group.throughput(Throughput::Bytes(bytes as u64));
-        group.bench_with_input(
-            BenchmarkId::from_parameter(label(bytes)),
-            &logs,
-            |b, logs| {
-                let mut model = LogModel::new(10);
-                b.iter_batched(
-                    || logs.clone(),
-                    |logs| model.update_logs(logs),
-                    BatchSize::LargeInput,
-                );
-            },
-        );
+        group.bench_function(BenchmarkId::from_parameter(label(bytes)), |b| {
+            let mut model = LogModel::new(10);
+            b.iter_batched(
+                || logs.clone(),
+                |logs| model.update_logs(logs),
+                BatchSize::LargeInput,
+            );
+        });
     }
     group.finish();
 }
@@ -95,32 +87,5 @@ fn search(c: &mut Criterion) {
     group.finish();
 }
 
-fn allocations(c: &mut Criterion<AllocCount>) {
-    let mut group = c.benchmark_group("allocs/logs");
-    let ctx = ctx();
-    for bytes in SIZES {
-        let mut model = model_with(bytes);
-        group.bench_function(BenchmarkId::new("scroll_down", label(bytes)), |b| {
-            b.iter(|| model.update(&key(KeyCode::Down), &ctx));
-        });
-        group.bench_function(BenchmarkId::new("search", label(bytes)), |b| {
-            b.iter(|| {
-                model.update(&key(KeyCode::Char('/')), &ctx);
-                for ch in "ERROR".chars() {
-                    model.update(&key(KeyCode::Char(ch)), &ctx);
-                }
-                model.update(&key(KeyCode::Enter), &ctx);
-                model.update(&key(KeyCode::Esc), &ctx)
-            });
-        });
-    }
-    group.finish();
-}
-
-criterion_group!(timing, update_logs, scroll_down, search);
-criterion_group! {
-    name = allocs;
-    config = Criterion::default().with_measurement(AllocCount);
-    targets = allocations
-}
-criterion_main!(timing, allocs);
+criterion_group!(benches, update_logs, scroll_down, search);
+criterion_main!(benches);

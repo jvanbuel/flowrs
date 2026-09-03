@@ -128,10 +128,6 @@ harness = false
 name = "render"
 harness = false
 
-[[bench]]
-name = "decode"
-harness = false
-
 [profile.release]
 opt-level = "z"
 lto = "fat"

@@ -1,5 +1,4 @@
-//! One full frame of each panel, rendered headlessly into ratatui's
-//! `TestBackend`. This is what the event loop does on every tick.
+//! One full `draw_ui` frame per panel into ratatui's `TestBackend`.
 
 mod common;
 
@@ -13,7 +12,7 @@ use flowrs_tui::ui::theme::init_theme;
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
 
-use common::{AllocCount, Shape};
+use common::Shape;
 
 const COLS: u16 = 220;
 const ROWS: u16 = 60;
@@ -37,8 +36,7 @@ fn shape(panel: &Panel, n: usize) -> Shape {
     }
 }
 
-/// Text that must appear on screen for the panel to be showing its data.
-/// Guards against benchmarking an empty or wrong panel.
+/// Text the panel must show; guards against measuring an empty frame.
 fn expected_text(panel: &Panel) -> &'static str {
     match panel {
         Panel::Config => "bench",
@@ -50,14 +48,13 @@ fn expected_text(panel: &Panel) -> &'static str {
 }
 
 fn terminal_showing(app: &Arc<Mutex<App>>, panel: &Panel) -> Terminal<TestBackend> {
-    // draw_ui reads a global theme that the binary normally sets at startup.
     init_theme(flowrs_config::Theme::Dark);
     let mut terminal = Terminal::new(TestBackend::new(COLS, ROWS)).expect("test backend");
     terminal.draw(|f| draw_ui(f, app)).expect("draw");
     let screen = terminal.backend().to_string();
     assert!(
         screen.contains(expected_text(panel)),
-        "{panel:?} panel did not render its data:\n{screen}"
+        "{panel:?} panel rendered without its data:\n{screen}"
     );
     terminal
 }
@@ -83,30 +80,5 @@ fn frame(c: &mut Criterion) {
     }
 }
 
-fn allocations(c: &mut Criterion<AllocCount>) {
-    let mut group = c.benchmark_group("allocs/frame");
-    for panel in [Panel::Dag, Panel::DAGRun, Panel::TaskInstance, Panel::Logs] {
-        for n in [100, 10_000] {
-            let mut app = common::app(shape(&panel, n));
-            common::navigate_to(&mut app, &panel);
-            let app = Arc::new(Mutex::new(app));
-            let mut terminal = terminal_showing(&app, &panel);
-            group.bench_function(BenchmarkId::new(format!("{panel:?}"), n), |b| {
-                b.iter(|| {
-                    terminal
-                        .draw(|f| draw_ui(f, black_box(&app)))
-                        .expect("draw");
-                });
-            });
-        }
-    }
-    group.finish();
-}
-
-criterion_group!(timing, frame);
-criterion_group! {
-    name = allocs;
-    config = Criterion::default().with_measurement(AllocCount);
-    targets = allocations
-}
-criterion_main!(timing, allocs);
+criterion_group!(benches, frame);
+criterion_main!(benches);

@@ -1,18 +1,17 @@
-//! Filtering cost: the raw match loop and the table refresh that wraps it.
+//! `filter_items` and the table refresh that wraps it.
 
 mod common;
+
+use std::hint::black_box;
 
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput};
 use flowrs_tui::app::model::filter::{filter_items, FilterCondition};
 use flowrs_tui::app::model::filterable_table::FilterableTable;
-use std::hint::black_box;
-
-use common::AllocCount;
 
 const SIZES: [usize; 3] = [100, 1_000, 10_000];
 
-fn conditions() -> Vec<(&'static str, Vec<FilterCondition>)> {
-    vec![
+fn conditions() -> [(&'static str, Vec<FilterCondition>); 3] {
+    [
         ("none", vec![]),
         ("primary", vec![FilterCondition::primary("dag_000")]),
         (
@@ -39,7 +38,7 @@ fn filter_items_bench(c: &mut Criterion) {
     group.finish();
 }
 
-fn table_refresh(c: &mut Criterion) {
+fn set_items(c: &mut Criterion) {
     let mut group = c.benchmark_group("filterable_table/set_items");
     for n in SIZES {
         let dags = common::dags(n);
@@ -59,30 +58,5 @@ fn table_refresh(c: &mut Criterion) {
     group.finish();
 }
 
-fn allocations(c: &mut Criterion<AllocCount>) {
-    let mut group = c.benchmark_group("allocs/filter");
-    for n in SIZES {
-        let dags = common::dags(n);
-        group.bench_with_input(BenchmarkId::new("filter_items", n), &dags, |b, dags| {
-            let conds = vec![FilterCondition::primary("dag_000")];
-            b.iter(|| filter_items(black_box(dags), black_box(&conds)));
-        });
-        group.bench_with_input(BenchmarkId::new("set_items", n), &dags, |b, dags| {
-            let mut table = FilterableTable::new();
-            b.iter_batched(
-                || dags.clone(),
-                |items| table.set_items(items),
-                BatchSize::LargeInput,
-            );
-        });
-    }
-    group.finish();
-}
-
-criterion_group!(timing, filter_items_bench, table_refresh);
-criterion_group! {
-    name = allocs;
-    config = Criterion::default().with_measurement(AllocCount);
-    targets = allocations
-}
-criterion_main!(timing, allocs);
+criterion_group!(benches, filter_items_bench, set_items);
+criterion_main!(benches);
