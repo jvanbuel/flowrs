@@ -109,7 +109,28 @@ url = "2.5.7"
 webbrowser = "1.2.0"
 
 [dev-dependencies]
+criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
 reqwest = { workspace = true }
+
+[[bench]]
+name = "filter"
+harness = false
+
+[[bench]]
+name = "sync"
+harness = false
+
+[[bench]]
+name = "logs"
+harness = false
+
+[[bench]]
+name = "render"
+harness = false
+
+[[bench]]
+name = "decode"
+harness = false
 
 [profile.release]
 opt-level = "z"
