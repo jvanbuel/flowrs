@@ -169,6 +169,7 @@ pub struct UpdateCommand {
 pub enum ConfigOption {
     BasicAuth,
     Token(Command),
+    Cookie,
 }
 
 #[derive(Parser, Debug)]
