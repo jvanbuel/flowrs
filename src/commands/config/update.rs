@@ -6,7 +6,7 @@ use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
 use crate::commands::config::model::{validate_endpoint, ConfigOption};
-use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
+use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, CookieAuth, FlowrsConfig, TokenSource};
 
 use anyhow::{anyhow, Context, Result};
 
@@ -77,6 +77,15 @@ impl UpdateCommand {
                 // Validate the command produces a token
                 let _token = String::from_utf8(output.stdout)?;
                 airflow_config.auth = AirflowAuth::Token(TokenSource::Command { cmd });
+            }
+            ConfigOption::Cookie => {
+                let cookie = inquire::Password::new("cookie")
+                    .with_display_toggle_enabled()
+                    .with_help_message(
+                        "Paste the Cookie header from your browser session (e.g. session=abc123)",
+                    )
+                    .prompt()?;
+                airflow_config.auth = AirflowAuth::Cookie(CookieAuth { cookie });
             }
         }
 
