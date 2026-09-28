@@ -7,7 +7,7 @@ use crate::error::Result;
 
 pub use basic::BasicAuthProvider;
 pub use command::CommandTokenProvider;
-pub use cookie::CookieAuthProvider;
+pub use cookie::{CommandCookieProvider, CookieAuthProvider};
 pub use static_token::StaticTokenProvider;
 
 use async_trait::async_trait;
@@ -45,9 +45,12 @@ pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>>
         AirflowAuth::Token(TokenSource::Command { cmd }) => {
             Ok(Box::new(CommandTokenProvider::new(cmd.clone())))
         }
-        AirflowAuth::Cookie(CookieAuth { cookie }) => Ok(Box::new(CookieAuthProvider {
+        AirflowAuth::Cookie(CookieAuth::Static { cookie }) => Ok(Box::new(CookieAuthProvider {
             cookie: cookie.clone(),
         })),
+        AirflowAuth::Cookie(CookieAuth::Command { cmd }) => {
+            Ok(Box::new(CommandCookieProvider::new(cmd.clone())))
+        }
         #[cfg(feature = "conveyor")]
         AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider::new())),
         #[cfg(not(feature = "conveyor"))]
@@ -114,8 +117,16 @@ mod tests {
 
     #[test]
     fn test_create_auth_provider_cookie() {
-        let auth = AirflowAuth::Cookie(CookieAuth {
+        let auth = AirflowAuth::Cookie(CookieAuth::Static {
             cookie: "session=abc123".to_string(),
+        });
+        assert!(create_auth_provider(&auth).is_ok());
+    }
+
+    #[test]
+    fn test_create_auth_provider_cookie_command() {
+        let auth = AirflowAuth::Cookie(CookieAuth::Command {
+            cmd: "echo session=abc123".to_string(),
         });
         assert!(create_auth_provider(&auth).is_ok());
     }

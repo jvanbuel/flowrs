@@ -5,10 +5,10 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::AddCommand;
-use crate::commands::config::model::{validate_endpoint, ConfigOption};
+use crate::commands::config::model::{prompt_cookie_auth, validate_endpoint, ConfigOption};
 use anyhow::{Context, Result};
 use flowrs_config::{
-    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, CookieAuth, FlowrsConfig, TokenSource,
+    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, FlowrsConfig, TokenSource,
 };
 
 impl AddCommand {
@@ -78,17 +78,10 @@ impl AddCommand {
                 }
             }
             ConfigOption::Cookie => {
-                let cookie = inquire::Password::new("cookie")
-                    .with_display_toggle_enabled()
-                    .with_help_message(
-                        "Paste the Cookie header from your browser session (e.g. session=abc123)",
-                    )
-                    .prompt()?;
-
                 AirflowConfig {
                     name,
                     endpoint,
-                    auth: AirflowAuth::Cookie(CookieAuth { cookie }),
+                    auth: prompt_cookie_auth()?,
                     managed: None,
                     version,
                     timeout_secs: 30,

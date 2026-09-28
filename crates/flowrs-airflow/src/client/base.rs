@@ -189,7 +189,7 @@ mod tests {
 
     fn cookie_config(endpoint: &str) -> AirflowConfig {
         AirflowConfig {
-            auth: AirflowAuth::Cookie(CookieAuth {
+            auth: AirflowAuth::Cookie(CookieAuth::Static {
                 cookie: "session=abc123".to_string(),
             }),
             ..config(endpoint)
