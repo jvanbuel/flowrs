@@ -264,10 +264,30 @@ password = "airflow"
         let result = FlowrsConfig::parse_toml(TEST_CONFIG_COOKIE).unwrap();
         assert_eq!(result.servers.len(), 1);
         match &result.servers[0].auth {
-            AirflowAuth::Cookie(cookie_auth) => {
-                assert_eq!(cookie_auth.cookie, "session=abc123");
+            AirflowAuth::Cookie(CookieAuth::Static { cookie }) => {
+                assert_eq!(cookie, "session=abc123");
             }
-            other => panic!("expected Cookie auth, got {other:?}"),
+            other => panic!("expected static Cookie auth, got {other:?}"),
+        }
+    }
+
+    const TEST_CONFIG_COOKIE_CMD: &str = r#"[[servers]]
+        name = "test"
+        endpoint = "http://localhost:8080"
+
+        [servers.auth.Cookie]
+        cmd = "get-cookie.sh"
+        "#;
+
+    #[test]
+    fn test_get_config_cookie_command() {
+        let result = FlowrsConfig::parse_toml(TEST_CONFIG_COOKIE_CMD).unwrap();
+        assert_eq!(result.servers.len(), 1);
+        match &result.servers[0].auth {
+            AirflowAuth::Cookie(CookieAuth::Command { cmd }) => {
+                assert_eq!(cmd, "get-cookie.sh");
+            }
+            other => panic!("expected command Cookie auth, got {other:?}"),
         }
     }
 

@@ -9,59 +9,110 @@ use reqwest::RequestBuilder;
 use super::AuthProvider;
 use crate::error::{AirflowError, Result};
 
-/// How long a fetched token is reused before the helper command is run again.
+/// How long a fetched credential is reused before the helper command runs again.
 ///
-/// The command's token lifetime is unknown (it is user-defined), so this uses a
-/// short, conservative window: long enough to eliminate the per-request process
-/// spawn, short enough to stay safe for typical (minutes-to-hours) token
+/// The command's credential lifetime is unknown (it is user-defined), so this
+/// uses a short, conservative window: long enough to eliminate the per-request
+/// process spawn, short enough to stay safe for typical (minutes-to-hours)
 /// lifetimes.
-const TOKEN_TTL: Duration = Duration::from_secs(60);
+const CREDENTIAL_TTL: Duration = Duration::from_secs(60);
 
-pub struct CommandTokenProvider {
+/// Runs a helper command and caches its trimmed stdout for [`CREDENTIAL_TTL`],
+/// single-flighting concurrent refreshes. Shared by the token and cookie
+/// command-based auth providers.
+pub(super) struct CachedCommand {
     cmd: String,
-    /// Cached `(token, fetched_at)`, refreshed once `TOKEN_TTL` elapses. The
+    /// Human-readable credential name for log and error messages ("Token", "Cookie").
+    label: &'static str,
+    /// Static provider name passed to [`AirflowError::auth`].
+    provider: &'static str,
+    /// Cached `(value, fetched_at)`, refreshed once `CREDENTIAL_TTL` elapses. The
     /// async mutex also single-flights concurrent refreshes.
     cached: tokio::sync::Mutex<Option<(String, Instant)>>,
 }
 
-impl CommandTokenProvider {
-    pub fn new(cmd: String) -> Self {
+impl CachedCommand {
+    pub fn new(cmd: String, label: &'static str, provider: &'static str) -> Self {
         Self {
             cmd,
+            label,
+            provider,
             cached: tokio::sync::Mutex::new(None),
         }
     }
 
-    /// Run the helper command and return its trimmed token output.
+    pub fn cmd(&self) -> &str {
+        &self.cmd
+    }
+
+    /// Return the cached credential, refreshing via the helper command once the
+    /// TTL elapses.
+    pub async fn value(&self) -> Result<String> {
+        let mut cached = self.cached.lock().await;
+
+        let fresh = cached
+            .as_ref()
+            .is_some_and(|(_, fetched)| fetched.elapsed() < CREDENTIAL_TTL);
+
+        if !fresh {
+            info!(
+                "🔑 {} Auth (command): refreshing via {}",
+                self.label, self.cmd
+            );
+            let value = self
+                .fetch()
+                .await
+                .map_err(|e| AirflowError::auth(self.provider, &e))?;
+            *cached = Some((value, Instant::now()));
+        }
+
+        let (value, _) = cached.as_ref().expect("value cached above");
+        Ok(value.clone())
+    }
+
+    /// Run the helper command and return its trimmed stdout.
     ///
     /// Uses `anyhow` internally for the layered context messages; the chain is
     /// flattened into `AirflowError::Auth` at the trait boundary.
-    async fn fetch_token(&self) -> anyhow::Result<String> {
+    async fn fetch(&self) -> anyhow::Result<String> {
         let cmd = self.cmd.clone();
+        let label = self.label;
         let output = tokio::task::spawn_blocking(move || {
             std::process::Command::new("sh")
                 .arg("-c")
                 .arg(&cmd)
                 .output()
-                .context("Failed to run token helper command")
+                .with_context(|| format!("Failed to run {label} helper command"))
         })
         .await
-        .context("Token helper task panicked")??;
+        .with_context(|| format!("{label} helper task panicked"))??;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             let stdout = String::from_utf8_lossy(&output.stdout);
             return Err(anyhow::anyhow!(
-                "Token helper command failed with exit code {:?}\nstdout: {}\nstderr: {}",
+                "{label} helper command failed with exit code {:?}\nstdout: {}\nstderr: {}",
                 output.status.code(),
                 stdout,
                 stderr
             ));
         }
 
-        let token =
-            String::from_utf8(output.stdout).context("Token helper returned invalid UTF-8")?;
-        Ok(token.trim().trim_matches('"').to_string())
+        let value = String::from_utf8(output.stdout)
+            .with_context(|| format!("{label} helper returned invalid UTF-8"))?;
+        Ok(value.trim().trim_matches('"').to_string())
+    }
+}
+
+pub struct CommandTokenProvider {
+    cached: CachedCommand,
+}
+
+impl CommandTokenProvider {
+    pub fn new(cmd: String) -> Self {
+        Self {
+            cached: CachedCommand::new(cmd, "Token", "token command"),
+        }
     }
 }
 
@@ -69,7 +120,7 @@ impl fmt::Debug for CommandTokenProvider {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Show the configured command, never the cached token.
         f.debug_struct("CommandTokenProvider")
-            .field("cmd", &self.cmd)
+            .field("cmd", &self.cached.cmd())
             .finish_non_exhaustive()
     }
 }
@@ -77,22 +128,7 @@ impl fmt::Debug for CommandTokenProvider {
 #[async_trait]
 impl AuthProvider for CommandTokenProvider {
     async fn authenticate(&self, request: RequestBuilder) -> Result<RequestBuilder> {
-        let mut cached = self.cached.lock().await;
-
-        let fresh = cached
-            .as_ref()
-            .is_some_and(|(_, fetched)| fetched.elapsed() < TOKEN_TTL);
-
-        if !fresh {
-            info!("🔑 Token Auth (command): refreshing via {}", self.cmd);
-            let token = self
-                .fetch_token()
-                .await
-                .map_err(|e| AirflowError::auth("token command", &e))?;
-            *cached = Some((token, Instant::now()));
-        }
-
-        let (token, _) = cached.as_ref().expect("token cached above");
+        let token = self.cached.value().await?;
         Ok(request.bearer_auth(token))
     }
 }

@@ -49,19 +49,26 @@ impl std::fmt::Debug for TokenSource {
 
 /// Cookie authentication data.
 ///
-/// Holds a raw `Cookie` header value copied from an authenticated browser
-/// session (e.g. `session=abc123`). The value is sent verbatim as the
-/// `Cookie` header on every request.
+/// The cookie is a raw `Cookie` header value from an authenticated browser
+/// session (e.g. `session=abc123`), sent verbatim on every request. It is
+/// either stored statically or produced by a helper command, mirroring
+/// [`TokenSource`].
 #[derive(Deserialize, Serialize, Clone)]
-pub struct CookieAuth {
-    pub cookie: String,
+#[serde(untagged)]
+pub enum CookieAuth {
+    Command { cmd: String },
+    Static { cookie: String },
 }
 
 impl std::fmt::Debug for CookieAuth {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CookieAuth")
-            .field("cookie", &"<redacted>")
-            .finish()
+        match self {
+            CookieAuth::Command { cmd } => f.debug_struct("Command").field("cmd", cmd).finish(),
+            CookieAuth::Static { .. } => f
+                .debug_struct("Static")
+                .field("cookie", &"<redacted>")
+                .finish(),
+        }
     }
 }
 
