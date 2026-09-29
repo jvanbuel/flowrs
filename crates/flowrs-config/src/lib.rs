@@ -4,7 +4,8 @@ pub mod theme;
 // Auth and server config types are owned by flowrs-airflow; re-export them at
 // the crate root so callers get one ergonomic import path.
 pub use flowrs_airflow::{
-    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, GccConfig, ManagedService, TokenSource,
+    AirflowAuth, AirflowConfig, AirflowVersion, BasicAuth, CookieAuth, GccConfig, ManagedService,
+    TokenSource,
 };
 pub use paths::ConfigPaths;
 pub use theme::Theme;
@@ -248,6 +249,46 @@ password = "airflow"
 
         let serialized_config = config.to_str().unwrap();
         assert_eq!(serialized_config.trim(), TEST_CONFIG_CONVEYOR.trim());
+    }
+
+    const TEST_CONFIG_COOKIE: &str = r#"[[servers]]
+        name = "test"
+        endpoint = "http://localhost:8080"
+
+        [servers.auth.Cookie]
+        cookie = "session=abc123"
+        "#;
+
+    #[test]
+    fn test_get_config_cookie() {
+        let result = FlowrsConfig::parse_toml(TEST_CONFIG_COOKIE).unwrap();
+        assert_eq!(result.servers.len(), 1);
+        match &result.servers[0].auth {
+            AirflowAuth::Cookie(CookieAuth::Static { cookie }) => {
+                assert_eq!(cookie, "session=abc123");
+            }
+            other => panic!("expected static Cookie auth, got {other:?}"),
+        }
+    }
+
+    const TEST_CONFIG_COOKIE_CMD: &str = r#"[[servers]]
+        name = "test"
+        endpoint = "http://localhost:8080"
+
+        [servers.auth.Cookie]
+        cmd = "get-cookie.sh"
+        "#;
+
+    #[test]
+    fn test_get_config_cookie_command() {
+        let result = FlowrsConfig::parse_toml(TEST_CONFIG_COOKIE_CMD).unwrap();
+        assert_eq!(result.servers.len(), 1);
+        match &result.servers[0].auth {
+            AirflowAuth::Cookie(CookieAuth::Command { cmd }) => {
+                assert_eq!(cmd, "get-cookie.sh");
+            }
+            other => panic!("expected command Cookie auth, got {other:?}"),
+        }
     }
 
     #[test]

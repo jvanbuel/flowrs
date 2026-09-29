@@ -1,17 +1,19 @@
 mod basic;
 mod command;
+mod cookie;
 mod static_token;
 
 use crate::error::Result;
 
 pub use basic::BasicAuthProvider;
 pub use command::CommandTokenProvider;
+pub use cookie::{CommandCookieProvider, CookieAuthProvider};
 pub use static_token::StaticTokenProvider;
 
 use async_trait::async_trait;
 use reqwest::RequestBuilder;
 
-use crate::auth::{AirflowAuth, BasicAuth, TokenSource};
+use crate::auth::{AirflowAuth, BasicAuth, CookieAuth, TokenSource};
 #[cfg(feature = "astronomer")]
 use crate::managed_services::astronomer::AstronomerAuthProvider;
 #[cfg(feature = "composer")]
@@ -42,6 +44,12 @@ pub fn create_auth_provider(auth: &AirflowAuth) -> Result<Box<dyn AuthProvider>>
         })),
         AirflowAuth::Token(TokenSource::Command { cmd }) => {
             Ok(Box::new(CommandTokenProvider::new(cmd.clone())))
+        }
+        AirflowAuth::Cookie(CookieAuth::Static { cookie }) => Ok(Box::new(CookieAuthProvider {
+            cookie: cookie.clone(),
+        })),
+        AirflowAuth::Cookie(CookieAuth::Command { cmd }) => {
+            Ok(Box::new(CommandCookieProvider::new(cmd.clone())))
         }
         #[cfg(feature = "conveyor")]
         AirflowAuth::Conveyor => Ok(Box::new(ConveyorAuthProvider::new())),
@@ -103,6 +111,22 @@ mod tests {
     fn test_create_auth_provider_command_token() {
         let auth = AirflowAuth::Token(TokenSource::Command {
             cmd: "echo hi".to_string(),
+        });
+        assert!(create_auth_provider(&auth).is_ok());
+    }
+
+    #[test]
+    fn test_create_auth_provider_cookie() {
+        let auth = AirflowAuth::Cookie(CookieAuth::Static {
+            cookie: "session=abc123".to_string(),
+        });
+        assert!(create_auth_provider(&auth).is_ok());
+    }
+
+    #[test]
+    fn test_create_auth_provider_cookie_command() {
+        let auth = AirflowAuth::Cookie(CookieAuth::Command {
+            cmd: "echo session=abc123".to_string(),
         });
         assert!(create_auth_provider(&auth).is_ok());
     }

@@ -5,7 +5,7 @@ use log::info;
 use strum::IntoEnumIterator;
 
 use super::model::UpdateCommand;
-use crate::commands::config::model::{validate_endpoint, ConfigOption};
+use crate::commands::config::model::{prompt_cookie_auth, validate_endpoint, ConfigOption};
 use flowrs_config::{AirflowAuth, AirflowConfig, BasicAuth, FlowrsConfig, TokenSource};
 
 use anyhow::{anyhow, Context, Result};
@@ -77,6 +77,9 @@ impl UpdateCommand {
                 // Validate the command produces a token
                 let _token = String::from_utf8(output.stdout)?;
                 airflow_config.auth = AirflowAuth::Token(TokenSource::Command { cmd });
+            }
+            ConfigOption::Cookie => {
+                airflow_config.auth = prompt_cookie_auth()?;
             }
         }
 

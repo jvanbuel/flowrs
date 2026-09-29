@@ -2,10 +2,12 @@ use std::fmt;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Args, Parser};
-use flowrs_config::{FlowrsConfig, ManagedService, Theme};
+use flowrs_config::{AirflowAuth, CookieAuth, FlowrsConfig, ManagedService, Theme};
+use inquire::{Select, Text};
 use inquire::validator::Validation;
+use log::info;
 use strum::Display;
 use strum::EnumIter;
 use url::Url;
@@ -169,6 +171,7 @@ pub struct UpdateCommand {
 pub enum ConfigOption {
     BasicAuth,
     Token(Command),
+    Cookie,
 }
 
 #[derive(Parser, Debug)]
@@ -180,6 +183,43 @@ pub struct ManagedServiceCommand {
 }
 
 type Command = Option<String>;
+
+/// Prompt for cookie authentication: either a pasted value or a helper command
+/// whose stdout is the `Cookie` header. Shared by `config add` and `config update`.
+pub fn prompt_cookie_auth() -> Result<AirflowAuth> {
+    let source = Select::new(
+        "cookie source",
+        vec![
+            "paste a cookie value",
+            "run a command that prints the cookie",
+        ],
+    )
+    .with_help_message("A pasted cookie is static; a command lets flowrs refresh a rotating cookie")
+    .prompt()?;
+
+    if source == "run a command that prints the cookie" {
+        let cmd = Text::new("cmd")
+            .with_help_message("Command whose stdout is the Cookie header value")
+            .prompt()?;
+        info!("🔑 Running command: {cmd}");
+        let output = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(&cmd)
+            .output()
+            .with_context(|| format!("Failed to execute cookie command: {cmd}"))?;
+        // Validate the command produces output.
+        let _cookie = String::from_utf8(output.stdout)?.trim().to_string();
+        Ok(AirflowAuth::Cookie(CookieAuth::Command { cmd }))
+    } else {
+        let cookie = inquire::Password::new("cookie")
+            .with_display_toggle_enabled()
+            .with_help_message(
+                "Paste the Cookie header from your browser session (e.g. session=abc123)",
+            )
+            .prompt()?;
+        Ok(AirflowAuth::Cookie(CookieAuth::Static { cookie }))
+    }
+}
 
 #[allow(
     clippy::unnecessary_wraps,

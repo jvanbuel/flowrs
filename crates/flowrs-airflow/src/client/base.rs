@@ -4,6 +4,7 @@ use std::fmt;
 use std::time::Duration;
 
 use super::auth::{create_auth_provider, AuthProvider};
+use crate::auth::AirflowAuth;
 use crate::config::AirflowConfig;
 use crate::error::{AirflowError, Result, SNIPPET_LEN};
 
@@ -45,6 +46,24 @@ impl BaseClient {
         if !endpoint.path().ends_with('/') {
             let with_slash = format!("{}/", endpoint.path());
             endpoint.set_path(&with_slash);
+        }
+
+        // A session cookie is a bearer credential: over plaintext HTTP it can be
+        // read off the wire and replayed. Refuse it unless the endpoint is local
+        // (e.g. a port-forwarded dev server), which is the only case where the
+        // traffic never leaves the machine.
+        if matches!(config.auth, AirflowAuth::Cookie(_))
+            && endpoint.scheme() != "https"
+            && !endpoint_is_loopback(&endpoint)
+        {
+            return Err(AirflowError::Auth {
+                provider: "Cookie",
+                message: format!(
+                    "refusing to send a session cookie over plaintext {} to '{}'; use https or a loopback address",
+                    endpoint.scheme(),
+                    config.endpoint,
+                ),
+            });
         }
 
         let client = reqwest::Client::builder()
@@ -114,6 +133,17 @@ impl BaseClient {
     }
 }
 
+/// Whether the endpoint points at the local machine, where sending a cookie
+/// over plaintext HTTP is acceptable because the traffic never leaves the host.
+fn endpoint_is_loopback(url: &Url) -> bool {
+    match url.host() {
+        Some(url::Host::Domain(domain)) => domain == "localhost",
+        Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+        None => false,
+    }
+}
+
 /// Read at most `max_bytes` of the response body, stopping at the first read
 /// error. Returns whatever was read so far (possibly nothing), lossily decoded.
 async fn read_body_prefix(mut response: Response, max_bytes: usize) -> String {
@@ -141,7 +171,7 @@ impl TryFrom<&AirflowConfig> for BaseClient {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::auth::{AirflowAuth, TokenSource};
+    use crate::auth::{AirflowAuth, CookieAuth, TokenSource};
 
     fn config(endpoint: &str) -> AirflowConfig {
         AirflowConfig {
@@ -154,6 +184,15 @@ mod tests {
             version: crate::config::AirflowVersion::V3,
             timeout_secs: crate::config::default_timeout(),
             insecure: false,
+        }
+    }
+
+    fn cookie_config(endpoint: &str) -> AirflowConfig {
+        AirflowConfig {
+            auth: AirflowAuth::Cookie(CookieAuth::Static {
+                cookie: "session=abc123".to_string(),
+            }),
+            ..config(endpoint)
         }
     }
 
@@ -170,6 +209,27 @@ mod tests {
     fn accepts_a_valid_endpoint() {
         let client = BaseClient::new(config("http://localhost:8080")).expect("should accept");
         assert_eq!(client.endpoint().host_str(), Some("localhost"));
+    }
+
+    #[test]
+    fn rejects_cookie_auth_over_plaintext_http_to_a_remote_host() {
+        let error =
+            BaseClient::new(cookie_config("http://airflow.example.com")).expect_err("should reject");
+        assert!(
+            matches!(error, AirflowError::Auth { provider: "Cookie", .. }),
+            "got: {error:?}"
+        );
+    }
+
+    #[test]
+    fn allows_cookie_auth_over_https() {
+        assert!(BaseClient::new(cookie_config("https://airflow.example.com")).is_ok());
+    }
+
+    #[test]
+    fn allows_cookie_auth_over_http_to_a_loopback_host() {
+        assert!(BaseClient::new(cookie_config("http://localhost:8080")).is_ok());
+        assert!(BaseClient::new(cookie_config("http://127.0.0.1:8080")).is_ok());
     }
 
     #[tokio::test]
