@@ -1293,7 +1293,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-airflow"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-config"
-version = "0.13.1"
+version = "0.14.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -1333,7 +1333,7 @@ dependencies = [
 
 [[package]]
 name = "flowrs-tui"
-version = "0.15.3"
+version = "0.16.0"
 dependencies = [
  "ansi-to-tui",
  "anyhow",
