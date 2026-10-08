@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.12.0...flowrs-airflow-v0.12.1) - 2026-10-08
+
+### Fixed
+
+- fix fmt, clippy 1.99 assert_is_empty, address review
+
+### Other
+
+- Add command-based cookie auth
+- Reject cookie auth over plaintext HTTP to remote hosts
+- Support cookie auth
+
 ## [0.12.0](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.11.3...flowrs-airflow-v0.12.0) - 2026-09-02
 
 ### Changed
