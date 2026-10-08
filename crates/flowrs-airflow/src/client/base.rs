@@ -213,10 +213,16 @@ mod tests {
 
     #[test]
     fn rejects_cookie_auth_over_plaintext_http_to_a_remote_host() {
-        let error =
-            BaseClient::new(cookie_config("http://airflow.example.com")).expect_err("should reject");
+        let error = BaseClient::new(cookie_config("http://airflow.example.com"))
+            .expect_err("should reject");
         assert!(
-            matches!(error, AirflowError::Auth { provider: "Cookie", .. }),
+            matches!(
+                error,
+                AirflowError::Auth {
+                    provider: "Cookie",
+                    ..
+                }
+            ),
             "got: {error:?}"
         );
     }

@@ -5,9 +5,8 @@ use std::str::FromStr;
 use anyhow::{Context, Result};
 use clap::{Args, Parser};
 use flowrs_config::{AirflowAuth, CookieAuth, FlowrsConfig, ManagedService, Theme};
-use inquire::{Select, Text};
 use inquire::validator::Validation;
-use log::info;
+use inquire::{Select, Text};
 use strum::Display;
 use strum::EnumIter;
 use url::Url;
@@ -201,14 +200,17 @@ pub fn prompt_cookie_auth() -> Result<AirflowAuth> {
         let cmd = Text::new("cmd")
             .with_help_message("Command whose stdout is the Cookie header value")
             .prompt()?;
-        info!("🔑 Running command: {cmd}");
         let output = std::process::Command::new("sh")
             .arg("-c")
             .arg(&cmd)
             .output()
             .with_context(|| format!("Failed to execute cookie command: {cmd}"))?;
-        // Validate the command produces output.
-        let _cookie = String::from_utf8(output.stdout)?.trim().to_string();
+        let cookie = String::from_utf8(output.stdout)?.trim().to_string();
+        anyhow::ensure!(
+            output.status.success() && !cookie.is_empty(),
+            "cookie command exited with {:?} or printed nothing",
+            output.status.code()
+        );
         Ok(AirflowAuth::Cookie(CookieAuth::Command { cmd }))
     } else {
         let cookie = inquire::Password::new("cookie")

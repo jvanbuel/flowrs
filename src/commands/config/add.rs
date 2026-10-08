@@ -77,17 +77,15 @@ impl AddCommand {
                     insecure,
                 }
             }
-            ConfigOption::Cookie => {
-                AirflowConfig {
-                    name,
-                    endpoint,
-                    auth: prompt_cookie_auth()?,
-                    managed: None,
-                    version,
-                    timeout_secs: 30,
-                    insecure,
-                }
-            }
+            ConfigOption::Cookie => AirflowConfig {
+                name,
+                endpoint,
+                auth: prompt_cookie_auth()?,
+                managed: None,
+                version,
+                timeout_secs: 30,
+                insecure,
+            },
         };
 
         let path = self.file.as_ref().map(PathBuf::from);

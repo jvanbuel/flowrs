@@ -771,8 +771,8 @@ mod tests {
         h.send(&[Key::Esc]);
 
         h.fsm.clear();
-        assert!(h.fsm.active_conditions().is_empty());
-        assert!(h.fsm.stored_conditions().is_empty());
+        assert_eq!(h.fsm.active_conditions().len(), 0);
+        assert_eq!(h.fsm.stored_conditions().len(), 0);
     }
 
     #[test]
@@ -798,7 +798,7 @@ mod tests {
         {
             assert_eq!(field, "state");
             assert_eq!(autocomplete.typed, "run");
-            assert!(conditions.is_empty());
+            assert_eq!(conditions.len(), 0);
         }
 
         // Backspace removes characters from value

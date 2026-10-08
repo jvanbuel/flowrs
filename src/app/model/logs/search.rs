@@ -117,12 +117,12 @@ mod tests {
 
     #[test]
     fn empty_query_matches_nothing() {
-        assert!(find_matches("hello\nworld", "").is_empty());
+        assert_eq!(find_matches("hello\nworld", "").len(), 0);
     }
 
     #[test]
     fn no_match() {
-        assert!(find_matches("hello\nworld", "foo").is_empty());
+        assert_eq!(find_matches("hello\nworld", "foo").len(), 0);
     }
 
     #[test]
@@ -151,7 +151,7 @@ mod tests {
         // "é" is 2 bytes; the match must start at byte 3
         assert_eq!(find_matches("éé foo", "foo"), vec![m(0, 5, 8)]);
         // query overlapping a multi-byte boundary must not panic
-        assert!(find_matches("ééé", "é\u{0065}").is_empty());
+        assert_eq!(find_matches("ééé", "é\u{0065}").len(), 0);
     }
 
     #[test]

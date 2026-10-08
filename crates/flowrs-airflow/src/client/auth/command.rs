@@ -55,10 +55,7 @@ impl CachedCommand {
             .is_some_and(|(_, fetched)| fetched.elapsed() < CREDENTIAL_TTL);
 
         if !fresh {
-            info!(
-                "🔑 {} Auth (command): refreshing via {}",
-                self.label, self.cmd
-            );
+            info!("🔑 {} Auth (command): refreshing", self.label);
             let value = self
                 .fetch()
                 .await
@@ -89,18 +86,25 @@ impl CachedCommand {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
             return Err(anyhow::anyhow!(
-                "{label} helper command failed with exit code {:?}\nstdout: {}\nstderr: {}",
+                "{label} helper command failed with exit code {:?}\nstderr: {}",
                 output.status.code(),
-                stdout,
                 stderr
             ));
         }
 
         let value = String::from_utf8(output.stdout)
             .with_context(|| format!("{label} helper returned invalid UTF-8"))?;
-        Ok(value.trim().trim_matches('"').to_string())
+        // Unwrap one outer quote pair (e.g. a JSON-ish `"tok"`) but leave inner
+        // quotes alone: `session="abc"` is a valid cookie value.
+        let value = value.trim();
+        let value = value
+            .strip_prefix('"')
+            .and_then(|v| v.strip_suffix('"'))
+            .unwrap_or(value)
+            .to_string();
+        anyhow::ensure!(!value.is_empty(), "{label} helper command printed nothing");
+        Ok(value)
     }
 }
 
@@ -169,6 +173,30 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("Token helper command failed"));
+    }
+
+    #[tokio::test]
+    async fn strips_only_a_matching_outer_quote_pair() {
+        let quoted = CommandTokenProvider::new(r#"echo '"tok"'"#.to_string());
+        assert_eq!(
+            bearer(quoted.authenticate(get()).await.unwrap()),
+            "Bearer tok"
+        );
+        let inner = CommandTokenProvider::new(r#"echo 'session="abc"'"#.to_string());
+        assert_eq!(
+            bearer(inner.authenticate(get()).await.unwrap()),
+            r#"Bearer session="abc""#
+        );
+    }
+
+    #[tokio::test]
+    async fn test_command_token_provider_empty_output() {
+        let provider = CommandTokenProvider::new("true".to_string());
+        let error = provider.authenticate(get()).await.unwrap_err();
+        assert!(
+            error.to_string().contains("printed nothing"),
+            "got: {error}"
+        );
     }
 
     #[tokio::test]

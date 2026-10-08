@@ -142,7 +142,7 @@ mod tests {
     #[test]
     fn test_filter_kind_values() {
         let free = FilterKind::FreeText;
-        assert!(free.values().is_empty());
+        assert_eq!(free.values().len(), 0);
 
         let enumerated = FilterKind::Enum(vec!["running", "success", "failed"]);
         assert_eq!(enumerated.values(), vec!["running", "success", "failed"]);
