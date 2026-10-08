@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.3](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.15.2...flowrs-tui-v0.15.3) - 2026-10-08
+
+### Fixed
+
+- fix fmt, clippy 1.99 assert_is_empty, address review
+
+### Other
+
+- Add command-based cookie auth
+- Support cookie auth
+- *(deps)* bump google-cloud-auth from 1.16.0 to 1.17.0
+- *(deps)* bump thiserror from 2.0.20 to 2.0.21
+- *(deps)* bump aws-sdk-mwaa from 1.120.0 to 1.121.0
+- *(deps)* bump toml from 1.1.5+spec-1.1.0 to 1.1.6+spec-1.1.0
+- *(deps)* bump clap from 4.6.6 to 4.6.7 ([#729](https://github.com/jvanbuel/flowrs/pull/729))
+- Merge pull request #728 from jvanbuel/dependabot/cargo/aws-sdk-mwaa-1.120.0
+- *(deps)* bump aws-sdk-mwaa from 1.118.0 to 1.120.0
+- *(deps)* bump dirs from 6.0.0 to 7.0.0
+
 ## [0.15.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.15.1...flowrs-tui-v0.15.2) - 2026-09-07
 
 ### Other
