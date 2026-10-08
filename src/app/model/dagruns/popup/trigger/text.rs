@@ -70,8 +70,8 @@ mod tests {
     #[test]
     fn wrap_text_breaks_on_word_boundaries() {
         assert_eq!(wrap_text("hello world foo", 11), vec!["hello world", "foo"]);
-        assert!(wrap_text("anything", 0).is_empty());
-        assert!(wrap_text("", 10).is_empty());
+        assert_eq!(wrap_text("anything", 0).len(), 0);
+        assert_eq!(wrap_text("", 10).len(), 0);
         // A word wider than the column is hard-split.
         assert_eq!(wrap_text("abcdefgh", 3), vec!["abc", "def", "gh"]);
     }

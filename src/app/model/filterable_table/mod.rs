@@ -285,7 +285,7 @@ mod tests {
     #[test]
     fn test_new_table_is_empty() {
         let table: FilterableTable<TestItem> = FilterableTable::new();
-        assert!(table.view.items.is_empty());
+        assert_eq!(table.view.items.len(), 0);
         assert_eq!(table.view.items.len(), 0);
         assert!(table.current().is_none());
     }
@@ -310,7 +310,7 @@ mod tests {
 
         table.clear();
 
-        assert!(table.is_empty());
+        assert_eq!(table.len(), 0);
         assert!(table.current().is_none());
         assert_eq!(table.selected_position(), None);
         assert!(table.visual_anchor.is_none());
@@ -331,7 +331,7 @@ mod tests {
         ];
         table.set_items(items);
         assert_eq!(table.view.items.len(), 2);
-        assert!(!table.view.items.is_empty());
+        assert_ne!(table.view.items.len(), 0);
     }
 
     #[test]
@@ -430,7 +430,7 @@ mod tests {
         ]);
 
         // No selection
-        assert!(table.selected_ids(|item| item.id.clone()).is_empty());
+        assert_eq!(table.selected_ids(|item| item.id.clone()).len(), 0);
 
         // Select first item
         table.view.next();
@@ -482,7 +482,7 @@ mod tests {
 
         // gg - second g
         table.handle_navigation(KeyCode::Char('g'), &mut buffer);
-        assert!(buffer.is_empty());
+        assert_eq!(buffer.len(), 0);
         assert_eq!(table.current().map(|i| i.id.as_str()), Some("1"));
 
         // Unknown key
