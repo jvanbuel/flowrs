@@ -20,3 +20,6 @@ rotating_logo:
 
 run:
 	FLOWRS_LOG=debug cargo run
+
+bench:
+	cargo bench
