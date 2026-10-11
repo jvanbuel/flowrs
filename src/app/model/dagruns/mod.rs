@@ -286,6 +286,12 @@ impl Model for DagRunModel {
                 (Some(FlowrsEvent::Tick), worker_messages)
             }
             FlowrsEvent::Key(key_event) => {
+                // An open popup gets keys first, so e.g. `/` typed into a
+                // trigger parameter is not taken as "open the table filter".
+                if let Some(messages) = self.handle_popup(event, ctx) {
+                    return (None, messages);
+                }
+
                 // Filter needs special handling - apply filter then sort
                 if matches!(
                     self.table.handle_filter_key(key_event),
@@ -293,11 +299,6 @@ impl Model for DagRunModel {
                 ) {
                     self.sort_dag_runs();
                     return (None, vec![]);
-                }
-
-                // Popup handling (has its own update method)
-                if let Some(messages) = self.handle_popup(event, ctx) {
-                    return (None, messages);
                 }
 
                 // Chain the remaining handlers
@@ -476,5 +477,25 @@ mod tests {
             model.table.items().next().unwrap().dag_run_id,
             "manual_run_1"
         );
+    }
+
+    #[test]
+    fn a_slash_typed_into_a_trigger_parameter_goes_into_the_parameter() {
+        use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
+        use crate::app::model::dagruns::popup::DagRunPopUp;
+
+        let schema = serde_json::json!({ "path": { "value": "", "schema": { "type": "string" } } });
+        let mut trigger = TriggerDagRunPopUp::new("dag".into(), Some(&schema));
+        trigger.editing = true;
+        let mut model = DagRunModel::default();
+        model.popup.show_custom(DagRunPopUp::Trigger(trigger));
+
+        let slash = FlowrsEvent::Key(KeyEvent::new(KeyCode::Char('/'), KeyModifiers::NONE));
+        model.update(&slash, &crate::app::state::NavigationContext::None);
+
+        let Some(DagRunPopUp::Trigger(trigger)) = model.popup.custom_mut() else {
+            panic!("the trigger popup must stay open");
+        };
+        assert_eq!(trigger.params[0].value, "/");
     }
 }
