@@ -49,8 +49,8 @@ impl ScrollMode {
 
 #[derive(Debug)]
 pub struct LogModel {
-    pub all: Vec<Log>,
-    pub current: usize,
+    all: Vec<Log>,
+    current: usize,
     pub error_popup: Option<ErrorPopup>,
     /// Terminal cursor position for the search bar; set during render while
     /// the search bar is open so `draw_ui` can place the cursor.
@@ -88,9 +88,12 @@ impl LogModel {
         }
     }
 
-    /// Reset scroll to follow mode (used when navigating to a new context)
-    pub fn reset_scroll(&mut self) {
+    /// Drop the logs of the previous task instance: show the first try,
+    /// follow the end of the log, and clear search matches.
+    pub fn reset(&mut self) {
+        self.current = 0;
         self.scroll_mode = ScrollMode::Following;
+        self.update_logs(Vec::new());
     }
 
     /// Update the logs content, keeping the selected try in range.
@@ -163,7 +166,7 @@ impl Model for LogModel {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
@@ -175,7 +178,7 @@ impl Model for LogModel {
                     ctx.dag_id(),
                     ctx.dag_run_id(),
                     ctx.task_id(),
-                    ctx.task_try(),
+                    ctx.try_number(),
                 ) {
                     log::debug!("Updating task logs for dag_run_id: {dag_run_id}");
                     return (
@@ -321,7 +324,7 @@ impl Model for LogModel {
 mod tests {
     use crossterm::event::{KeyEvent, KeyModifiers};
 
-    use crate::app::state::NavigationContext;
+    use crate::app::navigation::Path;
 
     use super::search::SearchMatch;
     use super::*;
@@ -342,7 +345,7 @@ mod tests {
 
     fn press(model: &mut LogModel, code: KeyCode) -> Option<FlowrsEvent> {
         let event = FlowrsEvent::Key(KeyEvent::new(code, KeyModifiers::NONE));
-        model.update(&event, &NavigationContext::None).0
+        model.update(&event, &Path::None).0
     }
 
     fn type_query(model: &mut LogModel, query: &str) {
@@ -486,12 +489,12 @@ mod tests {
         let mut model = LogModel::default();
         assert!(model.all.is_empty());
 
-        let ctx = NavigationContext::Task {
+        let ctx = Path::TaskInstance {
             environment: "env".to_string(),
             dag_id: "dag".into(),
             dag_run_id: "run".into(),
             task_id: "task".into(),
-            task_try: 1,
+            try_number: 1,
         };
 
         let event = FlowrsEvent::Key(KeyEvent::new(KeyCode::Char('o'), KeyModifiers::empty()));

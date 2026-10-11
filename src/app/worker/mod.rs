@@ -10,7 +10,6 @@ use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
 mod browser;
-mod config;
 mod dagruns;
 mod dags;
 mod logs;
@@ -24,7 +23,6 @@ pub struct Dispatcher {
 
 #[derive(Debug)]
 pub enum WorkerMessage {
-    ConfigSelected(usize),
     UpdateDagsAndStats,
     ToggleDag {
         dag_id: DagId,
@@ -164,11 +162,6 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         app.loading = true;
     }
 
-    // Handle messages that don't require an active client first
-    if let WorkerMessage::ConfigSelected(idx) = message {
-        return config::handle_config_selected(&app, idx);
-    }
-
     // Get the active client and environment name from the environment state.
     // We capture the environment name here so that async handlers can write
     // results back to the correct environment, even if the active environment
@@ -199,9 +192,6 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
     };
 
     match message {
-        WorkerMessage::ConfigSelected(_) => {
-            unreachable!("ConfigSelected should be handled before client check");
-        }
         // DAG operations
         WorkerMessage::UpdateDagsAndStats => {
             dags::handle_update_dags_and_stats(&app, &client, &env_name).await;
