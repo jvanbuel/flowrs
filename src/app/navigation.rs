@@ -129,36 +129,33 @@ impl Path {
         }
     }
 
-    /// This path up to the selection's level, followed by the selection.
-    ///
-    /// Callers only select at a level the path already reaches, so the
-    /// ancestors the selection needs are always present.
-    fn with(&self, selection: Selection) -> Path {
-        let environment = self.environment().cloned().unwrap_or_default();
-        let dag_id = self.dag_id().cloned().unwrap_or_default();
-        let dag_run_id = self.dag_run_id().cloned().unwrap_or_default();
-        match selection {
+    /// This path up to the selection's level, followed by the selection;
+    /// `None` if the path lacks an ancestor the selection needs.
+    fn with(&self, selection: Selection) -> Option<Path> {
+        let environment = || self.environment().cloned();
+        let dag_id = || self.dag_id().cloned();
+        Some(match selection {
             Selection::Environment(environment) => Path::Environment { environment },
             Selection::Dag(dag_id) => Path::Dag {
-                environment,
+                environment: environment()?,
                 dag_id,
             },
             Selection::DagRun(dag_run_id) => Path::DagRun {
-                environment,
-                dag_id,
+                environment: environment()?,
+                dag_id: dag_id()?,
                 dag_run_id,
             },
             Selection::TaskInstance {
                 task_id,
                 try_number,
             } => Path::TaskInstance {
-                environment,
-                dag_id,
-                dag_run_id,
+                environment: environment()?,
+                dag_id: dag_id()?,
+                dag_run_id: self.dag_run_id()?.clone(),
                 task_id,
                 try_number,
             },
-        }
+        })
     }
 }
 
@@ -235,7 +232,14 @@ impl Navigation {
 
         let changed = self.path.selection_at(self.level).as_ref() != Some(selection);
         if changed {
-            self.path = self.path.with(selection.clone());
+            let Some(path) = self.path.with(selection.clone()) else {
+                debug!(
+                    "Ignoring {selection:?}: the path does not reach {:?}",
+                    self.level
+                );
+                return Move::default();
+            };
+            self.path = path;
         }
         self.level = self.level.deeper();
         Move {
@@ -407,5 +411,20 @@ mod tests {
         assert_eq!(nav.path(), &path);
         assert_eq!(step.changed_at, None);
         assert!(step.messages.is_empty());
+    }
+
+    #[test]
+    fn a_selection_whose_ancestors_are_missing_is_ignored() {
+        // Not reachable through `new`/`select`; guards the invariant they keep.
+        let mut nav = Navigation {
+            path: Path::None,
+            level: Level::Dags,
+        };
+
+        let step = nav.select(&Selection::Dag("dag_a".into()));
+
+        assert_eq!(nav.path(), &Path::None);
+        assert_eq!(nav.level(), Level::Dags);
+        assert_eq!(step.changed_at, None);
     }
 }
