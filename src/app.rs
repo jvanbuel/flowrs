@@ -6,7 +6,7 @@ use events::{custom::FlowrsEvent, generator::EventGenerator};
 use log::debug;
 use ratatui::{prelude::Backend, Terminal};
 use state::App;
-use worker::{Dispatcher, WorkerMessage};
+use worker::{Dispatcher, Request};
 
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::EnvironmentKey;
@@ -27,7 +27,7 @@ where
     let ui_app = Arc::clone(&app);
     let worker_app = Arc::clone(&app);
 
-    let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
+    let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<Request>(100);
 
     log::info!("Initializing environment state");
     {
@@ -104,7 +104,7 @@ where
 
             // Then handle panel specific events. A navigation key the panel
             // did not consume moves forward or back.
-            let (fall_through_event, messages) = {
+            let (fall_through_event, messages, environment) = {
                 let mut app = app.lock().unwrap();
                 let (fall_through_event, mut messages) = app.update_active_panel(&event);
                 if let Some(FlowrsEvent::Key(key)) = &fall_through_event {
@@ -116,12 +116,23 @@ where
                         _ => {}
                     }
                 }
-                (fall_through_event, messages)
+                // Bind the messages to the environment they were made for;
+                // after an environment switch that is the new one.
+                let environment = app
+                    .environment_state
+                    .active_environment
+                    .as_ref()
+                    .map(ToString::to_string);
+                (fall_through_event, messages, environment)
             };
 
             // Send messages to the worker for async processing
             for message in messages {
-                if let Err(e) = tx_worker.send(message).await {
+                let request = Request {
+                    environment: environment.clone(),
+                    message,
+                };
+                if let Err(e) = tx_worker.send(request).await {
                     log::error!("Failed to send message to worker: {e}");
                 }
             }
