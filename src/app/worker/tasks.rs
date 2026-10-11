@@ -18,6 +18,12 @@ pub async fn handle_update_tasks(app: &Arc<Mutex<App>>, client: &Arc<FlowrsClien
             debug!("Built task graph with {} tasks", task_list.tasks.len());
 
             let mut app = app.lock().unwrap();
+            // A slow response for a DAG the user has already left must not
+            // overwrite the graph of the DAG they are looking at now.
+            if app.nav_context.dag_id().is_none_or(|id| *id != *dag_id) {
+                debug!("Dropping task graph for {dag_id}: no longer the selected DAG");
+                return;
+            }
             app.task_instances.task_graph = Some(graph);
             app.task_instances.sort_task_instances();
             app.task_instances.table.apply_filter();
