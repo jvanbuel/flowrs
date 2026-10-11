@@ -63,10 +63,9 @@ impl DagModel {
             .map(|dag| Selection::Dag(dag.dag_id.clone()))
     }
 
-    /// Drop the DAGs of the previously selected environment.
-    pub fn reset(&mut self) {
-        self.table.clear();
-        self.dag_stats.clear();
+    /// Forget view state tied to the previously selected environment.
+    pub fn reset_view(&mut self) {
+        self.table.reset_cursor();
     }
 
     /// Handle model-specific popup (returns messages from popup)

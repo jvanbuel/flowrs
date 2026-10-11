@@ -153,21 +153,21 @@ impl App {
         Ok(())
     }
 
-    /// Drop the content of every level the move changed, then show the
+    /// Reset the view state of every level the move changed, then show the
     /// current level from the cache.
     fn apply(&mut self, step: &Move) {
         if let Some(changed_at) = step.changed_at {
             if changed_at <= Level::Dags {
-                self.dags.reset();
+                self.dags.reset_view();
             }
             if changed_at <= Level::DagRuns {
-                self.dagruns.reset();
+                self.dagruns.reset_view();
             }
             if changed_at <= Level::TaskInstances {
-                self.task_instances.reset();
+                self.task_instances.reset_view();
             }
             if changed_at <= Level::Logs {
-                self.logs.reset();
+                self.logs.reset_view();
             }
         }
         self.sync_panel(self.navigation.level());
@@ -279,7 +279,29 @@ mod tests {
     }
 
     #[test]
-    fn switching_environment_activates_it_and_clears_every_level() {
+    fn entering_a_dag_puts_the_cursor_on_its_first_run() {
+        let mut app = app_on_dag_list();
+        let env = app
+            .environment_state
+            .environments
+            .get_mut(&EnvironmentKey::from("prod"))
+            .unwrap();
+        env.replace_dag_runs(
+            &"b".into(),
+            vec![dag_run("b", "run_b1"), dag_run("b", "run_b2")],
+        );
+        put_cursor_on(&mut app, 0);
+        app.go_forward();
+        app.go_back();
+
+        put_cursor_on(&mut app, 1);
+        app.go_forward();
+
+        assert_eq!(app.dagruns.table.selected_position(), Some(0));
+    }
+
+    #[test]
+    fn switching_environment_activates_it_and_shows_its_dags() {
         let mut app = app_on_dag_list();
         put_cursor_on(&mut app, 0);
         app.go_forward();
@@ -297,7 +319,6 @@ mod tests {
         );
         assert_eq!(app.config.active_server.as_deref(), Some("dev"));
         assert_eq!(app.dags.table.all(), []);
-        assert_eq!(app.dagruns.table.all(), []);
         assert_eq!(app.navigation.path().dag_id(), None);
         assert_eq!(
             messages

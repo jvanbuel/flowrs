@@ -56,9 +56,10 @@ impl TaskInstanceModel {
         }
     }
 
-    /// Drop everything that belonged to the previously selected DAG run.
-    pub fn reset(&mut self) {
-        self.table.clear();
+    /// Forget view state tied to the previously selected DAG run, including
+    /// the task graph and gantt data, which are not cached per run.
+    pub fn reset_view(&mut self) {
+        self.table.reset_cursor();
         self.gantt_data = GanttData::default();
         self.task_graph = None;
     }

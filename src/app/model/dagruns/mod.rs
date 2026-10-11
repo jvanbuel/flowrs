@@ -117,9 +117,9 @@ impl DagRunModel {
             .map(|dag_run| Selection::DagRun(dag_run.dag_run_id.clone()))
     }
 
-    /// Drop the runs of the previously selected DAG.
-    pub fn reset(&mut self) {
-        self.table.clear();
+    /// Forget view state tied to the previously selected DAG.
+    pub fn reset_view(&mut self) {
+        self.table.reset_cursor();
     }
 
     /// Returns selected DAG run IDs for passing to mark/clear popups

@@ -88,12 +88,11 @@ impl LogModel {
         }
     }
 
-    /// Drop the logs of the previous task instance: show the first try,
-    /// follow the end of the log, and clear search matches.
-    pub fn reset(&mut self) {
+    /// Forget view state tied to the previous task instance: show the first
+    /// try and follow the end of the log.
+    pub fn reset_view(&mut self) {
         self.current = 0;
         self.scroll_mode = ScrollMode::Following;
-        self.update_logs(Vec::new());
     }
 
     /// Update the logs content, keeping the selected try in range.

@@ -115,14 +115,14 @@ Each panel has:
 - A model that handles state and logic
 - A `StatefulTable<T>` for rendering
 - An `update()` method that returns `(Option<FlowrsEvent>, Vec<WorkerMessage>)`
-- A `selection()` method reporting the row under the cursor, and a `reset()` method that drops content belonging to a previous selection
+- A `selection()` method reporting the row under the cursor, and a `reset_view()` method that forgets view state (cursor, task graph, log try) tied to a previous selection; rows always come from the environment cache via `sync_panel`
 - Popup submodules in `src/app/model/popup/` for modal interactions
 
 ### Navigation (src/app/navigation.rs)
 `Navigation` owns where the user is (see `GLOSSARY.md`): the `Path` (selected environment > DAG > DAG run > task instance) and the `Level` being shown. Panels never build navigation messages:
 - Enter / Right / `l` not consumed by a panel → `App::go_forward()` takes the panel's `selection()` and calls `Navigation::select()`
 - Esc / Left / `h` not consumed by a panel → `App::go_back()`
-- Each step returns a `Move`: the shallowest level whose content changed (every panel at or below it is `reset()`) plus the refresh messages for the new level
+- Each step returns a `Move`: the shallowest level whose content changed (every panel at or below it gets `reset_view()`) plus the refresh messages for the new level
 - Selecting the item the user came back from keeps the deeper path; selecting a different item drops it
 - Environment switches happen here too: `App::go_forward()` activates the environment (creating its client) before navigating
 
