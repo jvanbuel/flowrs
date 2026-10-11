@@ -296,8 +296,8 @@ mod tests {
             Some("dev")
         );
         assert_eq!(app.config.active_server.as_deref(), Some("dev"));
-        assert!(app.dags.table.all().is_empty());
-        assert!(app.dagruns.table.all().is_empty());
+        assert_eq!(app.dags.table.all(), []);
+        assert_eq!(app.dagruns.table.all(), []);
         assert_eq!(app.navigation.path().dag_id(), None);
         assert_eq!(
             messages
