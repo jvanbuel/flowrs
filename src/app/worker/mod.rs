@@ -221,7 +221,7 @@ async fn process_message(app: Arc<Mutex<App>>, request: Request) -> Result<()> {
             dags::handle_update_dags_and_stats(&app, &client, &ticket).await;
         }
         WorkerMessage::ToggleDag { dag_id, is_paused } => {
-            dags::handle_toggle_dag(&app, &client, &dag_id, is_paused).await;
+            dags::handle_toggle_dag(&app, &client, &dag_id, is_paused, &env_name).await;
         }
         WorkerMessage::GetDagCode { dag_id } => {
             dags::handle_get_dag_code(&app, &client, &dag_id).await;
@@ -241,7 +241,8 @@ async fn process_message(app: Arc<Mutex<App>>, request: Request) -> Result<()> {
             dag_id,
             status,
         } => {
-            dagruns::handle_mark_dag_run(&app, &client, &dag_id, &dag_run_id, status).await;
+            dagruns::handle_mark_dag_run(&app, &client, &dag_id, &dag_run_id, status, &env_name)
+                .await;
         }
         WorkerMessage::TriggerDagRun { dag_id, conf } => {
             dagruns::handle_trigger_dag_run(&app, &client, &dag_id, &env_name, conf).await;
@@ -286,6 +287,7 @@ async fn process_message(app: Arc<Mutex<App>>, request: Request) -> Result<()> {
                 &dag_run_id,
                 &task_id,
                 status,
+                &env_name,
             )
             .await;
         }

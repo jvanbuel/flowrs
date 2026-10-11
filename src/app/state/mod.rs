@@ -154,10 +154,12 @@ impl App {
     }
 
     /// Show a change the user made before the server confirms it.
-    pub fn patch(&mut self, patch: Patch) {
+    pub fn patch(&mut self, environment: &str, patch: Patch) {
         let level = patch_level(&patch);
-        self.environment_state.patch(patch);
-        self.sync_panel(level);
+        self.environment_state.patch(environment, patch);
+        if self.environment_state.active_environment.as_deref() == Some(environment) {
+            self.sync_panel(level);
+        }
     }
 
     /// Record the server's answer to a patched change; a rejected change is
@@ -399,11 +401,14 @@ mod tests {
         app.go_forward();
         let in_flight = app.environment_state.begin_fetch("prod");
 
-        app.patch(Patch::DagRunState {
-            dag_id: "a".into(),
-            dag_run_id: "run_a".into(),
-            state: DagRunState::Failed,
-        });
+        app.patch(
+            "prod",
+            Patch::DagRunState {
+                dag_id: "a".into(),
+                dag_run_id: "run_a".into(),
+                state: DagRunState::Failed,
+            },
+        );
         app.apply_fetched(
             &in_flight,
             Fetched::DagRuns {

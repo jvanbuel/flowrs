@@ -112,6 +112,7 @@ pub async fn handle_mark_task_instance(
     dag_run_id: &DagRunId,
     task_id: &TaskId,
     status: MarkState,
+    env_name: &str,
 ) {
     debug!("Marking task_instance: {task_id}");
     let patch = Patch::TaskInstanceState {
@@ -120,7 +121,7 @@ pub async fn handle_mark_task_instance(
         task_id: task_id.clone(),
         state: TaskInstanceState::from(&status),
     };
-    app.lock().unwrap().patch(patch.clone());
+    app.lock().unwrap().patch(env_name, patch.clone());
     let result = client
         .mark_task_instance(dag_id, dag_run_id, task_id, &status.to_string())
         .await;

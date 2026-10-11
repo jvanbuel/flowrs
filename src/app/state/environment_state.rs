@@ -323,13 +323,9 @@ impl EnvironmentStateContainer {
         self.active_environment.as_deref() == Some(environment)
     }
 
-    /// Show a change in the active environment before the server confirms it.
-    pub fn patch(&mut self, patch: Patch) {
-        let Some(env) = self
-            .active_environment
-            .as_ref()
-            .and_then(|key| self.environments.get_mut(key))
-        else {
+    /// Show a change in `environment` before the server confirms it.
+    pub fn patch(&mut self, environment: &str, patch: Patch) {
+        let Some(env) = self.environments.get_mut(environment) else {
             return;
         };
         patch.apply_to(env);
@@ -565,7 +561,7 @@ mod tests {
             vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
         );
 
-        cache.patch(mark_monday_failed());
+        cache.patch("prod", mark_monday_failed());
 
         assert_eq!(monday_state(&cache), DagRunState::Failed);
     }
@@ -581,7 +577,7 @@ mod tests {
         );
         let in_flight = cache.begin_fetch("prod");
 
-        cache.patch(mark_monday_failed());
+        cache.patch("prod", mark_monday_failed());
         fetch_runs(
             &mut cache,
             &in_flight,
@@ -600,7 +596,7 @@ mod tests {
             &first,
             vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
         );
-        cache.patch(mark_monday_failed());
+        cache.patch("prod", mark_monday_failed());
         let before_settling = cache.begin_fetch("prod");
 
         cache.settle(&mark_monday_failed(), true);
@@ -625,7 +621,7 @@ mod tests {
         let mut running = run("monday", datetime!(2026-10-05 00:00 UTC));
         running.state = DagRunState::Running;
         fetch_runs(&mut cache, &first, vec![running]);
-        cache.patch(mark_monday_failed());
+        cache.patch("prod", mark_monday_failed());
 
         cache.settle(&mark_monday_failed(), false);
 
@@ -643,10 +639,13 @@ mod tests {
         cache.apply(&first, Fetched::Dags(vec![dag.clone()]));
         let in_flight = cache.begin_fetch("prod");
 
-        cache.patch(Patch::DagPaused {
-            dag_id: "a".into(),
-            is_paused: true,
-        });
+        cache.patch(
+            "prod",
+            Patch::DagPaused {
+                dag_id: "a".into(),
+                is_paused: true,
+            },
+        );
         assert!(cache.dags()[0].is_paused);
         cache.apply(&in_flight, Fetched::Dags(vec![dag]));
 
@@ -675,12 +674,15 @@ mod tests {
             },
         );
 
-        cache.patch(Patch::TaskInstanceState {
-            dag_id: "a".into(),
-            dag_run_id: "monday".into(),
-            task_id: "extract".into(),
-            state: TaskInstanceState::Failed,
-        });
+        cache.patch(
+            "prod",
+            Patch::TaskInstanceState {
+                dag_id: "a".into(),
+                dag_run_id: "monday".into(),
+                task_id: "extract".into(),
+                state: TaskInstanceState::Failed,
+            },
+        );
 
         let instances = cache.task_instances(&"a".into(), &"monday".into());
         assert_eq!(instances[0].state, Some(TaskInstanceState::Failed));
@@ -744,5 +746,24 @@ mod tests {
         );
 
         assert_eq!(run_ids(&cache), ["manual", "monday"]);
+    }
+
+    #[test]
+    fn a_patch_lands_in_the_environment_it_was_made_for() {
+        let mut cache = cache();
+        for environment in ["prod", "dev"] {
+            let ticket = cache.begin_fetch(environment);
+            fetch_runs(
+                &mut cache,
+                &ticket,
+                vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
+            );
+        }
+
+        cache.patch("dev", mark_monday_failed());
+
+        assert_eq!(monday_state(&cache), DagRunState::Unknown);
+        cache.active_environment = Some("dev".into());
+        assert_eq!(monday_state(&cache), DagRunState::Failed);
     }
 }

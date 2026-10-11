@@ -110,12 +110,13 @@ pub async fn handle_toggle_dag(
     client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     is_paused: bool,
+    env_name: &str,
 ) {
     let patch = Patch::DagPaused {
         dag_id: dag_id.clone(),
         is_paused: !is_paused,
     };
-    app.lock().unwrap().patch(patch.clone());
+    app.lock().unwrap().patch(env_name, patch.clone());
     let result = client.toggle_dag(dag_id, is_paused).await;
     let mut app = app.lock().unwrap();
     app.settle(&patch, result.is_ok());

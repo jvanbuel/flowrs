@@ -57,6 +57,7 @@ pub async fn handle_mark_dag_run(
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     status: MarkState,
+    env_name: &str,
 ) {
     debug!("Marking dag_run: {dag_run_id}");
     let patch = Patch::DagRunState {
@@ -64,7 +65,7 @@ pub async fn handle_mark_dag_run(
         dag_run_id: dag_run_id.clone(),
         state: DagRunState::from(&status),
     };
-    app.lock().unwrap().patch(patch.clone());
+    app.lock().unwrap().patch(env_name, patch.clone());
     let result = client
         .mark_dag_run(dag_id, dag_run_id, &status.to_string())
         .await;
