@@ -7,12 +7,13 @@ use log::debug;
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, GanttData, TaskId, TaskInstanceState};
 use crate::app::model::taskinstances::popup::mark::MarkState;
+use crate::app::state::environment_state::{FetchTicket, Fetched, Patch};
 use crate::app::state::App;
 
 /// Handle updating the list of task instances for a specific DAG run.
 ///
-/// `env_name` identifies which environment initiated this request, ensuring
-/// results are written to the correct environment even if the active one changes.
+/// The ticket names the environment that initiated this request, so results
+/// are written there even if the active environment changes meanwhile.
 ///
 /// Fetches task instances, then fetches detailed try history for any retried
 /// tasks, builds the Gantt chart from complete data, and stores everything
@@ -22,7 +23,7 @@ pub async fn handle_update_task_instances(
     client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
-    env_name: &str,
+    ticket: &FetchTicket,
 ) {
     // 1. Fetch task instances (no lock)
     let task_instances = match client.list_task_instances(dag_id, dag_run_id).await {
@@ -65,11 +66,20 @@ pub async fn handle_update_task_instances(
 
     // 4. Store everything atomically under a single lock
     let mut app = app.lock().unwrap();
-    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-        env.replace_task_instances(dag_id, dag_run_id, task_instances);
-    }
-    if app.environment_state.active_environment.as_deref() == Some(env_name) {
-        app.sync_panel(crate::app::navigation::Level::TaskInstances);
+    app.apply_fetched(
+        ticket,
+        Fetched::TaskInstances {
+            dag_id: dag_id.clone(),
+            dag_run_id: dag_run_id.clone(),
+            task_instances,
+        },
+    );
+    // The gantt chart is not cached, so only show it for the run on screen.
+    let path = app.navigation.path();
+    if app.environment_state.active_environment.as_deref() == Some(ticket.environment())
+        && path.dag_id() == Some(dag_id)
+        && path.dag_run_id() == Some(dag_run_id)
+    {
         app.task_instances.gantt_data = gantt;
     }
 }
@@ -93,7 +103,8 @@ pub async fn handle_clear_task_instance(
     }
 }
 
-/// Handle marking a task instance with a new state (success/failed).
+/// Handle marking a task instance with a new state (success/failed). The new
+/// state shows at once and is undone if the server rejects it.
 pub async fn handle_mark_task_instance(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
@@ -103,18 +114,20 @@ pub async fn handle_mark_task_instance(
     status: MarkState,
 ) {
     debug!("Marking task_instance: {task_id}");
-    {
-        // Update the local state before sending the request; this way, the UI will update immediately
-        let mut app = app.lock().unwrap();
-        app.task_instances
-            .mark_task_instance(task_id, TaskInstanceState::from(&status));
-    }
-    let task_instance = client
+    let patch = Patch::TaskInstanceState {
+        dag_id: dag_id.clone(),
+        dag_run_id: dag_run_id.clone(),
+        task_id: task_id.clone(),
+        state: TaskInstanceState::from(&status),
+    };
+    app.lock().unwrap().patch(patch.clone());
+    let result = client
         .mark_task_instance(dag_id, dag_run_id, task_id, &status.to_string())
         .await;
-    if let Err(e) = task_instance {
+    let mut app = app.lock().unwrap();
+    app.settle(&patch, result.is_ok());
+    if let Err(e) = result {
         debug!("Error marking task_instance: {e}");
-        let mut app = app.lock().unwrap();
         app.task_instances.popup.show_error(vec![e.to_string()]);
     }
 }

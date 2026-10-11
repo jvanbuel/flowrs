@@ -191,10 +191,14 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         return Ok(());
     };
 
+    // The ticket orders this request's result against the user's pending
+    // changes, so it is taken before the request starts.
+    let ticket = app.lock().unwrap().environment_state.begin_fetch(&env_name);
+
     match message {
         // DAG operations
         WorkerMessage::UpdateDagsAndStats => {
-            dags::handle_update_dags_and_stats(&app, &client, &env_name).await;
+            dags::handle_update_dags_and_stats(&app, &client, &ticket).await;
         }
         WorkerMessage::ToggleDag { dag_id, is_paused } => {
             dags::handle_toggle_dag(&app, &client, &dag_id, is_paused).await;
@@ -207,7 +211,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         }
         // DAG run operations
         WorkerMessage::UpdateDagRuns { dag_id, .. } => {
-            dagruns::handle_update_dag_runs(&app, &client, &dag_id, &env_name).await;
+            dagruns::handle_update_dag_runs(&app, &client, &dag_id, &ticket).await;
         }
         WorkerMessage::ClearDagRun { dag_run_id, dag_id } => {
             dagruns::handle_clear_dag_run(&app, &client, &dag_id, &dag_run_id).await;
@@ -231,7 +235,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
                 &client,
                 &dag_id,
                 &dag_run_id,
-                &env_name,
+                &ticket,
             )
             .await;
         }
@@ -280,13 +284,13 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
                 &dag_run_id,
                 &task_id,
                 task_try,
-                &env_name,
+                &ticket,
             )
             .await;
         }
         // Task operations
         WorkerMessage::UpdateTasks { dag_id } => {
-            tasks::handle_update_tasks(&app, &client, &dag_id).await;
+            tasks::handle_update_tasks(&app, &client, &dag_id, &ticket).await;
         }
         WorkerMessage::ShowDagGraph { dag_id, dag_run_id } => {
             tasks::handle_show_dag_graph(&app, &client, &dag_id, &dag_run_id).await;

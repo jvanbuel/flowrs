@@ -5,35 +5,31 @@ use log::debug;
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, DagRunState};
 use crate::app::model::dagruns::popup::mark::MarkState;
+use crate::app::state::environment_state::{FetchTicket, Fetched, Patch};
 use crate::app::state::App;
 
 /// Handle updating the list of DAG runs for a specific DAG.
 ///
-/// `env_name` identifies which environment initiated this request, ensuring
-/// results are written to the correct environment even if the active one changes.
+/// The ticket names the environment that initiated this request, so results
+/// are written there even if the active environment changes meanwhile.
 pub async fn handle_update_dag_runs(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
     dag_id: &DagId,
-    env_name: &str,
+    ticket: &FetchTicket,
 ) {
     let dag_runs = client.list_dagruns(dag_id).await;
 
     let mut app = app.lock().unwrap();
     match dag_runs {
-        Ok(dag_runs) => {
-            // Replace DAG runs in the originating environment, not the active one
-            if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                env.replace_dag_runs(dag_id, dag_runs.dag_runs);
-            }
-            // Only sync panel data if this environment is still active
-            if app.environment_state.active_environment.as_deref() == Some(env_name) {
-                app.sync_panel(crate::app::navigation::Level::DagRuns);
-            }
-        }
-        Err(e) => {
-            app.dagruns.popup.show_error(vec![e.to_string()]);
-        }
+        Ok(dag_runs) => app.apply_fetched(
+            ticket,
+            Fetched::DagRuns {
+                dag_id: dag_id.clone(),
+                dag_runs: dag_runs.dag_runs,
+            },
+        ),
+        Err(e) => app.dagruns.popup.show_error(vec![e.to_string()]),
     }
 }
 
@@ -53,7 +49,8 @@ pub async fn handle_clear_dag_run(
     }
 }
 
-/// Handle marking a DAG run with a new state (success/failed).
+/// Handle marking a DAG run with a new state (success/failed). The new state
+/// shows at once and is undone if the server rejects it.
 pub async fn handle_mark_dag_run(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
@@ -62,18 +59,19 @@ pub async fn handle_mark_dag_run(
     status: MarkState,
 ) {
     debug!("Marking dag_run: {dag_run_id}");
-    {
-        // Update the local state before sending the request; this way, the UI will update immediately
-        let mut app = app.lock().unwrap();
-        app.dagruns
-            .mark_dag_run(dag_run_id, DagRunState::from(&status));
-    }
-    let dag_run = client
+    let patch = Patch::DagRunState {
+        dag_id: dag_id.clone(),
+        dag_run_id: dag_run_id.clone(),
+        state: DagRunState::from(&status),
+    };
+    app.lock().unwrap().patch(patch.clone());
+    let result = client
         .mark_dag_run(dag_id, dag_run_id, &status.to_string())
         .await;
-    if let Err(e) = dag_run {
+    let mut app = app.lock().unwrap();
+    app.settle(&patch, result.is_ok());
+    if let Err(e) = result {
         debug!("Error marking dag_run: {e}");
-        let mut app = app.lock().unwrap();
         app.dagruns.popup.show_error(vec![e.to_string()]);
     }
 }
@@ -91,7 +89,8 @@ pub async fn handle_trigger_dag_run(
     match dag_run {
         Ok(()) => {
             // Refresh the dag runs list to show the newly triggered run
-            handle_update_dag_runs(app, client, dag_id, env_name).await;
+            let ticket = app.lock().unwrap().environment_state.begin_fetch(env_name);
+            handle_update_dag_runs(app, client, dag_id, &ticket).await;
         }
         Err(e) => {
             debug!("Error triggering dag_run: {e}");

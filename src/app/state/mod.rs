@@ -11,7 +11,7 @@ use crate::app::model::popup::warning::WarningPopup;
 use crate::app::model::Model;
 use crate::app::navigation::{Level, Move, Navigation, Selection};
 use crate::app::worker::WorkerMessage;
-use environment_state::EnvironmentStateContainer;
+use environment_state::{EnvironmentStateContainer, FetchTicket, Fetched, Patch};
 use flowrs_config::FlowrsConfig;
 use throbber_widgets_tui::ThrobberState;
 
@@ -139,6 +139,34 @@ impl App {
         self.apply(&step);
     }
 
+    /// Store a fetch result in the environment that requested it, and show it
+    /// if that environment is the active one.
+    pub fn apply_fetched(&mut self, ticket: &FetchTicket, fetched: Fetched) {
+        let level = match &fetched {
+            Fetched::Dags(_) | Fetched::DagStats(_) => Level::Dags,
+            Fetched::DagRuns { .. } => Level::DagRuns,
+            Fetched::TaskInstances { .. } | Fetched::TaskGraph { .. } => Level::TaskInstances,
+            Fetched::TaskLogs { .. } => Level::Logs,
+        };
+        if self.environment_state.apply(ticket, fetched) {
+            self.sync_panel(level);
+        }
+    }
+
+    /// Show a change the user made before the server confirms it.
+    pub fn patch(&mut self, patch: Patch) {
+        let level = patch_level(&patch);
+        self.environment_state.patch(patch);
+        self.sync_panel(level);
+    }
+
+    /// Record the server's answer to a patched change; a rejected change is
+    /// undone on screen.
+    pub fn settle(&mut self, patch: &Patch, succeeded: bool) {
+        self.environment_state.settle(patch, succeeded);
+        self.sync_panel(patch_level(patch));
+    }
+
     /// Make the environment the active one, creating its client if needed.
     fn activate_environment(&mut self, name: &str) -> anyhow::Result<()> {
         let config = self
@@ -174,15 +202,25 @@ impl App {
     }
 }
 
+/// The level whose rows a patch changes.
+const fn patch_level(patch: &Patch) -> Level {
+    match patch {
+        Patch::DagPaused { .. } => Level::Dags,
+        Patch::DagRunState { .. } => Level::DagRuns,
+        Patch::TaskInstanceState { .. } => Level::TaskInstances,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use flowrs_config::FlowrsConfig;
 
     use super::App;
     use crate::airflow::graph::TaskGraph;
-    use crate::airflow::model::common::{Dag, DagRun, EnvironmentKey};
+    use crate::airflow::model::common::{Dag, DagRun, DagRunState};
     use crate::app::model::Popup;
     use crate::app::navigation::Level;
+    use crate::app::state::environment_state::{Fetched, Patch};
 
     const CONFIG: &str = r#"
         active_server = "prod"
@@ -229,16 +267,26 @@ mod tests {
         let mut app = App::new(FlowrsConfig::parse_toml(CONFIG).unwrap());
         let prod = app.configs.table.all()[0].clone();
         app.environment_state.activate(&prod).unwrap();
-        let env = app
-            .environment_state
-            .environments
-            .get_mut(&EnvironmentKey::from("prod"))
-            .unwrap();
-        env.replace_dags(vec![dag("a"), dag("b")]);
-        env.replace_dag_runs(&"a".into(), vec![dag_run("a", "run_a")]);
-        env.replace_dag_runs(&"b".into(), vec![dag_run("b", "run_b")]);
-        app.sync_panel(Level::Dags);
+        fetch(&mut app, Fetched::Dags(vec![dag("a"), dag("b")]));
+        fetch_runs(&mut app, "a", vec![dag_run("a", "run_a")]);
+        fetch_runs(&mut app, "b", vec![dag_run("b", "run_b")]);
         app
+    }
+
+    /// Deliver a fetch result for `prod`, as the worker does.
+    fn fetch(app: &mut App, fetched: Fetched) {
+        let ticket = app.environment_state.begin_fetch("prod");
+        app.apply_fetched(&ticket, fetched);
+    }
+
+    fn fetch_runs(app: &mut App, dag_id: &str, dag_runs: Vec<DagRun>) {
+        fetch(
+            app,
+            Fetched::DagRuns {
+                dag_id: dag_id.into(),
+                dag_runs,
+            },
+        );
     }
 
     fn put_cursor_on(app: &mut App, row: usize) {
@@ -253,41 +301,39 @@ mod tests {
     }
 
     #[test]
-    fn entering_another_dag_drops_the_previous_task_graph() {
+    fn entering_another_dag_does_not_show_the_previous_dags_task_graph() {
         let mut app = app_on_dag_list();
+        fetch(
+            &mut app,
+            Fetched::TaskGraph {
+                dag_id: "a".into(),
+                graph: TaskGraph::default(),
+            },
+        );
         put_cursor_on(&mut app, 0);
         app.go_forward();
-        put_cursor_on(&mut app, 0);
         app.go_forward();
-        app.task_instances.task_graph = Some(TaskGraph::default());
+        assert!(app.task_instances.task_graph.is_some());
 
         app.go_back();
         app.go_back();
         put_cursor_on(&mut app, 1);
         app.go_forward();
+        app.go_forward();
 
-        assert_eq!(app.navigation.level(), Level::DagRuns);
+        assert_eq!(
+            app.navigation.path().dag_run_id().map(|id| &**id),
+            Some("run_b")
+        );
         assert!(app.task_instances.task_graph.is_none());
-        let runs: Vec<_> = app
-            .dagruns
-            .table
-            .all()
-            .iter()
-            .map(|r| &*r.dag_run_id)
-            .collect();
-        assert_eq!(runs, ["run_b"]);
     }
 
     #[test]
     fn entering_a_dag_puts_the_cursor_on_its_first_run() {
         let mut app = app_on_dag_list();
-        let env = app
-            .environment_state
-            .environments
-            .get_mut(&EnvironmentKey::from("prod"))
-            .unwrap();
-        env.replace_dag_runs(
-            &"b".into(),
+        fetch_runs(
+            &mut app,
+            "b",
             vec![dag_run("b", "run_b1"), dag_run("b", "run_b2")],
         );
         put_cursor_on(&mut app, 0);
@@ -344,5 +390,29 @@ mod tests {
             Some("prod")
         );
         assert!(matches!(app.configs.popup, Popup::Error(_)));
+    }
+
+    #[test]
+    fn a_marked_run_stays_marked_on_screen_when_a_stale_refresh_arrives() {
+        let mut app = app_on_dag_list();
+        put_cursor_on(&mut app, 0);
+        app.go_forward();
+        let in_flight = app.environment_state.begin_fetch("prod");
+
+        app.patch(Patch::DagRunState {
+            dag_id: "a".into(),
+            dag_run_id: "run_a".into(),
+            state: DagRunState::Failed,
+        });
+        app.apply_fetched(
+            &in_flight,
+            Fetched::DagRuns {
+                dag_id: "a".into(),
+                dag_runs: vec![dag_run("a", "run_a")],
+            },
+        );
+
+        let shown = app.dagruns.table.current().map(|run| run.state.clone());
+        assert_eq!(shown, Some(DagRunState::Failed));
     }
 }
