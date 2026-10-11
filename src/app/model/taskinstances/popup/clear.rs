@@ -31,7 +31,7 @@ impl Model for ClearTaskInstancePopup {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        _ctx: &crate::app::state::NavigationContext,
+        _ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         if let FlowrsEvent::Key(key_event) = event {
             match key_event.code {

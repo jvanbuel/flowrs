@@ -9,6 +9,7 @@ use log::debug;
 
 use crate::airflow::model::common::{Dag, DagId, DagStatistic};
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::navigation::Selection;
 use commands::DAG_COMMAND_POP_UP;
 
 use super::dagruns::DagCodeView;
@@ -55,11 +56,23 @@ impl DagModel {
         }
     }
 
+    /// The DAG under the cursor, as a navigation selection.
+    pub fn selection(&self) -> Option<Selection> {
+        self.table
+            .current()
+            .map(|dag| Selection::Dag(dag.dag_id.clone()))
+    }
+
+    /// Forget view state tied to the previously selected environment.
+    pub fn reset_view(&mut self) {
+        self.table.reset_cursor();
+    }
+
     /// Handle model-specific popup (returns messages from popup)
     fn handle_popup(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> Option<Vec<WorkerMessage>> {
         let custom_popup = self.popup.custom_mut()?;
         let DagPopUp::Trigger(trigger_popup) = custom_popup;
@@ -109,18 +122,6 @@ impl DagModel {
                 self.popup.show_commands(&DAG_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
-            KeyCode::Enter => {
-                if let Some(dag) = self.table.current() {
-                    debug!("Selected dag: {}", dag.dag_id);
-                    KeyResult::PassWith(vec![WorkerMessage::UpdateDagRuns {
-                        dag_id: dag.dag_id.clone(),
-                    }])
-                } else {
-                    self.popup
-                        .show_error(vec!["No DAG selected to view DAG Runs".to_string()]);
-                    KeyResult::Consumed
-                }
-            }
             KeyCode::Char('o') => {
                 if let Some(dag) = self.table.current() {
                     debug!("Selected dag: {}", dag.dag_id);
@@ -166,7 +167,7 @@ impl Model for DagModel {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
