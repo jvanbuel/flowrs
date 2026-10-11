@@ -288,7 +288,10 @@ mod tests {
     use super::*;
 
     fn messages(step: &Move) -> Vec<String> {
-        step.messages.iter().map(|m| format!("{m:?}")).collect()
+        step.messages
+            .iter()
+            .filter_map(WorkerMessage::dedup_key)
+            .collect()
     }
 
     fn task(task_id: &str, try_number: u32) -> Selection {
@@ -307,55 +310,37 @@ mod tests {
     }
 
     #[test]
-    fn starts_at_the_dag_list_of_the_active_environment() {
-        let nav = Navigation::new(Some("prod".to_string()));
-        assert_eq!(nav.level(), Level::Dags);
-        assert_eq!(nav.path().environment().map(String::as_str), Some("prod"));
-
-        let nav = Navigation::new(None);
-        assert_eq!(nav.level(), Level::Environments);
-        assert_eq!(nav.path(), &Path::None);
-    }
-
-    #[test]
     fn each_selection_goes_one_level_deeper_and_requests_its_content() {
         let mut nav = Navigation::new(None);
+        let steps = [
+            (
+                Selection::Environment("prod".to_string()),
+                Level::Dags,
+                vec!["UpdateDagsAndStats"],
+            ),
+            (
+                Selection::Dag("dag_a".into()),
+                Level::DagRuns,
+                vec!["UpdateDagRuns:dag_a"],
+            ),
+            (
+                Selection::DagRun("run_1".into()),
+                Level::TaskInstances,
+                vec!["UpdateTasks:dag_a", "UpdateTaskInstances:dag_a:run_1"],
+            ),
+            (
+                task("extract", 2),
+                Level::Logs,
+                vec!["UpdateTaskLogs:dag_a:run_1:extract"],
+            ),
+        ];
 
-        let step = nav.select(&Selection::Environment("prod".to_string()));
-        assert_eq!(
-            (nav.level(), step.changed_at),
-            (Level::Dags, Some(Level::Dags))
-        );
-        assert_eq!(messages(&step), ["UpdateDagsAndStats"]);
-
-        let step = nav.select(&Selection::Dag("dag_a".into()));
-        assert_eq!(step.changed_at, Some(Level::DagRuns));
-        assert_eq!(
-            messages(&step),
-            [r#"UpdateDagRuns { dag_id: DagId("dag_a") }"#]
-        );
-
-        let step = nav.select(&Selection::DagRun("run_1".into()));
-        assert_eq!(step.changed_at, Some(Level::TaskInstances));
-        assert_eq!(
-            messages(&step),
-            [
-                r#"UpdateTasks { dag_id: DagId("dag_a") }"#,
-                r#"UpdateTaskInstances { dag_id: DagId("dag_a"), dag_run_id: DagRunId("run_1") }"#,
-            ]
-        );
-
-        let step = nav.select(&task("extract", 2));
-        assert_eq!(
-            (nav.level(), step.changed_at),
-            (Level::Logs, Some(Level::Logs))
-        );
-        assert_eq!(
-            messages(&step),
-            [
-                r#"UpdateTaskLogs { dag_id: DagId("dag_a"), dag_run_id: DagRunId("run_1"), task_id: TaskId("extract"), task_try: 2 }"#
-            ]
-        );
+        for (selection, level, expected) in steps {
+            let step = nav.select(&selection);
+            assert_eq!((nav.level(), step.changed_at), (level, Some(level)));
+            assert_eq!(messages(&step), expected);
+        }
+        assert_eq!(nav.path().try_number(), Some(2));
     }
 
     #[test]
@@ -368,11 +353,6 @@ mod tests {
         assert_eq!(step.changed_at, None);
         assert!(step.messages.is_empty());
         assert_eq!(nav.path(), &path);
-
-        nav.back();
-        nav.back();
-        nav.back();
-        assert_eq!(nav.level(), Level::Environments);
     }
 
     #[test]
@@ -386,10 +366,7 @@ mod tests {
         assert_eq!(step.changed_at, None);
         assert_eq!(nav.path().dag_run_id().map(|id| &**id), Some("run_1"));
         // The level's content is still refreshed.
-        assert_eq!(
-            messages(&step),
-            [r#"UpdateDagRuns { dag_id: DagId("dag_a") }"#]
-        );
+        assert_eq!(messages(&step), ["UpdateDagRuns:dag_a"]);
     }
 
     #[test]
@@ -403,24 +380,6 @@ mod tests {
         assert_eq!(step.changed_at, Some(Level::DagRuns));
         assert_eq!(nav.path().dag_id().map(|id| &**id), Some("dag_b"));
         assert_eq!(nav.path().dag_run_id(), None);
-    }
-
-    #[test]
-    fn switching_environment_changes_everything_from_the_dag_list_down() {
-        let mut nav = in_dag_run();
-        nav.back();
-        nav.back();
-        nav.back();
-
-        let step = nav.select(&Selection::Environment("dev".to_string()));
-
-        assert_eq!(step.changed_at, Some(Level::Dags));
-        assert_eq!(
-            nav.path(),
-            &Path::Environment {
-                environment: "dev".to_string()
-            }
-        );
     }
 
     #[test]

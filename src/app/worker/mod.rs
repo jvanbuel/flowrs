@@ -85,7 +85,7 @@ impl WorkerMessage {
     /// Returns a dedup key for periodic refresh messages.
     /// One-off user actions (mark, clear, trigger, toggle, etc.) return `None`
     /// so they are never deduplicated.
-    fn dedup_key(&self) -> Option<String> {
+    pub(crate) fn dedup_key(&self) -> Option<String> {
         match self {
             Self::UpdateDagsAndStats => Some("UpdateDagsAndStats".to_string()),
             Self::UpdateDagRuns { dag_id } => Some(format!("UpdateDagRuns:{dag_id}")),
