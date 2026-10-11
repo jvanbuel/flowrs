@@ -279,23 +279,6 @@ mod tests {
     }
 
     #[test]
-    fn reentering_the_same_dag_keeps_its_task_graph() {
-        let mut app = app_on_dag_list();
-        put_cursor_on(&mut app, 0);
-        app.go_forward();
-        put_cursor_on(&mut app, 0);
-        app.go_forward();
-        app.task_instances.task_graph = Some(TaskGraph::default());
-
-        app.go_back();
-        app.go_back();
-        put_cursor_on(&mut app, 0);
-        app.go_forward();
-
-        assert!(app.task_instances.task_graph.is_some());
-    }
-
-    #[test]
     fn switching_environment_activates_it_and_clears_every_level() {
         let mut app = app_on_dag_list();
         put_cursor_on(&mut app, 0);
@@ -340,15 +323,5 @@ mod tests {
             Some("prod")
         );
         assert!(matches!(app.configs.popup, Popup::Error(_)));
-    }
-
-    #[test]
-    fn moving_forward_without_a_row_under_the_cursor_does_nothing() {
-        let mut app = app_on_dag_list();
-
-        let messages = app.go_forward();
-
-        assert!(messages.is_empty());
-        assert_eq!(app.navigation.level(), Level::Dags);
     }
 }

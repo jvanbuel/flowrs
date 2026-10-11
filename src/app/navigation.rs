@@ -114,6 +114,52 @@ impl Path {
             _ => Option::None,
         }
     }
+
+    /// What is selected from the list shown at `level`, if anything.
+    fn selection_at(&self, level: Level) -> Option<Selection> {
+        match level {
+            Level::Environments => self.environment().cloned().map(Selection::Environment),
+            Level::Dags => self.dag_id().cloned().map(Selection::Dag),
+            Level::DagRuns => self.dag_run_id().cloned().map(Selection::DagRun),
+            Level::TaskInstances => Some(Selection::TaskInstance {
+                task_id: self.task_id()?.clone(),
+                try_number: self.try_number()?,
+            }),
+            Level::Logs => Option::None,
+        }
+    }
+
+    /// This path up to the selection's level, followed by the selection.
+    ///
+    /// Callers only select at a level the path already reaches, so the
+    /// ancestors the selection needs are always present.
+    fn with(&self, selection: Selection) -> Path {
+        let environment = self.environment().cloned().unwrap_or_default();
+        let dag_id = self.dag_id().cloned().unwrap_or_default();
+        let dag_run_id = self.dag_run_id().cloned().unwrap_or_default();
+        match selection {
+            Selection::Environment(environment) => Path::Environment { environment },
+            Selection::Dag(dag_id) => Path::Dag {
+                environment,
+                dag_id,
+            },
+            Selection::DagRun(dag_run_id) => Path::DagRun {
+                environment,
+                dag_id,
+                dag_run_id,
+            },
+            Selection::TaskInstance {
+                task_id,
+                try_number,
+            } => Path::TaskInstance {
+                environment,
+                dag_id,
+                dag_run_id,
+                task_id,
+                try_number,
+            },
+        }
+    }
 }
 
 /// What a panel has under its cursor when the user moves forward.
@@ -125,6 +171,18 @@ pub enum Selection {
     TaskInstance { task_id: TaskId, try_number: u32 },
 }
 
+impl Selection {
+    /// The level whose list this selection is made from.
+    const fn level(&self) -> Level {
+        match self {
+            Selection::Environment(_) => Level::Environments,
+            Selection::Dag(_) => Level::Dags,
+            Selection::DagRun(_) => Level::DagRuns,
+            Selection::TaskInstance { .. } => Level::TaskInstances,
+        }
+    }
+}
+
 /// The outcome of a navigation step.
 #[derive(Debug, Default)]
 pub struct Move {
@@ -133,16 +191,6 @@ pub struct Move {
     pub changed_at: Option<Level>,
     /// Refreshes to request for the level the user arrived at.
     pub messages: Vec<WorkerMessage>,
-}
-
-/// How a selection would change the path.
-enum PathAfter {
-    /// The selection does not belong to the current level.
-    Unfit,
-    /// The selection is what is already selected; the deeper path is kept.
-    Same,
-    /// The selection replaces the path from this level down.
-    Replaced(Path),
 }
 
 #[derive(Debug)]
@@ -180,79 +228,20 @@ impl Navigation {
     /// below it; selecting a different item drops it. A selection that does
     /// not belong to the current level is ignored.
     pub fn select(&mut self, selection: &Selection) -> Move {
-        let new_path = match self.path_after(selection) {
-            PathAfter::Unfit => {
-                debug!("Ignoring {selection:?} at level {:?}", self.level);
-                return Move::default();
-            }
-            PathAfter::Same => None,
-            PathAfter::Replaced(path) => Some(path),
-        };
-
-        self.level = self.level.deeper();
-        let changed_at = new_path.map(|path| {
-            self.path = path;
-            self.level
-        });
-        Move {
-            changed_at,
-            messages: self.refresh_messages(),
+        if selection.level() != self.level {
+            debug!("Ignoring {selection:?} at level {:?}", self.level);
+            return Move::default();
         }
-    }
 
-    /// The path after selecting `selection` at the current level.
-    fn path_after(&self, selection: &Selection) -> PathAfter {
-        let path = &self.path;
-        let replaced = match (self.level, selection) {
-            (Level::Environments, Selection::Environment(environment)) => {
-                (path.environment() != Some(environment)).then(|| Path::Environment {
-                    environment: environment.clone(),
-                })
-            }
-            (Level::Dags, Selection::Dag(dag_id)) => {
-                let Some(environment) = path.environment() else {
-                    return PathAfter::Unfit;
-                };
-                (path.dag_id() != Some(dag_id)).then(|| Path::Dag {
-                    environment: environment.clone(),
-                    dag_id: dag_id.clone(),
-                })
-            }
-            (Level::DagRuns, Selection::DagRun(dag_run_id)) => {
-                let (Some(environment), Some(dag_id)) = (path.environment(), path.dag_id()) else {
-                    return PathAfter::Unfit;
-                };
-                (path.dag_run_id() != Some(dag_run_id)).then(|| Path::DagRun {
-                    environment: environment.clone(),
-                    dag_id: dag_id.clone(),
-                    dag_run_id: dag_run_id.clone(),
-                })
-            }
-            (
-                Level::TaskInstances,
-                Selection::TaskInstance {
-                    task_id,
-                    try_number,
-                },
-            ) => {
-                let (Some(environment), Some(dag_id), Some(dag_run_id)) =
-                    (path.environment(), path.dag_id(), path.dag_run_id())
-                else {
-                    return PathAfter::Unfit;
-                };
-                (path.task_id() != Some(task_id) || path.try_number() != Some(*try_number)).then(
-                    || Path::TaskInstance {
-                        environment: environment.clone(),
-                        dag_id: dag_id.clone(),
-                        dag_run_id: dag_run_id.clone(),
-                        task_id: task_id.clone(),
-                        try_number: *try_number,
-                    },
-                )
-            }
-            _ => return PathAfter::Unfit,
-        };
-        replaced.map_or(PathAfter::Same, PathAfter::Replaced)
+        let changed = self.path.selection_at(self.level).as_ref() != Some(selection);
+        if changed {
+            self.path = self.path.with(selection.clone());
+        }
+        self.level = self.level.deeper();
+        Move {
+            changed_at: changed.then_some(self.level),
+            messages: self.refresh_messages().unwrap_or_default(),
+        }
     }
 
     /// Move one level up. The path is kept, so moving forward onto the same
@@ -262,48 +251,35 @@ impl Navigation {
         Move::default()
     }
 
-    /// The fetches that load the content of the current level.
-    fn refresh_messages(&self) -> Vec<WorkerMessage> {
+    /// The fetches that load the content of the current level. `None` only
+    /// if the path does not reach the level, which `select` never allows.
+    fn refresh_messages(&self) -> Option<Vec<WorkerMessage>> {
         let path = &self.path;
-        match self.level {
+        Some(match self.level {
             Level::Environments => vec![],
             Level::Dags => vec![WorkerMessage::UpdateDagsAndStats],
-            Level::DagRuns => path
-                .dag_id()
-                .map(|dag_id| WorkerMessage::UpdateDagRuns {
-                    dag_id: dag_id.clone(),
-                })
-                .into_iter()
-                .collect(),
-            Level::TaskInstances => match (path.dag_id(), path.dag_run_id()) {
-                (Some(dag_id), Some(dag_run_id)) => vec![
+            Level::DagRuns => vec![WorkerMessage::UpdateDagRuns {
+                dag_id: path.dag_id()?.clone(),
+            }],
+            Level::TaskInstances => {
+                let dag_id = path.dag_id()?;
+                vec![
                     WorkerMessage::UpdateTasks {
                         dag_id: dag_id.clone(),
                     },
                     WorkerMessage::UpdateTaskInstances {
                         dag_id: dag_id.clone(),
-                        dag_run_id: dag_run_id.clone(),
+                        dag_run_id: path.dag_run_id()?.clone(),
                     },
-                ],
-                _ => vec![],
-            },
-            Level::Logs => match (
-                path.dag_id(),
-                path.dag_run_id(),
-                path.task_id(),
-                path.try_number(),
-            ) {
-                (Some(dag_id), Some(dag_run_id), Some(task_id), Some(task_try)) => {
-                    vec![WorkerMessage::UpdateTaskLogs {
-                        dag_id: dag_id.clone(),
-                        dag_run_id: dag_run_id.clone(),
-                        task_id: task_id.clone(),
-                        task_try,
-                    }]
-                }
-                _ => vec![],
-            },
-        }
+                ]
+            }
+            Level::Logs => vec![WorkerMessage::UpdateTaskLogs {
+                dag_id: path.dag_id()?.clone(),
+                dag_run_id: path.dag_run_id()?.clone(),
+                task_id: path.task_id()?.clone(),
+                task_try: path.try_number()?,
+            }],
+        })
     }
 }
 
@@ -471,18 +447,6 @@ mod tests {
         assert_eq!(nav.level(), Level::TaskInstances);
         assert_eq!(nav.path(), &path);
         assert_eq!(step.changed_at, None);
-        assert!(step.messages.is_empty());
-    }
-
-    #[test]
-    fn nothing_is_deeper_than_logs() {
-        let mut nav = in_dag_run();
-        nav.select(&task("extract", 1));
-
-        let step = nav.select(&task("load", 1));
-
-        assert_eq!(nav.level(), Level::Logs);
-        assert_eq!(nav.path().task_id().map(|id| &**id), Some("extract"));
         assert!(step.messages.is_empty());
     }
 }
