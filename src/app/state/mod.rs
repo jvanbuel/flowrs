@@ -164,8 +164,8 @@ impl App {
 
     /// Record the server's answer to a patched change; a rejected change is
     /// undone on screen.
-    pub fn settle(&mut self, patch: &Patch, succeeded: bool) {
-        self.environment_state.settle(patch, succeeded);
+    pub fn settle(&mut self, environment: &str, patch: &Patch, succeeded: bool) {
+        self.environment_state.settle(environment, patch, succeeded);
         self.sync_panel(patch_level(patch));
     }
 

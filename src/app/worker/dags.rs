@@ -119,7 +119,7 @@ pub async fn handle_toggle_dag(
     app.lock().unwrap().patch(env_name, patch.clone());
     let result = client.toggle_dag(dag_id, is_paused).await;
     let mut app = app.lock().unwrap();
-    app.settle(&patch, result.is_ok());
+    app.settle(env_name, &patch, result.is_ok());
     if let Err(e) = result {
         app.dags.popup.show_error(vec![e.to_string()]);
     }

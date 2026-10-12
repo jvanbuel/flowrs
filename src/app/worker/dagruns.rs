@@ -70,7 +70,7 @@ pub async fn handle_mark_dag_run(
         .mark_dag_run(dag_id, dag_run_id, &status.to_string())
         .await;
     let mut app = app.lock().unwrap();
-    app.settle(&patch, result.is_ok());
+    app.settle(env_name, &patch, result.is_ok());
     if let Err(e) = result {
         debug!("Error marking dag_run: {e}");
         app.dagruns.popup.show_error(vec![e.to_string()]);

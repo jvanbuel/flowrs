@@ -126,7 +126,7 @@ pub async fn handle_mark_task_instance(
         .mark_task_instance(dag_id, dag_run_id, task_id, &status.to_string())
         .await;
     let mut app = app.lock().unwrap();
-    app.settle(&patch, result.is_ok());
+    app.settle(env_name, &patch, result.is_ok());
     if let Err(e) = result {
         debug!("Error marking task_instance: {e}");
         app.task_instances.popup.show_error(vec![e.to_string()]);
