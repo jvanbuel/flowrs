@@ -11,7 +11,7 @@ use crate::app::model::popup::warning::WarningPopup;
 use crate::app::model::Model;
 use crate::app::navigation::{Level, Move, Navigation, Selection};
 use crate::app::worker::WorkerMessage;
-use environment_state::{EnvironmentStateContainer, FetchTicket, Fetched, Patch};
+use environment_state::{EnvironmentStateContainer, FetchTicket, Fetched, Patch, PatchId};
 use flowrs_config::FlowrsConfig;
 use throbber_widgets_tui::ThrobberState;
 
@@ -153,20 +153,24 @@ impl App {
         }
     }
 
-    /// Show a change the user made before the server confirms it.
-    pub fn patch(&mut self, environment: &str, patch: Patch) {
+    /// Show a change the user made before the server confirms it. Pass the
+    /// returned id to `settle` with the server's answer.
+    pub fn patch(&mut self, environment: &str, patch: Patch) -> PatchId {
         let level = patch_level(&patch);
-        self.environment_state.patch(environment, patch);
+        let id = self.environment_state.patch(environment, patch);
         if self.environment_state.active_environment.as_deref() == Some(environment) {
             self.sync_panel(level);
         }
+        id
     }
 
     /// Record the server's answer to a patched change; a rejected change is
     /// undone on screen.
-    pub fn settle(&mut self, environment: &str, patch: &Patch, succeeded: bool) {
-        self.environment_state.settle(environment, patch, succeeded);
-        self.sync_panel(patch_level(patch));
+    pub fn settle(&mut self, environment: &str, id: PatchId, succeeded: bool) {
+        self.environment_state.settle(environment, id, succeeded);
+        if self.environment_state.active_environment.as_deref() == Some(environment) {
+            self.sync_panel(self.navigation.level());
+        }
     }
 
     /// Make the environment the active one, creating its client if needed.

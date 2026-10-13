@@ -121,12 +121,12 @@ pub async fn handle_mark_task_instance(
         task_id: task_id.clone(),
         state: TaskInstanceState::from(&status),
     };
-    app.lock().unwrap().patch(env_name, patch.clone());
+    let id = app.lock().unwrap().patch(env_name, patch);
     let result = client
         .mark_task_instance(dag_id, dag_run_id, task_id, &status.to_string())
         .await;
     let mut app = app.lock().unwrap();
-    app.settle(env_name, &patch, result.is_ok());
+    app.settle(env_name, id, result.is_ok());
     if let Err(e) = result {
         debug!("Error marking task_instance: {e}");
         app.task_instances.popup.show_error(vec![e.to_string()]);

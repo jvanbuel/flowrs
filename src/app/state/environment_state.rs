@@ -143,8 +143,14 @@ pub enum Fetched {
     },
 }
 
+/// Identifies one patched change, so the server's answer to its request
+/// settles exactly that change.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PatchId(u64);
+
 #[derive(Clone, Debug)]
 struct PendingPatch {
+    id: PatchId,
     patch: Patch,
     /// The last fetch started when the server confirmed the change; fetches
     /// started later already include it.
@@ -267,6 +273,7 @@ pub struct EnvironmentStateContainer {
     pub environments: HashMap<EnvironmentKey, EnvironmentData>,
     pub active_environment: Option<EnvironmentKey>,
     next_ticket: u64,
+    next_patch: u64,
 }
 
 impl EnvironmentStateContainer {
@@ -275,6 +282,7 @@ impl EnvironmentStateContainer {
             environments: HashMap::new(),
             active_environment: None,
             next_ticket: 0,
+            next_patch: 0,
         }
     }
 
@@ -352,31 +360,34 @@ impl EnvironmentStateContainer {
     }
 
     /// Show a change in `environment` before the server confirms it.
-    pub fn patch(&mut self, environment: &str, patch: Patch) {
-        let Some(env) = self.environments.get_mut(environment) else {
-            return;
-        };
-        patch.apply_to(env);
-        env.pending.push(PendingPatch {
-            patch,
-            settled_at: None,
-        });
+    pub fn patch(&mut self, environment: &str, patch: Patch) -> PatchId {
+        self.next_patch += 1;
+        let id = PatchId(self.next_patch);
+        if let Some(env) = self.environments.get_mut(environment) {
+            patch.apply_to(env);
+            env.pending.push(PendingPatch {
+                id,
+                patch,
+                settled_at: None,
+            });
+        }
+        id
     }
 
     /// Record the server's answer to a patched change. Once it succeeded,
     /// fetches started from now on carry the change themselves.
     /// If it failed, the change is undone.
-    pub fn settle(&mut self, environment: &str, patch: &Patch, succeeded: bool) {
+    pub fn settle(&mut self, environment: &str, id: PatchId, succeeded: bool) {
         let now = self.next_ticket;
         let Some(env) = self.environments.get_mut(environment) else {
             return;
         };
         if succeeded {
-            for pending in env.pending.iter_mut().filter(|p| p.patch == *patch) {
+            if let Some(pending) = env.pending.iter_mut().find(|p| p.id == id) {
                 pending.settled_at = Some(now);
             }
         } else {
-            env.pending.retain(|p| p.patch != *patch);
+            env.pending.retain(|p| p.id != id);
             env.rebuild_views();
         }
     }
@@ -625,10 +636,10 @@ mod tests {
             &first,
             vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
         );
-        cache.patch("prod", mark_monday_failed());
+        let marked = cache.patch("prod", mark_monday_failed());
         let before_settling = cache.begin_fetch("prod");
 
-        cache.settle("prod", &mark_monday_failed(), true);
+        cache.settle("prod", marked, true);
         let after_settling = cache.begin_fetch("prod");
         let mut succeeded = run("monday", datetime!(2026-10-05 00:00 UTC));
         succeeded.state = DagRunState::Success;
@@ -650,9 +661,9 @@ mod tests {
         let mut running = run("monday", datetime!(2026-10-05 00:00 UTC));
         running.state = DagRunState::Running;
         fetch_runs(&mut cache, &first, vec![running]);
-        cache.patch("prod", mark_monday_failed());
+        let marked = cache.patch("prod", mark_monday_failed());
 
-        cache.settle("prod", &mark_monday_failed(), false);
+        cache.settle("prod", marked, false);
 
         assert_eq!(monday_state(&cache), DagRunState::Running);
     }
@@ -805,8 +816,8 @@ mod tests {
             &first,
             vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
         );
-        cache.patch("prod", mark_monday_failed());
-        cache.settle("prod", &mark_monday_failed(), true);
+        let marked = cache.patch("prod", mark_monday_failed());
+        cache.settle("prod", marked, true);
 
         let later = cache.begin_fetch("prod");
         cache.apply(
@@ -824,6 +835,7 @@ mod tests {
     #[test]
     fn settling_a_change_leaves_the_same_change_in_another_environment_alone() {
         let mut cache = cache();
+        let mut marked = None;
         for environment in ["prod", "dev"] {
             let ticket = cache.begin_fetch(environment);
             fetch_runs(
@@ -831,12 +843,41 @@ mod tests {
                 &ticket,
                 vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
             );
-            cache.patch(environment, mark_monday_failed());
+            let id = cache.patch(environment, mark_monday_failed());
+            if environment == "prod" {
+                marked = Some(id);
+            }
         }
 
-        cache.settle("prod", &mark_monday_failed(), false);
+        cache.settle("prod", marked.unwrap(), false);
 
         cache.active_environment = Some("dev".into());
+        assert_eq!(monday_state(&cache), DagRunState::Failed);
+    }
+
+    #[test]
+    fn each_mark_is_settled_by_its_own_request() {
+        let mut cache = cache();
+        let first = cache.begin_fetch("prod");
+        fetch_runs(
+            &mut cache,
+            &first,
+            vec![run("monday", datetime!(2026-10-05 00:00 UTC))],
+        );
+        let mark_success = Patch::DagRunState {
+            dag_id: "a".into(),
+            dag_run_id: "monday".into(),
+            state: DagRunState::Success,
+        };
+
+        let first_failed = cache.patch("prod", mark_monday_failed());
+        let success = cache.patch("prod", mark_success);
+        let second_failed = cache.patch("prod", mark_monday_failed());
+        cache.settle("prod", second_failed, true);
+        cache.settle("prod", success, true);
+        cache.settle("prod", first_failed, false);
+
+        // The last mark the server accepted was Failed.
         assert_eq!(monday_state(&cache), DagRunState::Failed);
     }
 }
