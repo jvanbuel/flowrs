@@ -8,7 +8,7 @@ use log::debug;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 
-use crate::airflow::model::common::{DagRun, DagRunId, DagRunState};
+use crate::airflow::model::common::{DagRun, DagRunId};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::navigation::Selection;
 
@@ -94,18 +94,6 @@ impl DagRunModel {
         ])
     }
 
-    /// Sort filtered DAG runs by `logical_date` descending
-    /// Call this after `apply_filter()` to ensure proper ordering
-    pub fn sort_dag_runs(&mut self) {
-        // Sort by logical_date (execution date) descending, with fallback to start_date
-        // This ensures queued runs (which have no start_date yet) appear in chronological order
-        self.table.sort_by(|a, b| {
-            b.logical_date
-                .or(b.start_date)
-                .cmp(&a.logical_date.or(a.start_date))
-        });
-    }
-
     /// Get the currently selected DAG run
     pub fn current(&self) -> Option<&DagRun> {
         self.table.current()
@@ -125,15 +113,6 @@ impl DagRunModel {
     /// Returns selected DAG run IDs for passing to mark/clear popups
     fn selected_dag_run_ids(&self) -> Vec<DagRunId> {
         self.table.selected_ids(|item| item.dag_run_id.clone())
-    }
-
-    /// Mark a DAG run with a new status (optimistic update)
-    pub fn mark_dag_run(&mut self, dag_run_id: &DagRunId, status: DagRunState) {
-        self.table.update_all(|all| {
-            if let Some(dag_run) = all.iter_mut().find(|dr| dr.dag_run_id == *dag_run_id) {
-                dag_run.state = status;
-            }
-        });
     }
 }
 
@@ -279,12 +258,10 @@ impl Model for DagRunModel {
                 (Some(FlowrsEvent::Tick), worker_messages)
             }
             FlowrsEvent::Key(key_event) => {
-                // Filter needs special handling - apply filter then sort
                 if matches!(
                     self.table.handle_filter_key(key_event),
                     KeyResult::Consumed | KeyResult::ConsumedWith(_)
                 ) {
-                    self.sort_dag_runs();
                     return (None, vec![]);
                 }
 
@@ -317,10 +294,6 @@ impl Model for DagRunModel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::airflow::model::common::RunType;
-    use crate::app::model::filter::Filterable;
-    use crossterm::event::{KeyEvent, KeyModifiers};
-    use time::macros::datetime;
 
     #[test]
     fn test_duration_gauge_ratios() {
@@ -346,128 +319,5 @@ mod tests {
         let gauge =
             DagRunModel::create_duration_gauge(150.0, 100.0, ratatui::style::Color::Green, 10);
         assert_eq!(gauge.spans[0].content.chars().count(), 10);
-    }
-
-    #[test]
-    fn test_sort_dag_runs_by_logical_date() {
-        let mut model = DagRunModel::default();
-
-        let oldest_run = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "run_1".into(),
-            logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            start_date: Some(datetime!(2024-01-01 10:05:00 UTC)),
-            end_date: Some(datetime!(2024-01-01 10:30:00 UTC)),
-            state: DagRunState::Success,
-            run_type: RunType::Scheduled,
-            ..Default::default()
-        };
-
-        let queued_run = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "run_2".into(),
-            logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
-            start_date: None,
-            end_date: None,
-            state: DagRunState::Queued,
-            run_type: RunType::Scheduled,
-            ..Default::default()
-        };
-
-        let newest_run = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "run_3".into(),
-            logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
-            start_date: Some(datetime!(2024-01-03 10:05:00 UTC)),
-            end_date: None,
-            state: DagRunState::Running,
-            run_type: RunType::Scheduled,
-            ..Default::default()
-        };
-
-        model
-            .table
-            .set_items(vec![oldest_run, newest_run, queued_run]);
-        model.table.apply_filter();
-        model.sort_dag_runs();
-
-        assert_eq!(model.table.len(), 3);
-        assert_eq!(model.table.items().next().unwrap().dag_run_id, "run_3");
-        assert_eq!(model.table.items().nth(1).unwrap().dag_run_id, "run_2");
-        assert_eq!(model.table.items().nth(2).unwrap().dag_run_id, "run_1");
-    }
-
-    #[test]
-    fn test_sort_dag_runs_fallback_to_start_date() {
-        let mut model = DagRunModel::default();
-
-        let run_with_start = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "run_1".into(),
-            logical_date: None,
-            start_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
-            state: DagRunState::Running,
-            run_type: RunType::Manual,
-            ..Default::default()
-        };
-
-        let run_with_both = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "run_2".into(),
-            logical_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            start_date: Some(datetime!(2024-01-01 10:00:00 UTC)),
-            state: DagRunState::Success,
-            run_type: RunType::Scheduled,
-            ..Default::default()
-        };
-
-        model.table.set_items(vec![run_with_both, run_with_start]);
-        model.table.apply_filter();
-        model.sort_dag_runs();
-
-        assert_eq!(model.table.len(), 2);
-        assert_eq!(model.table.items().next().unwrap().dag_run_id, "run_1");
-        assert_eq!(model.table.items().nth(1).unwrap().dag_run_id, "run_2");
-    }
-
-    #[test]
-    fn test_filter_and_sort_dag_runs_with_prefix() {
-        let mut model = DagRunModel::default();
-
-        let run_manual = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "manual_run_1".into(),
-            logical_date: Some(datetime!(2024-01-02 10:00:00 UTC)),
-            state: DagRunState::Success,
-            run_type: RunType::Manual,
-            ..Default::default()
-        };
-
-        let run_scheduled = DagRun {
-            dag_id: "test_dag".into(),
-            dag_run_id: "scheduled_run_1".into(),
-            logical_date: Some(datetime!(2024-01-03 10:00:00 UTC)),
-            state: DagRunState::Queued,
-            run_type: RunType::Scheduled,
-            ..Default::default()
-        };
-
-        model.table.set_items(vec![run_manual, run_scheduled]);
-
-        model.table.filter_mut().activate();
-        for c in "manual".chars() {
-            model.table.filter_mut().update(
-                &KeyEvent::new(crossterm::event::KeyCode::Char(c), KeyModifiers::empty()),
-                &DagRun::filterable_fields(),
-            );
-        }
-        model.table.apply_filter();
-        model.sort_dag_runs();
-
-        assert_eq!(model.table.len(), 1);
-        assert_eq!(
-            model.table.items().next().unwrap().dag_run_id,
-            "manual_run_1"
-        );
     }
 }

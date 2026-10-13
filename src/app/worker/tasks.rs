@@ -4,34 +4,32 @@ use log::debug;
 
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::graph::TaskGraph;
+use crate::airflow::model::common::DagId;
 use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::taskinstances::popup::graph::DagGraphPopup;
+use crate::app::state::environment_state::{FetchTicket, Fetched};
 use crate::app::state::App;
 
 /// Handle fetching task definitions and building the task graph
-pub async fn handle_update_tasks(app: &Arc<Mutex<App>>, client: &Arc<FlowrsClient>, dag_id: &str) {
+pub async fn handle_update_tasks(
+    app: &Arc<Mutex<App>>,
+    client: &Arc<FlowrsClient>,
+    dag_id: &DagId,
+    ticket: &FetchTicket,
+) {
     debug!("Fetching tasks for DAG: {dag_id}");
 
     match client.list_tasks(dag_id).await {
         Ok(task_list) => {
             let graph = TaskGraph::from_tasks(&task_list.tasks);
             debug!("Built task graph with {} tasks", task_list.tasks.len());
-
-            let mut app = app.lock().unwrap();
-            // A slow response for a DAG the user has already left must not
-            // overwrite the graph of the DAG they are looking at now.
-            if app
-                .navigation
-                .path()
-                .dag_id()
-                .is_none_or(|id| *id != *dag_id)
-            {
-                debug!("Dropping task graph for {dag_id}: no longer the selected DAG");
-                return;
-            }
-            app.task_instances.task_graph = Some(graph);
-            app.task_instances.sort_task_instances();
-            app.task_instances.table.apply_filter();
+            app.lock().unwrap().apply_fetched(
+                ticket,
+                Fetched::TaskGraph {
+                    dag_id: dag_id.clone(),
+                    graph,
+                },
+            );
         }
         Err(e) => {
             // Graceful degradation: log warning but don't show error popup
