@@ -23,7 +23,7 @@ impl EventGenerator {
         // `EventStream` reads terminal events asynchronously (crossterm does the
         // blocking read on its own thread), so this loop never blocks a tokio
         // worker. Ticks come from an independent timer running alongside it.
-        tokio::spawn(async move {
+        crate::rt::spawn(async move {
             let mut reader = EventStream::new();
             let mut ticker = interval(tick_rate);
             // Don't fire a burst of catch-up ticks if the loop is ever delayed.

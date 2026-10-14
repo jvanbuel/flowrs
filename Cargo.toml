@@ -107,6 +107,8 @@ tokio = { workspace = true }
 unicode-width = "0.2.0"
 url = "2.5.7"
 webbrowser = "1.2.0"
+# Opt-in Tokio runtime telemetry; see `docs/profiling.md`.
+dial9 = { version = "0.5.4", features = ["tokio", "cpu-profiling"], optional = true }
 
 [dev-dependencies]
 reqwest = { workspace = true }
@@ -121,6 +123,16 @@ panic = "abort"
 [lints]
 workspace = true
 
+[features]
+dial9 = ["dep:dial9"]
+
+# Release build that keeps symbols and unwinds, for dial9 CPU profiles.
+[profile.profiling]
+inherits = "release"
+strip = false
+debug = "line-tables-only"
+panic = "unwind"
+lto = "thin"
 
 [profile.dist]
 inherits = "release"

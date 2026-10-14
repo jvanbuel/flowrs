@@ -133,7 +133,7 @@ impl Dispatcher {
             // Spawn each message processing as a concurrent task
             let app = Arc::clone(&self.app);
             let in_flight = Arc::clone(&in_flight);
-            tasks.spawn(async move {
+            crate::rt::spawn_in_set(&mut tasks, async move {
                 if let Err(e) = process_message(app, message).await {
                     log::error!("Error processing message: {e}");
                 }

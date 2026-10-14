@@ -9,6 +9,7 @@ use crate::airflow::model::common::{Log, OpenItem};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::worker::WorkerMessage;
 
+use render::WrapCache;
 use search::{Search, SearchData};
 
 use super::popup::error::ErrorPopup;
@@ -61,6 +62,10 @@ pub struct LogModel {
     pub(crate) vertical_scroll_state: ScrollbarState,
     pending_g: bool,
     pub(crate) search: Search,
+    /// Bumped whenever `all` is replaced, so the render cache knows to
+    /// re-validate the content it wrapped.
+    generation: u64,
+    wrap_cache: WrapCache,
 }
 
 impl Default for LogModel {
@@ -76,6 +81,8 @@ impl Default for LogModel {
             vertical_scroll_state: ScrollbarState::default(),
             pending_g: false,
             search: Search::default(),
+            generation: 0,
+            wrap_cache: WrapCache::default(),
         }
     }
 }
@@ -100,6 +107,7 @@ impl LogModel {
     /// scroll position tracks the bottom at render time.
     pub fn update_logs(&mut self, logs: Vec<Log>) {
         self.all = logs;
+        self.generation = self.generation.wrapping_add(1);
         self.current = self.current.min(self.all.len().saturating_sub(1));
         self.refresh_search();
     }

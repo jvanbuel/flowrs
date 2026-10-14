@@ -59,7 +59,7 @@ where
     }
 
     log::info!("Spawning dispatcher");
-    tokio::spawn(async move { Dispatcher::new(worker_app).run(rx_worker).await });
+    crate::rt::spawn(async move { Dispatcher::new(worker_app).run(rx_worker).await });
 
     loop {
         terminal.draw(|f| {

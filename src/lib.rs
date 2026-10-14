@@ -5,6 +5,7 @@ use std::sync::LazyLock;
 pub mod airflow;
 pub mod app;
 pub mod commands;
+pub mod rt;
 pub mod ui;
 
 use flowrs_config::paths::ConfigPaths;
