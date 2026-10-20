@@ -33,11 +33,12 @@ pub enum ScrollMode {
 }
 
 impl ScrollMode {
-    /// Returns the concrete scroll position for the given content length.
-    fn position(&self, line_count: usize) -> usize {
+    /// Returns the concrete scroll position, in wrapped rows, given the
+    /// largest offset that still fills the viewport.
+    fn position(&self, max_scroll: usize) -> usize {
         match self {
-            ScrollMode::Following => line_count.saturating_sub(1),
-            ScrollMode::Manual { position } => *position,
+            ScrollMode::Following => max_scroll,
+            ScrollMode::Manual { position } => (*position).min(max_scroll),
             ScrollMode::SourceLine { line } => *line,
         }
     }
@@ -59,6 +60,9 @@ pub struct LogModel {
     poll_tick_multiplier: u32,
     pub(crate) scroll_mode: ScrollMode,
     pub(crate) vertical_scroll_state: ScrollbarState,
+    /// Largest scroll offset (in wrapped rows) that still fills the viewport.
+    /// Set during render, since wrapping depends on the render width.
+    pub(crate) max_scroll: usize,
     pending_g: bool,
     pub(crate) search: Search,
 }
@@ -74,6 +78,7 @@ impl Default for LogModel {
             poll_tick_multiplier: 10,
             scroll_mode: ScrollMode::default(),
             vertical_scroll_state: ScrollbarState::default(),
+            max_scroll: 0,
             pending_g: false,
             search: Search::default(),
         }
@@ -108,12 +113,6 @@ impl LogModel {
     /// `None` when no logs are loaded.
     fn current_log(&self) -> Option<&Log> {
         self.all.get(self.current)
-    }
-
-    /// Returns the total number of lines in the current log content
-    pub(crate) fn current_line_count(&self) -> usize {
-        self.current_log()
-            .map_or(0, |log| log.content.lines().count())
     }
 
     /// Recompute search matches against the current log tab's content.
@@ -246,18 +245,15 @@ impl Model for LogModel {
                         self.refresh_search();
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
-                        let line_count = self.current_line_count();
-                        let current_pos = self.scroll_mode.position(line_count);
-                        let new_pos = current_pos.saturating_add(1);
-                        if new_pos >= line_count.saturating_sub(1) {
+                        let new_pos = self.scroll_mode.position(self.max_scroll) + 1;
+                        if new_pos >= self.max_scroll {
                             self.scroll_mode = ScrollMode::Following;
                         } else {
                             self.scroll_mode = ScrollMode::Manual { position: new_pos };
                         }
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
-                        let line_count = self.current_line_count();
-                        let current_pos = self.scroll_mode.position(line_count);
+                        let current_pos = self.scroll_mode.position(self.max_scroll);
                         self.scroll_mode = ScrollMode::Manual {
                             position: current_pos.saturating_sub(1),
                         };
@@ -289,9 +285,8 @@ impl Model for LogModel {
                     KeyCode::Char('F') => {
                         // Toggle follow mode
                         if self.scroll_mode.is_following() {
-                            let line_count = self.current_line_count();
                             self.scroll_mode = ScrollMode::Manual {
-                                position: line_count.saturating_sub(1),
+                                position: self.max_scroll,
                             };
                         } else {
                             self.scroll_mode = ScrollMode::Following;

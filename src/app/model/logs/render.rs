@@ -1,6 +1,6 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Position, Rect},
+    layout::{Constraint, Layout, Margin, Position, Rect},
     style::{Modifier, Style},
     text::{Line, Span, Text},
     widgets::{
@@ -73,28 +73,59 @@ impl Widget for &mut LogModel {
         };
 
         if let Some(log) = self.all.get(self.current) {
-            let content = match self.search.data() {
+            let mut content: Text = match self.search.data() {
                 Some(data) if !data.matches.is_empty() => highlighted_content(&log.content, data),
                 _ => log.content.lines().map(Line::raw).collect(),
             };
 
-            let line_count = self.current_line_count();
+            // Measure the bottom after wrapping, not in source lines
+            let inner = chunks[1].inner(Margin::new(1, 1)); // block borders
+            let rows: Vec<usize> = content
+                .lines
+                .iter()
+                .map(|line| {
+                    Paragraph::new(line.clone())
+                        .wrap(WRAP)
+                        .line_count(inner.width)
+                })
+                .collect();
+            self.max_scroll = rows
+                .iter()
+                .sum::<usize>()
+                .saturating_sub(usize::from(inner.height));
+
             let scroll_pos = match self.scroll_mode {
                 // Search jumps target a source line; resolve it to a wrapped
                 // position now that the render width is known
                 ScrollMode::SourceLine { line } => {
-                    let position = wrapped_offset(&log.content, line, chunks[1]);
+                    let position =
+                        wrapped_offset(&log.content, line, chunks[1]).min(self.max_scroll);
                     self.scroll_mode = ScrollMode::Manual { position };
                     position
                 }
-                _ => self.scroll_mode.position(line_count),
+                _ => self.scroll_mode.position(self.max_scroll),
             };
 
-            #[expect(
-                clippy::cast_possible_truncation,
-                reason = "value is bounded by terminal/layout dimensions and stays well within the target integer range"
-            )]
+            // `Paragraph::scroll` takes a u16, so drop whole source lines above
+            // the viewport and only scroll within the first one left.
+            // ponytail: a single line over 65k wrapped rows still gets cut off
+            let mut skipped_rows = 0;
+            let skip = rows
+                .iter()
+                .take_while(|&&r| {
+                    let fits = skipped_rows + r <= scroll_pos;
+                    if fits {
+                        skipped_rows += r;
+                    }
+                    fits
+                })
+                .count();
+            content.lines.drain(..skip);
+            let offset = u16::try_from(scroll_pos - skipped_rows).unwrap_or(u16::MAX);
+
             let paragraph = Paragraph::new(content)
+                .wrap(WRAP)
+                .style(t.default_style)
                 .block(
                     Block::default()
                         .border_type(BorderType::Rounded)
@@ -104,9 +135,7 @@ impl Widget for &mut LogModel {
                         .border_style(t.border_style)
                         .title_style(t.title_style),
                 )
-                .wrap(WRAP)
-                .style(t.default_style)
-                .scroll((scroll_pos as u16, 0));
+                .scroll((offset, 0));
 
             // Render the selected log's content
             paragraph.render(chunks[1], buffer);
@@ -318,6 +347,68 @@ mod tests {
         assert_eq!(wrapped_offset(&content, 0, area), 0);
         assert_eq!(wrapped_offset(&content, 1, area), 3);
         assert_eq!(wrapped_offset(&content, 2, area), 4);
+    }
+
+    #[test]
+    fn following_shows_last_line_when_lines_wrap() {
+        let mut model = LogModel::default();
+        let long = "x".repeat(40); // wraps to 3 rows at inner width 18
+        model.update_logs(vec![crate::airflow::model::common::Log {
+            continuation_token: None,
+            content: format!("{long}\n{long}\n{long}\n{long}\n{long}\nEND"),
+        }]);
+
+        let area = Rect::new(0, 0, 20, 12);
+        let mut buffer = Buffer::empty(area);
+        (&mut model).render(area, &mut buffer);
+
+        let screen: String = (0..area.height)
+            .flat_map(|y| (0..area.width).map(move |x| (x, y)))
+            .map(|pos| buffer[pos].symbol())
+            .collect();
+        assert!(screen.contains("END"), "last line not visible: {screen:?}");
+    }
+
+    #[test]
+    fn following_shows_last_line_past_u16_rows() {
+        let mut model = LogModel::default();
+        let mut content = "line\n".repeat(70_000);
+        content.push_str("END");
+        model.update_logs(vec![crate::airflow::model::common::Log {
+            continuation_token: None,
+            content,
+        }]);
+
+        let area = Rect::new(0, 0, 20, 12);
+        let mut buffer = Buffer::empty(area);
+        (&mut model).render(area, &mut buffer);
+
+        let screen: String = (0..area.height)
+            .flat_map(|y| (0..area.width).map(move |x| (x, y)))
+            .map(|pos| buffer[pos].symbol())
+            .collect();
+        assert!(screen.contains("END"), "last line not visible: {screen:?}");
+    }
+
+    #[test]
+    fn manual_position_past_the_end_is_clamped() {
+        // e.g. scrolled far down in a long try, then switched to a short one
+        let mut model = LogModel::default();
+        model.update_logs(vec![crate::airflow::model::common::Log {
+            continuation_token: None,
+            content: "END".to_string(),
+        }]);
+        model.scroll_mode = ScrollMode::Manual { position: 500 };
+
+        let area = Rect::new(0, 0, 20, 12);
+        let mut buffer = Buffer::empty(area);
+        (&mut model).render(area, &mut buffer);
+
+        let screen: String = (0..area.height)
+            .flat_map(|y| (0..area.width).map(move |x| (x, y)))
+            .map(|pos| buffer[pos].symbol())
+            .collect();
+        assert!(screen.contains("END"), "content scrolled away: {screen:?}");
     }
 
     #[test]
