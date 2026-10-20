@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.0...flowrs-tui-v0.16.1) - 2026-10-20
+
+### Fixed
+
+- *(logs)* measure scroll bottom in wrapped rows ([#746](https://github.com/jvanbuel/flowrs/pull/746))
+
+### Other
+
+- *(deps)* bump serde_json from 1.0.151 to 1.0.154 ([#744](https://github.com/jvanbuel/flowrs/pull/744))
+- *(deps)* bump tokio from 1.53.2 to 1.53.3 ([#743](https://github.com/jvanbuel/flowrs/pull/743))
+- *(deps)* bump toml from 1.1.7+spec-1.1.0 to 1.1.8+spec-1.1.0
+
 ## [0.16.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.15.2...flowrs-tui-v0.16.0) - 2026-10-08
 
 ### Fixed
