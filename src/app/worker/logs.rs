@@ -57,6 +57,6 @@ pub async fn handle_update_task_logs(
 
     // Only sync panel data if this environment is still active
     if app.environment_state.active_environment.as_deref() == Some(env_name) {
-        app.sync_panel(&crate::app::state::Panel::Logs);
+        app.sync_panel(crate::app::navigation::Level::Logs);
     }
 }

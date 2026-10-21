@@ -10,7 +10,6 @@ use tokio::sync::mpsc::Receiver;
 use tokio::task::JoinSet;
 
 mod browser;
-mod config;
 mod dagruns;
 mod dags;
 mod logs;
@@ -24,7 +23,6 @@ pub struct Dispatcher {
 
 #[derive(Debug)]
 pub enum WorkerMessage {
-    ConfigSelected(usize),
     UpdateDagsAndStats,
     ToggleDag {
         dag_id: DagId,
@@ -83,11 +81,31 @@ pub enum WorkerMessage {
     OpenItem(OpenItem),
 }
 
+/// A message bound to the environment that was active when it was sent, so a
+/// later environment switch cannot redirect it.
+#[derive(Debug)]
+pub struct Request {
+    pub environment: Option<String>,
+    pub message: WorkerMessage,
+}
+
+impl Request {
+    /// Refreshes for the same data in the same environment are duplicates;
+    /// the same refresh for another environment is not.
+    fn dedup_key(&self) -> Option<String> {
+        let key = self.message.dedup_key()?;
+        Some(format!(
+            "{}:{key}",
+            self.environment.as_deref().unwrap_or_default()
+        ))
+    }
+}
+
 impl WorkerMessage {
     /// Returns a dedup key for periodic refresh messages.
     /// One-off user actions (mark, clear, trigger, toggle, etc.) return `None`
     /// so they are never deduplicated.
-    fn dedup_key(&self) -> Option<String> {
+    pub(crate) fn dedup_key(&self) -> Option<String> {
         match self {
             Self::UpdateDagsAndStats => Some("UpdateDagsAndStats".to_string()),
             Self::UpdateDagRuns { dag_id } => Some(format!("UpdateDagRuns:{dag_id}")),
@@ -112,13 +130,13 @@ impl Dispatcher {
         Self { app }
     }
 
-    pub async fn run(self, mut rx: Receiver<WorkerMessage>) -> Result<()> {
+    pub async fn run(self, mut rx: Receiver<Request>) -> Result<()> {
         let mut tasks = JoinSet::new();
         let in_flight: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
 
         // Process messages until the channel is closed (recv returns None)
-        while let Some(message) = rx.recv().await {
-            let dedup_key = message.dedup_key();
+        while let Some(request) = rx.recv().await {
+            let dedup_key = request.dedup_key();
 
             // Skip if an identical periodic request is already in flight
             if let Some(ref key) = dedup_key {
@@ -134,7 +152,7 @@ impl Dispatcher {
             let app = Arc::clone(&self.app);
             let in_flight = Arc::clone(&in_flight);
             tasks.spawn(async move {
-                if let Err(e) = process_message(app, message).await {
+                if let Err(e) = process_message(app, request).await {
                     log::error!("Error processing message: {e}");
                 }
                 // Remove from in-flight set when done
@@ -157,30 +175,25 @@ impl Dispatcher {
 
 /// Processes a single worker message. This function is spawned as an ephemeral task
 /// by the Dispatcher, allowing multiple API requests to run in parallel.
-async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result<()> {
+async fn process_message(app: Arc<Mutex<App>>, request: Request) -> Result<()> {
+    let Request {
+        environment,
+        message,
+    } = request;
     // Set loading state at the start
     {
         let mut app = app.lock().unwrap();
         app.loading = true;
     }
 
-    // Handle messages that don't require an active client first
-    if let WorkerMessage::ConfigSelected(idx) = message {
-        return config::handle_config_selected(&app, idx);
-    }
-
-    // Get the active client and environment name from the environment state.
-    // We capture the environment name here so that async handlers can write
-    // results back to the correct environment, even if the active environment
-    // changes while the API call is in flight.
-    let (client, env_name) = {
+    // Use the client of the environment the message was sent from, so results
+    // and actions go there even if the user has switched environments since.
+    let client = {
         let app = app.lock().unwrap();
-        (
-            app.environment_state
-                .get_active_environment()
-                .map(|env| Arc::clone(&env.client)),
-            app.environment_state.active_environment.clone(),
-        )
+        environment
+            .as_deref()
+            .and_then(|env| app.environment_state.environments.get(env))
+            .map(|env| Arc::clone(&env.client))
     };
 
     let Some(client) = client else {
@@ -192,16 +205,13 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         return Ok(());
     };
 
-    let Some(env_name) = env_name else {
+    let Some(env_name) = environment else {
         let mut app = app.lock().unwrap();
         app.loading = false;
         return Ok(());
     };
 
     match message {
-        WorkerMessage::ConfigSelected(_) => {
-            unreachable!("ConfigSelected should be handled before client check");
-        }
         // DAG operations
         WorkerMessage::UpdateDagsAndStats => {
             dags::handle_update_dags_and_stats(&app, &client, &env_name).await;
@@ -314,4 +324,28 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn refresh_for(environment: &str) -> Request {
+        Request {
+            environment: Some(environment.to_string()),
+            message: WorkerMessage::UpdateDagsAndStats,
+        }
+    }
+
+    #[test]
+    fn refreshes_for_different_environments_are_not_duplicates() {
+        assert_ne!(
+            refresh_for("prod").dedup_key(),
+            refresh_for("dev").dedup_key()
+        );
+        assert_eq!(
+            refresh_for("prod").dedup_key(),
+            refresh_for("prod").dedup_key()
+        );
+    }
 }

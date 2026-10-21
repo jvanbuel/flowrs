@@ -1,5 +1,4 @@
 use crossterm::event::{KeyCode, KeyEvent};
-use log::debug;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::text::Line;
@@ -7,6 +6,7 @@ use ratatui::widgets::{Block, BorderType, Borders, Row, StatefulWidget, Table, W
 
 use crate::airflow::model::common::OpenItem;
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::navigation::Selection;
 use crate::app::worker::WorkerMessage;
 use crate::ui::theme::theme;
 use flowrs_config::AirflowConfig;
@@ -48,6 +48,13 @@ impl ConfigModel {
         model
     }
 
+    /// The environment under the cursor, as a navigation selection.
+    pub fn selection(&self) -> Option<Selection> {
+        self.table
+            .current()
+            .map(|config| Selection::Environment(config.name.clone()))
+    }
+
     /// Handle model-specific keys
     fn handle_keys(&mut self, key_event: &KeyEvent) -> KeyResult {
         match key_event.code {
@@ -63,15 +70,6 @@ impl ConfigModel {
                 self.popup.show_commands(&CONFIG_COMMAND_POP_UP);
                 KeyResult::Consumed
             }
-            KeyCode::Enter => {
-                if let Some(idx) = self.table.selected_position() {
-                    if let Some(item) = self.table.item_at(idx) {
-                        debug!("Selected config: {}", item.name);
-                        return KeyResult::PassWith(vec![WorkerMessage::ConfigSelected(idx)]);
-                    }
-                }
-                KeyResult::PassThrough
-            }
             _ => KeyResult::PassThrough,
         }
     }
@@ -81,7 +79,7 @@ impl Model for ConfigModel {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        _ctx: &crate::app::state::NavigationContext,
+        _ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => (Some(FlowrsEvent::Tick), vec![]),

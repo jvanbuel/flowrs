@@ -10,6 +10,7 @@ use ratatui::text::{Line, Span};
 
 use crate::airflow::model::common::{DagRun, DagRunId, DagRunState};
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::navigation::Selection;
 
 use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::airflow::model::common::OpenItem;
@@ -110,6 +111,17 @@ impl DagRunModel {
         self.table.current()
     }
 
+    /// The DAG run under the cursor, as a navigation selection.
+    pub fn selection(&self) -> Option<Selection> {
+        self.current()
+            .map(|dag_run| Selection::DagRun(dag_run.dag_run_id.clone()))
+    }
+
+    /// Forget view state tied to the previously selected DAG.
+    pub fn reset_view(&mut self) {
+        self.table.reset_cursor();
+    }
+
     /// Returns selected DAG run IDs for passing to mark/clear popups
     fn selected_dag_run_ids(&self) -> Vec<DagRunId> {
         self.table.selected_ids(|item| item.dag_run_id.clone())
@@ -141,7 +153,7 @@ impl DagRunModel {
     fn handle_popup(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> Option<Vec<WorkerMessage>> {
         let custom_popup = self.popup.custom_mut()?;
         let (key_event, messages) = match custom_popup {
@@ -169,11 +181,7 @@ impl DagRunModel {
     }
 
     /// Handle model-specific keys
-    fn handle_keys(
-        &mut self,
-        key_code: KeyCode,
-        ctx: &crate::app::state::NavigationContext,
-    ) -> KeyResult {
+    fn handle_keys(&mut self, key_code: KeyCode, ctx: &crate::app::navigation::Path) -> KeyResult {
         match key_code {
             KeyCode::Char('t') => {
                 if let Some(dag_id) = ctx.dag_id() {
@@ -234,21 +242,6 @@ impl DagRunModel {
                 }
                 KeyResult::Consumed
             }
-            KeyCode::Enter => {
-                if let (Some(dag_id), Some(dag_run)) = (ctx.dag_id(), &self.current()) {
-                    KeyResult::PassWith(vec![
-                        WorkerMessage::UpdateTasks {
-                            dag_id: dag_id.clone(),
-                        },
-                        WorkerMessage::UpdateTaskInstances {
-                            dag_id: dag_id.clone(),
-                            dag_run_id: dag_run.dag_run_id.clone(),
-                        },
-                    ])
-                } else {
-                    KeyResult::Consumed
-                }
-            }
             KeyCode::Char('o') => {
                 if let (Some(dag_id), Some(dag_run)) = (ctx.dag_id(), &self.current()) {
                     KeyResult::PassWith(vec![WorkerMessage::OpenItem(OpenItem::DagRun {
@@ -268,7 +261,7 @@ impl Model for DagRunModel {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {

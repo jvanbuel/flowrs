@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use flowrs_config::AirflowConfig;
+
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{
     Dag, DagId, DagRun, DagRunId, DagStatistic, EnvironmentKey, Log, TaskId, TaskInstance,
@@ -122,6 +124,20 @@ impl EnvironmentStateContainer {
         if self.environments.contains_key(&key) {
             self.active_environment = Some(key);
         }
+    }
+
+    /// Make `config`'s environment the active one, creating its client the
+    /// first time it is selected.
+    pub fn activate(&mut self, config: &AirflowConfig) -> anyhow::Result<()> {
+        let key = EnvironmentKey::from(config.name.clone());
+        if !self.environments.contains_key(&key) {
+            let client = FlowrsClient::new(config)
+                .map_err(|e| anyhow::anyhow!("Failed to connect to '{key}': {e}"))?;
+            self.environments
+                .insert(key.clone(), EnvironmentData::new(Arc::new(client)));
+        }
+        self.active_environment = Some(key);
+        Ok(())
     }
 
     // ── Read methods (called by sync_panel) ────────────────────────
