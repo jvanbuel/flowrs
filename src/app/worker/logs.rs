@@ -6,12 +6,13 @@ use log::debug;
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 use crate::app::model::popup::error::ErrorPopup;
+use crate::app::state::environment_state::{FetchTicket, Fetched};
 use crate::app::state::App;
 
 /// Handle fetching task logs for all attempts of a task instance.
 ///
-/// `env_name` identifies which environment initiated this request, ensuring
-/// results are written to the correct environment even if the active one changes.
+/// The ticket names the environment that initiated this request, so results
+/// are written there even if the active environment changes meanwhile.
 pub async fn handle_update_task_logs(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
@@ -19,7 +20,7 @@ pub async fn handle_update_task_logs(
     dag_run_id: &DagRunId,
     task_id: &TaskId,
     task_try: u32,
-    env_name: &str,
+    ticket: &FetchTicket,
 ) {
     debug!("Getting logs for task: {task_id}, try number {task_try}");
     let logs =
@@ -48,15 +49,15 @@ pub async fn handle_update_task_logs(
         app.logs.error_popup = Some(ErrorPopup::from_strings(errors));
     }
 
-    // Store logs in the originating environment, not the active one
     if !collected_logs.is_empty() {
-        if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-            env.replace_task_logs(dag_id, dag_run_id, task_id, collected_logs);
-        }
-    }
-
-    // Only sync panel data if this environment is still active
-    if app.environment_state.active_environment.as_deref() == Some(env_name) {
-        app.sync_panel(crate::app::navigation::Level::Logs);
+        app.apply_fetched(
+            ticket,
+            Fetched::TaskLogs {
+                dag_id: dag_id.clone(),
+                dag_run_id: dag_run_id.clone(),
+                task_id: task_id.clone(),
+                logs: collected_logs,
+            },
+        );
     }
 }

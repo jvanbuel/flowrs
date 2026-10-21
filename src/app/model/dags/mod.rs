@@ -3,6 +3,7 @@ pub mod popup;
 mod render;
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crossterm::event::KeyCode;
 use log::debug;
@@ -24,7 +25,8 @@ pub struct DagModel {
     /// Filterable table containing all DAGs and filtered view
     pub table: FilterableTable<Dag>,
     /// DAG statistics by `dag_id`
-    pub dag_stats: HashMap<DagId, Vec<DagStatistic>>,
+    /// DAG statistics by `dag_id`, shared with the environment cache.
+    pub dag_stats: Arc<HashMap<DagId, Vec<DagStatistic>>>,
     /// Unified popup state (error, commands, or custom for this model)
     pub popup: Popup<DagPopUp>,
     /// DAG source code viewer
@@ -38,7 +40,7 @@ impl Default for DagModel {
     fn default() -> Self {
         Self {
             table: FilterableTable::new(),
-            dag_stats: HashMap::new(),
+            dag_stats: Arc::default(),
             popup: Popup::None,
             dag_code: None,
             ticks: 0,
@@ -105,12 +107,10 @@ impl DagModel {
     fn handle_keys(&mut self, key_code: KeyCode) -> KeyResult {
         match key_code {
             KeyCode::Char('p') => {
-                if let Some(dag) = self.table.current_mut() {
-                    let current_state = dag.is_paused;
-                    dag.is_paused = !current_state;
+                if let Some(dag) = self.table.current() {
                     KeyResult::ConsumedWith(vec![WorkerMessage::ToggleDag {
                         dag_id: dag.dag_id.clone(),
-                        is_paused: current_state,
+                        is_paused: dag.is_paused,
                     }])
                 } else {
                     self.popup
