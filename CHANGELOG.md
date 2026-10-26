@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.1...flowrs-tui-v0.16.2) - 2026-10-26
+
+### Other
+
+- *(deps)* bump webbrowser from 1.2.4 to 1.2.5 ([#747](https://github.com/jvanbuel/flowrs/pull/747))
+- *(deps)* bump tokio from 1.54.0 to 1.54.1 ([#748](https://github.com/jvanbuel/flowrs/pull/748))
+- *(deps)* bump aws-config from 1.12.0 to 1.13.0 ([#749](https://github.com/jvanbuel/flowrs/pull/749))
+- *(deps)* bump google-cloud-auth from 1.17.0 to 1.18.0 ([#750](https://github.com/jvanbuel/flowrs/pull/750))
+
 ## [0.16.1](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.0...flowrs-tui-v0.16.1) - 2026-10-20
 
 ### Fixed
