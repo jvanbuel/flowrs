@@ -8,7 +8,8 @@ use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
 use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::dagruns::DagCodeView;
 use crate::app::model::dags::popup::DagPopUp;
-use crate::app::state::{App, Panel};
+use crate::app::navigation::Level;
+use crate::app::state::App;
 
 /// Handle updating DAGs and their statistics from the Airflow server.
 /// On cold start (empty cache), fetches DAGs first then stats sequentially so
@@ -114,7 +115,7 @@ pub async fn handle_update_dags_and_stats(
     // otherwise we'd overwrite the UI with stale data from a different server
     let mut app = app.lock().unwrap();
     if app.environment_state.active_environment.as_deref() == Some(env_name) {
-        app.sync_panel(&crate::app::state::Panel::Dag);
+        app.sync_panel(Level::Dags);
     }
 }
 
@@ -152,22 +153,22 @@ pub async fn handle_get_dag_code(
         match dag_code {
             Ok(dag_code) => {
                 let view = Some(DagCodeView::new(&dag_code));
-                match app.active_panel {
-                    Panel::Dag => app.dags.dag_code = view,
-                    Panel::DAGRun => app.dagruns.dag_code = view,
+                match app.navigation.level() {
+                    Level::Dags => app.dags.dag_code = view,
+                    Level::DagRuns => app.dagruns.dag_code = view,
                     _ => {}
                 }
             }
-            Err(e) => match app.active_panel {
-                Panel::DAGRun => app.dagruns.popup.show_error(vec![e.to_string()]),
+            Err(e) => match app.navigation.level() {
+                Level::DagRuns => app.dagruns.popup.show_error(vec![e.to_string()]),
                 _ => app.dags.popup.show_error(vec![e.to_string()]),
             },
         }
     } else {
         let mut app = app.lock().unwrap();
         let error = vec!["DAG not found".to_string()];
-        match app.active_panel {
-            Panel::DAGRun => app.dagruns.popup.show_error(error),
+        match app.navigation.level() {
+            Level::DagRuns => app.dagruns.popup.show_error(error),
             _ => app.dags.popup.show_error(error),
         }
     }
@@ -206,8 +207,8 @@ pub async fn handle_get_dag_params(
         .get(env_name)
         .and_then(|env| env.dag_params.get(dag_id).cloned());
     let popup = TriggerDagRunPopUp::new(dag_id.clone(), params.as_deref());
-    match app.active_panel {
-        Panel::DAGRun => app.dagruns.popup.show_custom(DagRunPopUp::Trigger(popup)),
+    match app.navigation.level() {
+        Level::DagRuns => app.dagruns.popup.show_custom(DagRunPopUp::Trigger(popup)),
         _ => app.dags.popup.show_custom(DagPopUp::Trigger(popup)),
     }
 }

@@ -1,4 +1,5 @@
-use super::{App, Panel};
+use super::App;
+use crate::app::navigation::Level;
 
 /// Collect autocomplete candidates: sorted, de-duplicated, blanks dropped.
 fn distinct(values: impl Iterator<Item = String>) -> Vec<String> {
@@ -10,9 +11,10 @@ fn distinct(values: impl Iterator<Item = String>) -> Vec<String> {
 
 impl App {
     /// Sync a specific panel's data from `environment_state`.
-    pub fn sync_panel(&mut self, panel: &Panel) {
-        match panel {
-            Panel::Dag => {
+    pub fn sync_panel(&mut self, level: Level) {
+        let path = self.navigation.path();
+        match level {
+            Level::Dags => {
                 self.dags
                     .table
                     .set_items(self.environment_state.get_active_dags());
@@ -49,8 +51,8 @@ impl App {
                 );
                 self.dags.table.filter_mut().set_field_values("tags", tags);
             }
-            Panel::DAGRun => {
-                if let Some(dag_id) = self.nav_context.dag_id() {
+            Level::DagRuns => {
+                if let Some(dag_id) = path.dag_id() {
                     self.dagruns
                         .table
                         .set_items(self.environment_state.get_active_dag_runs(dag_id));
@@ -70,11 +72,8 @@ impl App {
                     self.dagruns.table.clear();
                 }
             }
-            Panel::TaskInstance => {
-                if let (Some(dag_id), Some(dag_run_id)) =
-                    (self.nav_context.dag_id(), self.nav_context.dag_run_id())
-                {
-                    self.task_instances.set_gantt_context(dag_id, dag_run_id);
+            Level::TaskInstances => {
+                if let (Some(dag_id), Some(dag_run_id)) = (path.dag_id(), path.dag_run_id()) {
                     self.task_instances.table.set_items(
                         self.environment_state
                             .get_active_task_instances(dag_id, dag_run_id),
@@ -106,12 +105,10 @@ impl App {
                     self.task_instances.table.clear();
                 }
             }
-            Panel::Logs => {
-                if let (Some(dag_id), Some(dag_run_id), Some(task_id)) = (
-                    self.nav_context.dag_id(),
-                    self.nav_context.dag_run_id(),
-                    self.nav_context.task_id(),
-                ) {
+            Level::Logs => {
+                if let (Some(dag_id), Some(dag_run_id), Some(task_id)) =
+                    (path.dag_id(), path.dag_run_id(), path.task_id())
+                {
                     self.logs.update_logs(
                         self.environment_state
                             .get_active_task_logs(dag_id, dag_run_id, task_id),
@@ -122,7 +119,7 @@ impl App {
                     self.logs.update_logs(Vec::new());
                 }
             }
-            Panel::Config => {
+            Level::Environments => {
                 let config_names: Vec<String> = self
                     .configs
                     .table
