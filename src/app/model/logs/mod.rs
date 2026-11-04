@@ -1,6 +1,8 @@
 mod render;
 mod search;
 
+use std::sync::Arc;
+
 use crossterm::event::KeyCode;
 use ratatui::layout::Position;
 use ratatui::widgets::ScrollbarState;
@@ -50,7 +52,8 @@ impl ScrollMode {
 
 #[derive(Debug)]
 pub struct LogModel {
-    all: Vec<Log>,
+    /// Logs per try, shared with the environment cache.
+    all: Arc<[Log]>,
     current: usize,
     pub error_popup: Option<ErrorPopup>,
     /// Terminal cursor position for the search bar; set during render while
@@ -70,7 +73,7 @@ pub struct LogModel {
 impl Default for LogModel {
     fn default() -> Self {
         Self {
-            all: Vec::new(),
+            all: Arc::default(),
             current: 0,
             error_popup: None,
             search_cursor_position: None,
@@ -105,8 +108,8 @@ impl LogModel {
     /// Clamping here rather than on every read means `current` is always a
     /// valid index, so readers can use it directly. When in follow mode, the
     /// scroll position tracks the bottom at render time.
-    pub fn update_logs(&mut self, logs: Vec<Log>) {
-        self.all = logs;
+    pub fn update_logs(&mut self, logs: impl Into<Arc<[Log]>>) {
+        self.all = logs.into();
         self.current = self.current.min(self.all.len().saturating_sub(1));
         self.refresh_search();
     }
@@ -332,7 +335,7 @@ mod tests {
                     continuation_token: None,
                     content: (*content).to_string(),
                 })
-                .collect(),
+                .collect::<Vec<_>>(),
         );
         model
     }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::App;
 use crate::app::navigation::Level;
 
@@ -15,10 +17,8 @@ impl App {
         let path = self.navigation.path();
         match level {
             Level::Dags => {
-                self.dags
-                    .table
-                    .set_items(self.environment_state.get_active_dags());
-                self.dags.dag_stats = self.environment_state.get_active_dag_stats();
+                self.dags.table.set_items(self.environment_state.dags());
+                self.dags.dag_stats = self.environment_state.dag_stats();
                 let dag_ids: Vec<String> = self
                     .dags
                     .table
@@ -55,7 +55,7 @@ impl App {
                 if let Some(dag_id) = path.dag_id() {
                     self.dagruns
                         .table
-                        .set_items(self.environment_state.get_active_dag_runs(dag_id));
+                        .set_items(self.environment_state.dag_runs(dag_id));
                     let dag_run_ids: Vec<String> = self
                         .dagruns
                         .table
@@ -67,18 +67,16 @@ impl App {
                         .table
                         .filter_mut()
                         .set_primary_values("dag_run_id", dag_run_ids);
-                    self.dagruns.sort_dag_runs();
                 } else {
                     self.dagruns.table.clear();
                 }
             }
             Level::TaskInstances => {
                 if let (Some(dag_id), Some(dag_run_id)) = (path.dag_id(), path.dag_run_id()) {
-                    self.task_instances.table.set_items(
-                        self.environment_state
-                            .get_active_task_instances(dag_id, dag_run_id),
-                    );
-                    self.task_instances.sort_task_instances();
+                    self.task_instances
+                        .table
+                        .set_items(self.environment_state.task_instances(dag_id, dag_run_id));
+                    self.task_instances.task_graph = self.environment_state.task_graph(dag_id);
                     let task_ids: Vec<String> = self
                         .task_instances
                         .table
@@ -111,12 +109,12 @@ impl App {
                 {
                     self.logs.update_logs(
                         self.environment_state
-                            .get_active_task_logs(dag_id, dag_run_id, task_id),
+                            .task_logs(dag_id, dag_run_id, task_id),
                     );
                 } else {
                     // Go through update_logs so the selected try is clamped and
                     // the search matches are refreshed, like any other update.
-                    self.logs.update_logs(Vec::new());
+                    self.logs.update_logs(Arc::default());
                 }
             }
             Level::Environments => {
