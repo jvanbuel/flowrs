@@ -69,7 +69,7 @@ pub async fn handle_update_task_instances(
         env.replace_task_instances(dag_id, dag_run_id, task_instances);
     }
     if app.environment_state.active_environment.as_deref() == Some(env_name) {
-        app.sync_panel(&crate::app::state::Panel::TaskInstance);
+        app.sync_panel(crate::app::navigation::Level::TaskInstances);
         app.task_instances.gantt_data = gantt;
     }
 }

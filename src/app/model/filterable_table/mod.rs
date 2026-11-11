@@ -36,6 +36,9 @@ pub struct FilterableTable<T> {
     filter: FilterStateMachine,
     /// Anchor position for visual selection; `Some` means visual mode is active.
     visual_anchor: Option<usize>,
+    /// Put the cursor on the first row once the view has rows; set when the
+    /// table's content is about to belong to a different selection.
+    select_first_row: bool,
 }
 
 impl<T: Filterable> FilterableTable<T> {
@@ -46,6 +49,7 @@ impl<T: Filterable> FilterableTable<T> {
             view: StatefulTable::new(Vec::new()),
             filter: FilterStateMachine::default(),
             visual_anchor: None,
+            select_first_row: false,
         }
     }
 
@@ -86,6 +90,18 @@ impl<T: Filterable> FilterableTable<T> {
     pub fn apply_filter(&mut self) {
         let conditions = self.filter.active_conditions();
         self.view.items = filter_items(&self.all, &conditions);
+        if self.select_first_row && !self.view.items.is_empty() {
+            self.view.state.select(Some(0));
+            self.select_first_row = false;
+        }
+    }
+
+    /// Forget the cursor and visual selection; the cursor goes to the first
+    /// row as soon as the table has rows.
+    pub fn reset_cursor(&mut self) {
+        self.view.state.select(None);
+        self.visual_anchor = None;
+        self.select_first_row = true;
     }
 
     // ── The filtered view ───────────────────────────────────

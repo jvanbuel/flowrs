@@ -6,7 +6,7 @@ use events::{custom::FlowrsEvent, generator::EventGenerator};
 use log::debug;
 use ratatui::{prelude::Backend, Terminal};
 use state::App;
-use worker::{Dispatcher, WorkerMessage};
+use worker::{Dispatcher, Request};
 
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::EnvironmentKey;
@@ -15,6 +15,7 @@ use crate::{ui::draw_ui, CONFIG_PATHS};
 
 pub mod events;
 pub mod model;
+pub mod navigation;
 pub mod state;
 pub mod worker;
 
@@ -26,7 +27,7 @@ where
     let ui_app = Arc::clone(&app);
     let worker_app = Arc::clone(&app);
 
-    let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<WorkerMessage>(100);
+    let (tx_worker, rx_worker) = tokio::sync::mpsc::channel::<Request>(100);
 
     log::info!("Initializing environment state");
     {
@@ -101,22 +102,37 @@ where
                 }
             }
 
-            // Then handle panel specific events, and send messages to the event channel
-            let (fall_through_event, messages) = app.lock().unwrap().update_active_panel(&event);
-
-            // Set context IDs on target panels before sending messages to the worker.
-            // Data sync from environment_state happens via sync_panel_data() on
-            // navigation (Enter/Esc) and after worker completes API calls.
-            {
+            // Then handle panel specific events. A navigation key the panel
+            // did not consume moves forward or back.
+            let (fall_through_event, messages, environment) = {
                 let mut app = app.lock().unwrap();
-                for message in &messages {
-                    app.set_context_from_message(message);
+                let (fall_through_event, mut messages) = app.update_active_panel(&event);
+                if let Some(FlowrsEvent::Key(key)) = &fall_through_event {
+                    match key.code {
+                        KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
+                            messages.extend(app.go_forward());
+                        }
+                        KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => app.go_back(),
+                        _ => {}
+                    }
                 }
-            }
+                // Bind the messages to the environment they were made for;
+                // after an environment switch that is the new one.
+                let environment = app
+                    .environment_state
+                    .active_environment
+                    .as_ref()
+                    .map(ToString::to_string);
+                (fall_through_event, messages, environment)
+            };
 
-            // Now send messages to worker for async processing
+            // Send messages to the worker for async processing
             for message in messages {
-                if let Err(e) = tx_worker.send(message).await {
+                let request = Request {
+                    environment: environment.clone(),
+                    message,
+                };
+                if let Err(e) = tx_worker.send(request).await {
                     log::error!("Failed to send message to worker: {e}");
                 }
             }
@@ -137,28 +153,14 @@ where
                         return Ok(());
                     }
                 }
-                // Handle other key events
-                match key.code {
-                    KeyCode::Char('q') => {
-                        // Persist config (e.g. active-server selection) on exit, but
-                        // a save failure should not turn a normal quit into an error
-                        // exit.
-                        if let Err(e) = app.config.write_to_file(&CONFIG_PATHS) {
-                            log::error!("Failed to save config on exit: {e}");
-                        }
-                        return Ok(());
+                if key.code == KeyCode::Char('q') {
+                    // Persist config (e.g. active-server selection) on exit, but
+                    // a save failure should not turn a normal quit into an error
+                    // exit.
+                    if let Err(e) = app.config.write_to_file(&CONFIG_PATHS) {
+                        log::error!("Failed to save config on exit: {e}");
                     }
-                    KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => {
-                        app.next_panel();
-                        let panel = app.active_panel.clone();
-                        app.sync_panel(&panel);
-                    }
-                    KeyCode::Esc | KeyCode::Left | KeyCode::Char('h') => {
-                        app.previous_panel();
-                        let panel = app.active_panel.clone();
-                        app.sync_panel(&panel);
-                    }
-                    _ => {}
+                    return Ok(());
                 }
             }
         }

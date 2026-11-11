@@ -169,7 +169,7 @@ impl DagGraphPopup {
     pub fn update(
         &mut self,
         event: &FlowrsEvent,
-        _ctx: &crate::app::state::NavigationContext,
+        _ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         if let FlowrsEvent::Key(key) = event {
             match key.code {

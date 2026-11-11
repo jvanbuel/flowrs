@@ -1,6 +1,6 @@
 use ratatui::widgets::TableState;
 
-use super::{events::custom::FlowrsEvent, state::NavigationContext, worker::WorkerMessage};
+use super::{events::custom::FlowrsEvent, navigation::Path, worker::WorkerMessage};
 
 pub mod config;
 pub mod dagruns;
@@ -62,7 +62,7 @@ pub trait Model {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &NavigationContext,
+        ctx: &Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>);
 }
 
