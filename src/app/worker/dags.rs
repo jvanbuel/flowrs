@@ -3,12 +3,13 @@ use std::sync::{Arc, Mutex};
 use log::warn;
 
 use crate::airflow::client::FlowrsClient;
-use crate::airflow::model::common::DagId;
+use crate::airflow::model::common::{DagId, DagStatsResponse};
 use crate::app::model::dagruns::popup::trigger::TriggerDagRunPopUp;
 use crate::app::model::dagruns::popup::DagRunPopUp;
 use crate::app::model::dagruns::DagCodeView;
 use crate::app::model::dags::popup::DagPopUp;
 use crate::app::navigation::Level;
+use crate::app::state::environment_state::{FetchTicket, Fetched, Patch};
 use crate::app::state::App;
 
 /// Handle updating DAGs and their statistics from the Airflow server.
@@ -16,12 +17,12 @@ use crate::app::state::App;
 /// stats use fresh IDs. On warm cache, fetches both concurrently using cached
 /// DAG IDs; new DAGs pick up stats on the next refresh.
 ///
-/// `env_name` identifies which environment initiated this request, ensuring
-/// results are written to the correct environment even if the active one changes.
+/// The ticket names the environment that initiated this request, so results
+/// are written there even if the active environment changes meanwhile.
 pub async fn handle_update_dags_and_stats(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
-    env_name: &str,
+    ticket: &FetchTicket,
 ) {
     // Snapshot cached DAG IDs from the originating environment for the stats request
     let cached_dag_ids: Vec<DagId> = {
@@ -29,50 +30,35 @@ pub async fn handle_update_dags_and_stats(
         app_lock
             .environment_state
             .environments
-            .get(env_name)
+            .get(ticket.environment())
             .map(|env| env.dags.iter().map(|dag| dag.dag_id.clone()).collect())
             .unwrap_or_default()
     };
 
     if cached_dag_ids.is_empty() {
-        // Cold start: fetch DAGs first, then stats with fresh IDs
-        let dag_list_result = client.list_dags().await;
-
-        let dag_ids: Vec<DagId> = {
-            let mut app = app.lock().unwrap();
-            match dag_list_result {
-                Ok(dag_list) => {
-                    let ids: Vec<DagId> = dag_list.dags.iter().map(|d| d.dag_id.clone()).collect();
-                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                        env.replace_dags(dag_list.dags);
-                    }
-                    ids
-                }
-                Err(e) => {
-                    app.dags.popup.show_error(vec![e.to_string()]);
-                    vec![]
-                }
+        // Cold start: show DAGs as soon as they arrive, then fetch stats with
+        // their fresh IDs
+        let dag_ids: Vec<DagId> = match client.list_dags().await {
+            Ok(dag_list) => {
+                let ids = dag_list.dags.iter().map(|d| d.dag_id.clone()).collect();
+                app.lock()
+                    .unwrap()
+                    .apply_fetched(ticket, Fetched::Dags(dag_list.dags));
+                ids
+            }
+            Err(e) => {
+                app.lock()
+                    .unwrap()
+                    .dags
+                    .popup
+                    .show_error(vec![e.to_string()]);
+                return;
             }
         };
-
         if !dag_ids.is_empty() {
             let refs: Vec<&str> = dag_ids.iter().map(AsRef::as_ref).collect();
-            match client.get_dag_stats(refs).await {
-                Ok(dag_stats) => {
-                    let mut app = app.lock().unwrap();
-                    if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                        for dag_stats in dag_stats.dags {
-                            env.update_dag_stats(
-                                &DagId::from(dag_stats.dag_id.clone()),
-                                dag_stats.stats,
-                            );
-                        }
-                    }
-                }
-                Err(e) => {
-                    log::error!("Failed to fetch dag stats: {e}");
-                }
-            }
+            let dag_stats_result = client.get_dag_stats(refs).await;
+            apply_dag_stats(app, ticket, dag_stats_result);
         }
     } else {
         // Warm cache: fetch DAG list and stats concurrently using cached IDs
@@ -80,55 +66,61 @@ pub async fn handle_update_dags_and_stats(
             let refs: Vec<&str> = cached_dag_ids.iter().map(AsRef::as_ref).collect();
             client.get_dag_stats(refs).await
         });
-
-        let mut app = app.lock().unwrap();
-
         match dag_list_result {
             Ok(dag_list) => {
-                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                    env.replace_dags(dag_list.dags);
-                }
+                app.lock()
+                    .unwrap()
+                    .apply_fetched(ticket, Fetched::Dags(dag_list.dags));
             }
-            Err(e) => {
-                app.dags.popup.show_error(vec![e.to_string()]);
-            }
+            Err(e) => app
+                .lock()
+                .unwrap()
+                .dags
+                .popup
+                .show_error(vec![e.to_string()]),
         }
-
-        match dag_stats_result {
-            Ok(dag_stats) => {
-                if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-                    for dag_stats in dag_stats.dags {
-                        env.update_dag_stats(
-                            &DagId::from(dag_stats.dag_id.clone()),
-                            dag_stats.stats,
-                        );
-                    }
-                }
-            }
-            Err(e) => {
-                log::error!("Failed to fetch dag stats: {e}");
-            }
-        }
-    }
-
-    // Only sync panel data if this environment is still the active one,
-    // otherwise we'd overwrite the UI with stale data from a different server
-    let mut app = app.lock().unwrap();
-    if app.environment_state.active_environment.as_deref() == Some(env_name) {
-        app.sync_panel(Level::Dags);
+        apply_dag_stats(app, ticket, dag_stats_result);
     }
 }
 
-/// Handle toggling the paused state of a DAG.
+fn apply_dag_stats(
+    app: &Arc<Mutex<App>>,
+    ticket: &FetchTicket,
+    result: anyhow::Result<DagStatsResponse>,
+) {
+    match result {
+        Ok(dag_stats) => {
+            let stats = dag_stats
+                .dags
+                .into_iter()
+                .map(|dag| (DagId::from(dag.dag_id), dag.stats))
+                .collect();
+            app.lock()
+                .unwrap()
+                .apply_fetched(ticket, Fetched::DagStats(stats));
+        }
+        Err(e) => log::error!("Failed to fetch dag stats: {e}"),
+    }
+}
+
+/// Handle toggling the paused state of a DAG. The change shows at once and is
+/// undone if the server rejects it.
 pub async fn handle_toggle_dag(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     is_paused: bool,
+    env_name: &str,
 ) {
-    let dag = client.toggle_dag(dag_id, is_paused).await;
-    if let Err(e) = dag {
-        let mut app = app.lock().unwrap();
+    let patch = Patch::DagPaused {
+        dag_id: dag_id.clone(),
+        is_paused: !is_paused,
+    };
+    let id = app.lock().unwrap().patch(env_name, patch);
+    let result = client.toggle_dag(dag_id, is_paused).await;
+    let mut app = app.lock().unwrap();
+    app.settle(env_name, id, result.is_ok());
+    if let Err(e) = result {
         app.dags.popup.show_error(vec![e.to_string()]);
     }
 }

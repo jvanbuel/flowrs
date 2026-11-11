@@ -9,8 +9,8 @@
 
 mod render;
 
-use std::cmp::Ordering;
 use std::ops::RangeInclusive;
+use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::widgets::TableState;
@@ -21,15 +21,14 @@ use super::{KeyResult, StatefulTable};
 /// A generic filterable, selectable table shared by the Dags, `DagRuns`, and
 /// `TaskInstances` panels.
 ///
-/// It owns the canonical `all` items and derives a filtered, ordered *view* of
-/// indices into them, so matched items are never cloned. Callers interact
-/// through the item-oriented API (`items`, `current`, `sort_by`, ...) and never
-/// see the index representation, which is free to change (e.g. to shared `Arc`
-/// data) without touching them.
-#[derive(Debug, Clone, Default)]
+/// It shares the canonical `all` items with the environment cache, which
+/// keeps them sorted, and derives a filtered *view* of indices into them, so
+/// items are never cloned. Callers interact through the item-oriented API
+/// (`items`, `current`, ...) and never see the index representation.
+#[derive(Debug, Clone)]
 pub struct FilterableTable<T> {
-    /// Canonical items, kept in display/sort order.
-    all: Vec<T>,
+    /// Canonical items, in display order; shared with the environment cache.
+    all: Arc<[T]>,
     /// Indices into `all` that pass the filter, with the table selection state.
     view: StatefulTable<usize>,
     /// Filter state machine with autocomplete.
@@ -41,11 +40,23 @@ pub struct FilterableTable<T> {
     select_first_row: bool,
 }
 
+impl<T> Default for FilterableTable<T> {
+    fn default() -> Self {
+        Self {
+            all: Arc::default(),
+            view: StatefulTable::default(),
+            filter: FilterStateMachine::default(),
+            visual_anchor: None,
+            select_first_row: false,
+        }
+    }
+}
+
 impl<T: Filterable> FilterableTable<T> {
     /// Creates a new empty filterable table
     pub fn new() -> Self {
         Self {
-            all: Vec::new(),
+            all: Arc::default(),
             view: StatefulTable::new(Vec::new()),
             filter: FilterStateMachine::default(),
             visual_anchor: None,
@@ -55,28 +66,31 @@ impl<T: Filterable> FilterableTable<T> {
 
     // ── Data ────────────────────────────────────────────────
 
-    /// Replace all items and recompute the filtered view.
-    pub fn set_items(&mut self, items: Vec<T>) {
-        self.all = items;
+    /// Replace all items and recompute the filtered view. The cursor stays
+    /// on the row it was on, wherever that row now is; if that row is gone,
+    /// it keeps its position, clamped to the last row.
+    pub fn set_items(&mut self, items: impl Into<Arc<[T]>>) {
+        let current_key = self.current().map(Filterable::row_key);
+        self.all = items.into();
         self.apply_filter();
-    }
-
-    /// Reorder or mutate the canonical items in place, then refresh the view.
-    /// Used for sorting and optimistic updates; the view stays in `all`'s order.
-    pub fn update_all(&mut self, f: impl FnOnce(&mut Vec<T>)) {
-        f(&mut self.all);
-        self.apply_filter();
-    }
-
-    /// Sort the items with `cmp` and refresh the view.
-    pub fn sort_by(&mut self, cmp: impl FnMut(&T, &T) -> Ordering) {
-        self.update_all(|all| all.sort_by(cmp));
+        let followed =
+            current_key.and_then(|key| self.items().position(|item| item.row_key() == key));
+        let clamped = self
+            .view
+            .state
+            .selected()
+            .map(|position| position.min(self.len().saturating_sub(1)));
+        if let Some(position) = followed.or(clamped) {
+            self.view
+                .state
+                .select((!self.is_empty()).then_some(position));
+        }
     }
 
     /// Remove all items, along with the selection and any visual-mode anchor
     /// that pointed into them. The filter text is kept.
     pub fn clear(&mut self) {
-        self.all.clear();
+        self.all = Arc::default();
         self.view = StatefulTable::new(Vec::new());
         self.visual_anchor = None;
     }
@@ -129,12 +143,6 @@ impl<T: Filterable> FilterableTable<T> {
     /// The currently selected item, if any.
     pub fn current(&self) -> Option<&T> {
         self.item_at(self.view.state.selected()?)
-    }
-
-    /// The currently selected item, mutably.
-    pub fn current_mut(&mut self) -> Option<&mut T> {
-        let index = *self.view.items.get(self.view.state.selected()?)?;
-        self.all.get_mut(index)
     }
 
     /// The selected position within the filtered view.
@@ -552,5 +560,55 @@ mod tests {
             table.handle_visual_mode_key(KeyCode::Char('x')),
             KeyResult::Ignored
         ));
+    }
+
+    fn item(id: &str) -> TestItem {
+        TestItem {
+            id: id.to_string(),
+            status: "running".to_string(),
+        }
+    }
+
+    fn current_id(table: &FilterableTable<TestItem>) -> Option<String> {
+        table.current().map(|item| item.id.clone())
+    }
+
+    #[test]
+    fn the_cursor_stays_on_its_row_when_a_row_is_added_above() {
+        let mut table = FilterableTable::new();
+        table.set_items(vec![item("b"), item("c")]);
+        table.state_mut().select(Some(1));
+
+        table.set_items(vec![item("a"), item("b"), item("c")]);
+
+        assert_eq!(current_id(&table).as_deref(), Some("c"));
+    }
+
+    #[test]
+    fn the_cursor_moves_to_the_last_row_when_its_row_at_the_end_disappears() {
+        let mut table = FilterableTable::new();
+        table.set_items(vec![item("a"), item("b"), item("c")]);
+        table.state_mut().select(Some(2));
+
+        table.set_items(vec![item("a"), item("b")]);
+
+        assert_eq!(current_id(&table).as_deref(), Some("b"));
+    }
+
+    #[test]
+    fn the_cursor_tells_mapped_task_instances_apart() {
+        use crate::airflow::model::common::TaskInstance;
+        let mapped = |map_index| TaskInstance {
+            task_id: "process".into(),
+            map_index,
+            ..Default::default()
+        };
+        let mut table = FilterableTable::new();
+        table.set_items(vec![mapped(0), mapped(1)]);
+        table.state_mut().select(Some(1));
+
+        table.set_items(vec![mapped(2), mapped(0), mapped(1)]);
+
+        assert_eq!(table.current().map(|ti| ti.map_index), Some(1));
     }
 }
