@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.4](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.3...flowrs-tui-v0.16.4) - 2026-11-09
+
+### Other
+
+- *(deps)* bump toml from 1.1.8+spec-1.1.0 to 1.2.0+spec-1.1.0 ([#755](https://github.com/jvanbuel/flowrs/pull/755))
+
 ## [0.16.3](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.2...flowrs-tui-v0.16.3) - 2026-11-02
 
 ### Other
