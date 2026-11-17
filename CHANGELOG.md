@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.6](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.5...flowrs-tui-v0.16.6) - 2026-11-17
+
+### Other
+
+- *(ci)* upgrade cargo-dist to 0.34.0
+
 ## [0.16.5](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.4...flowrs-tui-v0.16.5) - 2026-11-16
 
 ### Other
