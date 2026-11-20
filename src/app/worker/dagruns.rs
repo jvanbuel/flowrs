@@ -28,7 +28,7 @@ pub async fn handle_update_dag_runs(
             }
             // Only sync panel data if this environment is still active
             if app.environment_state.active_environment.as_deref() == Some(env_name) {
-                app.sync_panel(&crate::app::state::Panel::DAGRun);
+                app.sync_panel(crate::app::navigation::Level::DagRuns);
             }
         }
         Err(e) => {

@@ -1,4 +1,5 @@
-use crate::app::state::{App, Panel};
+use crate::app::navigation::Level;
+use crate::app::state::App;
 use crate::ui::tabs::{TabBar, TAB_BAR_HEIGHT};
 use crate::ui::theme::theme;
 use init_screen::render_init_screen;
@@ -84,43 +85,43 @@ pub fn draw_ui(f: &mut Frame, app: &Arc<Mutex<App>>) {
     }
 
     // Render tab bar
-    let active_tab_index = match app.active_panel {
-        Panel::Config => 0,
-        Panel::Dag => 1,
-        Panel::DAGRun => 2,
-        Panel::TaskInstance => 3,
-        Panel::Logs => 4,
+    let active_tab_index = match app.navigation.level() {
+        Level::Environments => 0,
+        Level::Dags => 1,
+        Level::DagRuns => 2,
+        Level::TaskInstances => 3,
+        Level::Logs => 4,
     };
     let tab_bar = TabBar::new(active_tab_index);
     f.render_widget(tab_bar, tab_area);
 
     // Only frame has the ability to set the cursor position, so we need to control the cursor filter from here
-    match app.active_panel {
-        Panel::Config => {
+    match app.navigation.level() {
+        Level::Environments => {
             app.configs.render(panel_area, f.buffer_mut());
             if app.configs.table.filter().is_active() {
                 f.set_cursor_position(app.configs.table.filter().cursor_position);
             }
         }
-        Panel::Dag => {
+        Level::Dags => {
             app.dags.render(panel_area, f.buffer_mut());
             if app.dags.table.filter().is_active() {
                 f.set_cursor_position(app.dags.table.filter().cursor_position);
             }
         }
-        Panel::DAGRun => {
+        Level::DagRuns => {
             app.dagruns.render(panel_area, f.buffer_mut());
             if app.dagruns.table.filter().is_active() {
                 f.set_cursor_position(app.dagruns.table.filter().cursor_position);
             }
         }
-        Panel::TaskInstance => {
+        Level::TaskInstances => {
             app.task_instances.render(panel_area, f.buffer_mut());
             if app.task_instances.table.filter().is_active() {
                 f.set_cursor_position(app.task_instances.table.filter().cursor_position);
             }
         }
-        Panel::Logs => {
+        Level::Logs => {
             app.logs.render(panel_area, f.buffer_mut());
             if let Some(position) = app.logs.search_cursor_position {
                 f.set_cursor_position(position);
