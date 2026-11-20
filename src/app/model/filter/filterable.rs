@@ -78,6 +78,7 @@ macro_rules! impl_filterable {
         fields: [
             $( $field_name:ident $(: enum[$($variant:literal),+ $(,)?])? => $accessor:expr ),* $(,)?
         ]
+        $(, row_key: $row_key:expr)? $(,)?
     ) => {
         impl $crate::app::model::filter::Filterable for $type {
             fn filterable_fields() -> Vec<$crate::app::model::filter::FilterableField> {
@@ -98,6 +99,12 @@ macro_rules! impl_filterable {
                     _ => None,
                 }
             }
+
+            $(
+                fn row_key(&self) -> String {
+                    ($row_key)(self)
+                }
+            )?
         }
     };
 
@@ -132,6 +139,13 @@ pub trait Filterable {
             .find(|f| f.is_primary)
             .map(|f| f.name)
             .expect("Filterable type must have a primary field")
+    }
+
+    /// Identifies the row across refreshes, so the cursor can follow it.
+    /// Defaults to the primary field's value.
+    fn row_key(&self) -> String {
+        self.get_field_value(Self::primary_field())
+            .unwrap_or_default()
     }
 }
 

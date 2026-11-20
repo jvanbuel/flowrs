@@ -100,7 +100,7 @@ Configuration structure:
 ### Worker System (src/app/worker/)
 Async worker runs in a separate tokio task, processes messages from the event loop via mpsc channel:
 - Handles all API calls to Airflow via `FlowrsClient`
-- Updates shared app state via `Arc<Mutex<App>>`
+- Updates shared app state via `Arc<Mutex<App>>`: each fetch takes a `FetchTicket` (naming the environment it was started for) before the request, and hands its result to `App::apply_fetched()`
 - Messages defined in `WorkerMessage` enum
 
 ### Panel Architecture
@@ -137,14 +137,15 @@ Each panel has:
 1. User presses key → `EventGenerator` produces `FlowrsEvent`
 2. Event routed to active panel's `update()` method
 3. Panel returns optional fall-through event + `WorkerMessage` vector; a fall-through navigation key moves via `Navigation`
-4. Worker receives messages, calls methods on `FlowrsClient`, updates `App` state
+4. Worker receives messages, calls methods on `FlowrsClient`, and passes results to `App::apply_fetched()`, which stores them in the environment cache and refreshes the visible panel
 5. UI re-renders with updated state
 
 ### State Management
 Shared state via `Arc<Mutex<App>>`:
 - UI reads state during `draw_ui()`
-- Worker writes state after API responses
-- Optimistic updates: Some operations update state before API call completes (e.g., marking dag runs)
+- The environment cache (`src/app/state/environment_state.rs`) holds every fetched list per environment as shared `Arc<[T]>` rows, sorted on write (DAGs by id, runs newest first, task instances in task graph order). Panels share those rows; `sync_panel` never copies them
+- `FilterableTable` keeps the cursor on the same row across refreshes, using `Filterable::row_key()`
+- Optimistic updates (mark run, mark task instance, pause DAG) go through `App::patch()` before the request and `App::settle()` after it: the change stays on top of fetched data until a fetch started after the server confirmed it, and is undone if the server rejects it
 
 ## Key Patterns
 
