@@ -38,7 +38,9 @@ impl_filterable! {
             "deferred", "removed", "restarting"
         ] => |s: &TaskInstance| s.state.as_ref().map(std::string::ToString::to_string),
         operator => |s: &TaskInstance| s.operator.clone(),
-    ]
+    ],
+    // Mapped instances share a task_id; the map index tells them apart.
+    row_key: |s: &TaskInstance| format!("{}[{}]", s.task_id, s.map_index),
 }
 
 impl_filterable! {

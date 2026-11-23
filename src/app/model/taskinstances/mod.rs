@@ -6,8 +6,10 @@ use commands::TASK_COMMAND_POP_UP;
 use crossterm::event::KeyCode;
 use log::debug;
 
-use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::{GanttData, TaskId, TaskInstance, TaskInstanceState};
+use std::sync::Arc;
+
+use crate::airflow::graph::TaskGraph;
+use crate::airflow::model::common::{GanttData, TaskId, TaskInstance};
 use crate::app::events::custom::FlowrsEvent;
 use crate::app::navigation::Selection;
 
@@ -31,7 +33,8 @@ pub struct TaskInstanceModel {
     ticks: u32,
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
-    pub task_graph: Option<TaskGraph>,
+    /// The DAG's task graph, shared with the environment cache.
+    pub task_graph: Option<Arc<TaskGraph>>,
 }
 
 impl Default for TaskInstanceModel {
@@ -57,11 +60,10 @@ impl TaskInstanceModel {
     }
 
     /// Forget view state tied to the previously selected DAG run, including
-    /// the task graph and gantt data, which are not cached per run.
+    /// the gantt data, which is not cached per run.
     pub fn reset_view(&mut self) {
         self.table.reset_cursor();
         self.gantt_data = GanttData::default();
-        self.task_graph = None;
     }
 
     /// The task instance under the cursor, as a navigation selection.
@@ -70,22 +72,6 @@ impl TaskInstanceModel {
             task_id: ti.task_id.clone(),
             try_number: ti.try_number,
         })
-    }
-
-    /// Sort task instances by topological order (or timestamp fallback)
-    pub fn sort_task_instances(&mut self) {
-        if let Some(graph) = &self.task_graph {
-            self.table.update_all(|all| sort_task_instances(all, graph));
-        }
-    }
-
-    /// Mark a task instance with a new status (optimistic update)
-    pub fn mark_task_instance(&mut self, task_id: &TaskId, status: TaskInstanceState) {
-        self.table.update_all(|all| {
-            if let Some(task_instance) = all.iter_mut().find(|ti| ti.task_id == *task_id) {
-                task_instance.state = Some(status);
-            }
-        });
     }
 
     /// Returns selected task IDs for passing to mark/clear popups
