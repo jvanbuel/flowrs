@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.7](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.6...flowrs-tui-v0.16.7) - 2026-11-23
+
+### Other
+
+- *(deps)* bump regex from 1.13.1 to 1.13.2
+- *(deps)* bump clap from 4.6.8 to 4.6.9
+- *(deps)* bump aws-sdk-mwaa from 1.131.0 to 1.132.0
+
 ## [0.16.6](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.5...flowrs-tui-v0.16.6) - 2026-11-17
 
 ### Other
