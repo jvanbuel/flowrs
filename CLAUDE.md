@@ -105,17 +105,26 @@ Async worker runs in a separate tokio task, processes messages from the event lo
 
 ### Panel Architecture
 Five main panels implement the `Model` trait (src/app/model.rs):
-- `Config`: Server configuration selection
-- `Dag`: DAG listing and filtering
-- `DAGRun`: DAG run instances
-- `TaskInstance`: Task instance details
-- `Logs`: Task logs viewer
+- `Config` (`Level::Environments`): Server configuration selection
+- `Dag` (`Level::Dags`): DAG listing and filtering
+- `DAGRun` (`Level::DagRuns`): DAG run instances
+- `TaskInstance` (`Level::TaskInstances`): Task instance details
+- `Logs` (`Level::Logs`): Task logs viewer
 
 Each panel has:
 - A model that handles state and logic
 - A `StatefulTable<T>` for rendering
 - An `update()` method that returns `(Option<FlowrsEvent>, Vec<WorkerMessage>)`
+- A `selection()` method reporting the row under the cursor, and a `reset_view()` method that forgets view state (cursor, task graph, log try) tied to a previous selection; rows always come from the environment cache via `sync_panel`
 - Popup submodules in `src/app/model/popup/` for modal interactions
+
+### Navigation (src/app/navigation.rs)
+`Navigation` owns where the user is (see `GLOSSARY.md`): the `Path` (selected environment > DAG > DAG run > task instance) and the `Level` being shown. Panels never build navigation messages:
+- Enter / Right / `l` not consumed by a panel → `App::go_forward()` takes the panel's `selection()` and calls `Navigation::select()`
+- Esc / Left / `h` not consumed by a panel → `App::go_back()`
+- Each step returns a `Move`: the shallowest level whose content changed (every panel at or below it gets `reset_view()`) plus the refresh messages for the new level
+- Selecting the item the user came back from keeps the deeper path; selecting a different item drops it
+- Environment switches happen here too: `App::go_forward()` activates the environment (creating its client) before navigating
 
 ### Client Architecture
 - `flowrs-airflow` provides raw HTTP clients (`V1Client`, `V2Client`) returning API response types
@@ -127,7 +136,7 @@ Each panel has:
 ### Data Flow
 1. User presses key → `EventGenerator` produces `FlowrsEvent`
 2. Event routed to active panel's `update()` method
-3. Panel returns optional fall-through event + `WorkerMessage` vector
+3. Panel returns optional fall-through event + `WorkerMessage` vector; a fall-through navigation key moves via `Navigation`
 4. Worker receives messages, calls methods on `FlowrsClient`, updates `App` state
 5. UI re-renders with updated state
 
@@ -150,9 +159,9 @@ Shared state via `Arc<Mutex<App>>`:
 ### Adding a New Panel
 1. Create model in `src/app/model/<name>.rs`
 2. Implement `Model` trait with `update()` method
-3. Add panel variant to `Panel` enum in `src/app/state.rs`
+3. Add a variant to `Level` (and, if it can be selected, `Selection`) in `src/app/navigation.rs`, and extend `Path`, `select()` and `refresh_messages()`
 4. Add UI rendering in `src/ui.rs`
-5. Update panel navigation in `App::next_panel()` and `App::previous_panel()`
+5. Dispatch the new level in `App::update_active_panel()`, `App::go_forward()`, `App::apply()` and `App::sync_panel()`
 
 ## Managed Services
 

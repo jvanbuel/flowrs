@@ -110,7 +110,7 @@ impl Model for TriggerDagRunPopUp {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        _ctx: &crate::app::state::NavigationContext,
+        _ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         if let FlowrsEvent::Key(key_event) = event {
             if self.has_params() {

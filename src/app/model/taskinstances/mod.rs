@@ -7,10 +7,9 @@ use crossterm::event::KeyCode;
 use log::debug;
 
 use crate::airflow::graph::{sort_task_instances, TaskGraph};
-use crate::airflow::model::common::{
-    DagId, DagRunId, GanttData, TaskId, TaskInstance, TaskInstanceState,
-};
+use crate::airflow::model::common::{GanttData, TaskId, TaskInstance, TaskInstanceState};
 use crate::app::events::custom::FlowrsEvent;
+use crate::app::navigation::Selection;
 
 use super::{FilterableTable, KeyResult, Model, Popup};
 use crate::airflow::model::common::OpenItem;
@@ -29,9 +28,6 @@ pub struct TaskInstanceModel {
     pub popup: Popup<TaskInstancePopUp>,
     /// Gantt chart data computed from task instances and their tries
     pub gantt_data: GanttData,
-    /// Tracks which DAG + run the cached `gantt_data` belongs to, so we can
-    /// invalidate it when the user navigates to a different DAG or run.
-    current_gantt_key: Option<(DagId, DagRunId)>,
     ticks: u32,
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
@@ -44,7 +40,6 @@ impl Default for TaskInstanceModel {
             table: FilterableTable::new(),
             popup: Popup::None,
             gantt_data: GanttData::default(),
-            current_gantt_key: None,
             ticks: 0,
             poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
@@ -61,13 +56,20 @@ impl TaskInstanceModel {
         }
     }
 
-    /// Notify the model which DAG + run is now active.
-    pub fn set_gantt_context(&mut self, dag_id: &DagId, dag_run_id: &DagRunId) {
-        let key = (dag_id.clone(), dag_run_id.clone());
-        if self.current_gantt_key.as_ref() != Some(&key) {
-            self.gantt_data = GanttData::default();
-            self.current_gantt_key = Some(key);
-        }
+    /// Forget view state tied to the previously selected DAG run, including
+    /// the task graph and gantt data, which are not cached per run.
+    pub fn reset_view(&mut self) {
+        self.table.reset_cursor();
+        self.gantt_data = GanttData::default();
+        self.task_graph = None;
+    }
+
+    /// The task instance under the cursor, as a navigation selection.
+    pub fn selection(&self) -> Option<Selection> {
+        self.table.current().map(|ti| Selection::TaskInstance {
+            task_id: ti.task_id.clone(),
+            try_number: ti.try_number,
+        })
     }
 
     /// Sort task instances by topological order (or timestamp fallback)
@@ -97,7 +99,7 @@ impl TaskInstanceModel {
     fn handle_popup(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> Option<Vec<WorkerMessage>> {
         let custom_popup = self.popup.custom_mut()?;
         let (key_event, messages) = match custom_popup {
@@ -120,11 +122,7 @@ impl TaskInstanceModel {
     }
 
     /// Handle model-specific keys
-    fn handle_keys(
-        &mut self,
-        key_code: KeyCode,
-        ctx: &crate::app::state::NavigationContext,
-    ) -> KeyResult {
+    fn handle_keys(&mut self, key_code: KeyCode, ctx: &crate::app::navigation::Path) -> KeyResult {
         match key_code {
             KeyCode::Char('m') => {
                 let task_ids = self.selected_task_ids();
@@ -151,18 +149,6 @@ impl TaskInstanceModel {
             KeyCode::Char('?') => {
                 self.popup.show_commands(&TASK_COMMAND_POP_UP);
                 KeyResult::Consumed
-            }
-            KeyCode::Enter => {
-                if let Some(task_instance) = self.table.current() {
-                    KeyResult::PassWith(vec![WorkerMessage::UpdateTaskLogs {
-                        dag_id: task_instance.dag_id.clone(),
-                        dag_run_id: task_instance.dag_run_id.clone(),
-                        task_id: task_instance.task_id.clone(),
-                        task_try: task_instance.try_number,
-                    }])
-                } else {
-                    KeyResult::Consumed
-                }
             }
             KeyCode::Char('d') => {
                 if let Some(graph) = &self.task_graph {
@@ -193,7 +179,7 @@ impl Model for TaskInstanceModel {
     fn update(
         &mut self,
         event: &FlowrsEvent,
-        ctx: &crate::app::state::NavigationContext,
+        ctx: &crate::app::navigation::Path,
     ) -> (Option<FlowrsEvent>, Vec<WorkerMessage>) {
         match event {
             FlowrsEvent::Tick => {
