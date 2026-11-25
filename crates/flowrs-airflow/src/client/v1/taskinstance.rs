@@ -3,7 +3,7 @@ use reqwest::Method;
 
 use super::model;
 use super::V1Client;
-use crate::client::read_json;
+use crate::client::{read_json, task_instance_path};
 use crate::error::Result;
 
 const PAGE_SIZE: usize = 100;
@@ -68,13 +68,10 @@ impl V1Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
     ) -> Result<model::taskinstance::TaskInstanceTriesResponse> {
-        let request = self
-            .base_api(
-                Method::GET,
-                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries"),
-            )
-            .await?;
+        let path = task_instance_path(dag_id, dag_run_id, task_id, map_index);
+        let request = self.base_api(Method::GET, &format!("{path}/tries")).await?;
         let response = self.execute(request).await?;
         let tries: model::taskinstance::TaskInstanceTriesResponse =
             read_json(response, "task instance tries response").await?;
@@ -91,12 +88,13 @@ impl V1Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
         status: &str,
     ) -> Result<()> {
         let request = self
             .base_api(
                 Method::PATCH,
-                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
+                &task_instance_path(dag_id, dag_run_id, task_id, map_index),
             )
             .await?
             .json(&serde_json::json!({"new_state": status, "dry_run": false}));

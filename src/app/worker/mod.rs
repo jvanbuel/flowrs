@@ -51,6 +51,8 @@ pub enum WorkerMessage {
         dag_id: DagId,
         dag_run_id: DagRunId,
         task_id: TaskId,
+        /// `-1` for unmapped tasks, as in the Airflow API.
+        map_index: i64,
         task_try: u32,
     },
     MarkDagRun {
@@ -60,11 +62,13 @@ pub enum WorkerMessage {
     },
     ClearTaskInstance {
         task_id: TaskId,
+        map_index: i64,
         dag_id: DagId,
         dag_run_id: DagRunId,
     },
     MarkTaskInstance {
         task_id: TaskId,
+        map_index: i64,
         dag_id: DagId,
         dag_run_id: DagRunId,
         status: TaskMarkState,
@@ -98,8 +102,11 @@ impl WorkerMessage {
                 dag_id,
                 dag_run_id,
                 task_id,
+                map_index,
                 ..
-            } => Some(format!("UpdateTaskLogs:{dag_id}:{dag_run_id}:{task_id}")),
+            } => Some(format!(
+                "UpdateTaskLogs:{dag_id}:{dag_run_id}:{task_id}:{map_index}"
+            )),
             Self::UpdateTasks { dag_id } => Some(format!("UpdateTasks:{dag_id}")),
             // One-off operations should never be deduplicated
             _ => None,
@@ -247,6 +254,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
         }
         WorkerMessage::ClearTaskInstance {
             task_id,
+            map_index,
             dag_id,
             dag_run_id,
         } => {
@@ -256,11 +264,13 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
                 &dag_id,
                 &dag_run_id,
                 &task_id,
+                map_index,
             )
             .await;
         }
         WorkerMessage::MarkTaskInstance {
             task_id,
+            map_index,
             dag_id,
             dag_run_id,
             status,
@@ -271,6 +281,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
                 &dag_id,
                 &dag_run_id,
                 &task_id,
+                map_index,
                 status,
             )
             .await;
@@ -280,8 +291,8 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
             dag_id,
             dag_run_id,
             task_id,
+            map_index,
             task_try,
-            ..
         } => {
             logs::handle_update_task_logs(
                 &app,
@@ -289,6 +300,7 @@ async fn process_message(app: Arc<Mutex<App>>, message: WorkerMessage) -> Result
                 &dag_id,
                 &dag_run_id,
                 &task_id,
+                map_index,
                 task_try,
                 &env_name,
             )

@@ -12,12 +12,13 @@ use crate::airflow::model::common::{DagId, DagRunId, TaskId};
 pub struct ClearTaskInstancePopup {
     pub dag_run_id: DagRunId,
     pub dag_id: DagId,
-    pub task_ids: Vec<TaskId>,
+    /// `(task_id, map_index)` pairs to clear.
+    pub task_ids: Vec<(TaskId, i64)>,
     pub(crate) selected_button: SelectedButton,
 }
 
 impl ClearTaskInstancePopup {
-    pub fn new(dag_run_id: &DagRunId, dag_id: &DagId, task_ids: Vec<TaskId>) -> Self {
+    pub fn new(dag_run_id: &DagRunId, dag_id: &DagId, task_ids: Vec<(TaskId, i64)>) -> Self {
         Self {
             dag_run_id: dag_run_id.clone(),
             dag_id: dag_id.clone(),
@@ -43,10 +44,11 @@ impl Model for ClearTaskInstancePopup {
                             Some(FlowrsEvent::Key(*key_event)),
                             self.task_ids
                                 .iter()
-                                .map(|task_id| WorkerMessage::ClearTaskInstance {
+                                .map(|(task_id, map_index)| WorkerMessage::ClearTaskInstance {
                                     dag_run_id: self.dag_run_id.clone(),
                                     dag_id: self.dag_id.clone(),
                                     task_id: task_id.clone(),
+                                    map_index: *map_index,
                                 })
                                 .collect(),
                         );

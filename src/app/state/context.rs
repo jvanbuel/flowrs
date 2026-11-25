@@ -28,17 +28,20 @@ impl App {
                 dag_id,
                 dag_run_id,
                 task_id,
+                map_index,
                 task_try,
             } => {
                 let is_new_context = self.nav_context.dag_id() != Some(dag_id)
                     || self.nav_context.dag_run_id() != Some(dag_run_id)
                     || self.nav_context.task_id() != Some(task_id)
+                    || self.nav_context.map_index() != Some(*map_index)
                     || self.nav_context.task_try() != Some(*task_try);
                 self.nav_context = NavigationContext::Task {
                     environment: env,
                     dag_id: dag_id.clone(),
                     dag_run_id: dag_run_id.clone(),
                     task_id: task_id.clone(),
+                    map_index: *map_index,
                     task_try: *task_try,
                 };
                 if is_new_context {

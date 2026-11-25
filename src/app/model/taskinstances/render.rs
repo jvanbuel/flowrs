@@ -48,7 +48,16 @@ impl Widget for &mut TaskInstanceModel {
             .enumerate()
             .map(|(idx, item)| {
                 Row::new(vec![
-                    Line::from(item.task_id.to_string()),
+                    Line::from(if item.map_index >= 0 {
+                        match item.rendered_map_index.as_deref() {
+                            Some(name) if !name.is_empty() => {
+                                format!("{}[{name}]", item.task_id)
+                            }
+                            _ => format!("{}[{}]", item.task_id, item.map_index),
+                        }
+                    } else {
+                        item.task_id.to_string()
+                    }),
                     Line::from(
                         calculate_duration(item).map_or_else(|| "-".to_string(), format_duration),
                     ),
@@ -58,7 +67,12 @@ impl Widget for &mut TaskInstanceModel {
                             .map_or(AirflowStateColor::None, AirflowStateColor::from),
                     )),
                     Line::from(item.try_number.to_string()),
-                    create_gantt_bar(&self.gantt_data, &item.task_id, gantt_width.into()),
+                    create_gantt_bar(
+                        &self.gantt_data,
+                        &item.task_id,
+                        item.map_index,
+                        gantt_width.into(),
+                    ),
                 ])
                 .style(self.table.row_style(idx))
             })

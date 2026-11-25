@@ -3,7 +3,7 @@ use reqwest::Method;
 
 use super::model;
 use super::V2Client;
-use crate::client::read_json;
+use crate::client::{read_json, task_instance_path};
 use crate::error::Result;
 
 const PAGE_SIZE: usize = 100;
@@ -64,13 +64,10 @@ impl V2Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
     ) -> Result<model::taskinstance::TaskInstanceTriesResponse> {
-        let request = self
-            .base_api(
-                Method::GET,
-                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/tries"),
-            )
-            .await?;
+        let path = task_instance_path(dag_id, dag_run_id, task_id, map_index);
+        let request = self.base_api(Method::GET, &format!("{path}/tries")).await?;
         let response = self.execute(request).await?;
         let tries: model::taskinstance::TaskInstanceTriesResponse =
             read_json(response, "task instance tries response").await?;
@@ -87,12 +84,13 @@ impl V2Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
         status: &str,
     ) -> Result<()> {
         let request = self
             .base_api(
                 Method::PATCH,
-                &format!("dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}"),
+                &task_instance_path(dag_id, dag_run_id, task_id, map_index),
             )
             .await?
             // Airflow 3's `/api/v2` PatchTaskInstanceBody uses a strict schema that
@@ -109,14 +107,22 @@ impl V2Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
     ) -> Result<()> {
+        // `/api/v2` accepts `[task_id, map_index]` to target one mapped instance.
+        // A bare `task_id` clears every map index of a mapped task.
+        let task = if map_index >= 0 {
+            serde_json::json!([task_id, map_index])
+        } else {
+            serde_json::json!(task_id)
+        };
         let request = self
             .base_api(Method::POST, &format!("dags/{dag_id}/clearTaskInstances"))
             .await?
             .json(&serde_json::json!(
                 {
                     "dry_run": false,
-                    "task_ids": [task_id],
+                    "task_ids": [task],
                     "dag_run_id": dag_run_id,
                     "include_downstream": true,
                     "only_failed": false,

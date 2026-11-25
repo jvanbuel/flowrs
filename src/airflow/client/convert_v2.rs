@@ -91,6 +91,7 @@ pub(crate) fn v2_task_instance_to_domain(
         try_number: value.try_number,
         max_tries: value.max_tries,
         map_index: value.map_index,
+        rendered_map_index: value.rendered_map_index,
         hostname: value.hostname,
         unixname: value.unixname,
         pool: value.pool,

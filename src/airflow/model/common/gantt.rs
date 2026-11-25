@@ -26,29 +26,27 @@ pub struct GanttData {
     pub window_start: Option<OffsetDateTime>,
     /// The end of the visible time window (`now()` if any task is still running)
     pub window_end: Option<OffsetDateTime>,
-    /// Per-task list of tries, keyed by `TaskId`, sorted by `try_number` ascending
-    pub task_tries: HashMap<TaskId, Vec<TaskTryGantt>>,
+    /// Per-task-instance list of tries, keyed by `(TaskId, map_index)`, sorted by
+    /// `try_number` ascending. Unmapped tasks use `map_index = -1`.
+    pub task_tries: HashMap<(TaskId, i64), Vec<TaskTryGantt>>,
 }
 
 impl GanttData {
     /// Build Gantt data from the current task instance list.
     /// Each task instance contributes one segment (its current/latest try).
-    ///
-    /// Note: tasks are keyed by [`TaskId`] only — `map_index` is not distinguished,
-    /// so mapped task tries (e.g. from `expand_task`) are merged into a single bar
-    /// whose `char_colors` overwrite each other in the Gantt bar renderer. This is
-    /// intentional for now; callers who need per-map-index bars should pre-group
-    /// or provide distinct `TaskId` values.
+    /// Mapped instances of the same task get separate entries.
     #[must_use]
     pub fn from_task_instances(tasks: &[super::TaskInstance]) -> Self {
         if tasks.is_empty() {
             return Self::default();
         }
 
-        let mut task_tries: HashMap<TaskId, Vec<TaskTryGantt>> = HashMap::new();
+        let mut task_tries: HashMap<(TaskId, i64), Vec<TaskTryGantt>> = HashMap::new();
 
         for task in tasks {
-            let entry = task_tries.entry(task.task_id.clone()).or_default();
+            let entry = task_tries
+                .entry((task.task_id.clone(), task.map_index))
+                .or_default();
             entry.push(TaskTryGantt {
                 try_number: task.try_number,
                 scheduled_when: task.scheduled_when,
@@ -74,9 +72,9 @@ impl GanttData {
     }
 
     /// Replace the tries for a specific task (called when tries API response arrives).
-    pub fn update_tries(&mut self, task_id: &TaskId, mut tries: Vec<TaskTryGantt>) {
+    pub fn update_tries(&mut self, task_id: &TaskId, map_index: i64, mut tries: Vec<TaskTryGantt>) {
         tries.sort_by_key(|t| t.try_number);
-        self.task_tries.insert(task_id.clone(), tries);
+        self.task_tries.insert((task_id.clone(), map_index), tries);
         self.recompute_window();
     }
 
@@ -150,6 +148,7 @@ mod tests {
     ) -> super::super::TaskInstance {
         super::super::TaskInstance {
             task_id: task_id.into(),
+            map_index: -1,
             try_number,
             start_date: start,
             end_date: end,
@@ -219,6 +218,17 @@ mod tests {
     }
 
     #[test]
+    fn test_mapped_instances_get_separate_entries() {
+        let mut first = make_task("mapped", 1, None, None, None);
+        first.map_index = 0;
+        let mut second = make_task("mapped", 1, None, None, None);
+        second.map_index = 1;
+        let gantt = GanttData::from_task_instances(&[first, second]);
+        assert_eq!(gantt.task_tries.len(), 2);
+        assert!(gantt.task_tries.contains_key(&("mapped".into(), 1)));
+    }
+
+    #[test]
     fn test_update_tries() {
         let tasks = vec![make_task(
             "task_1",
@@ -232,6 +242,7 @@ mod tests {
         // Now add historical try data
         gantt.update_tries(
             &"task_1".into(),
+            -1,
             vec![
                 TaskTryGantt {
                     try_number: 1,
@@ -250,8 +261,8 @@ mod tests {
             ],
         );
 
-        let task_id: TaskId = "task_1".into();
-        assert_eq!(gantt.task_tries.get(&task_id).unwrap().len(), 2);
+        let key: (TaskId, i64) = ("task_1".into(), -1);
+        assert_eq!(gantt.task_tries.get(&key).unwrap().len(), 2);
         // Window should now span from first try start to second try end
         assert_eq!(gantt.window_start, Some(datetime!(2024-01-01 10:00:00 UTC)));
         assert_eq!(gantt.window_end, Some(datetime!(2024-01-01 11:00:00 UTC)));

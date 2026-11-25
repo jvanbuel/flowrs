@@ -28,8 +28,8 @@ pub struct EnvironmentData {
     /// Result of `list_task_instances(dag_id, dag_run_id)` — flat composite key.
     pub task_instances: HashMap<(DagId, DagRunId), Vec<TaskInstance>>,
 
-    /// Result of `get_task_logs(dag_id, dag_run_id, task_id, try)` — flat composite key.
-    pub task_logs: HashMap<(DagId, DagRunId, TaskId), Vec<Log>>,
+    /// Result of `get_task_logs(dag_id, dag_run_id, task_id, map_index, try)` — flat composite key.
+    pub task_logs: HashMap<(DagId, DagRunId, TaskId, i64), Vec<Log>>,
 
     /// Result of `get_dag_params(dag_id)` — cached param schemas for trigger popup.
     /// `Arc` so the per-sync copies into the panel models are pointer bumps,
@@ -90,10 +90,18 @@ impl EnvironmentData {
         dag_id: &DagId,
         dag_run_id: &DagRunId,
         task_id: &TaskId,
+        map_index: i64,
         logs: Vec<Log>,
     ) {
-        self.task_logs
-            .insert((dag_id.clone(), dag_run_id.clone(), task_id.clone()), logs);
+        self.task_logs.insert(
+            (
+                dag_id.clone(),
+                dag_run_id.clone(),
+                task_id.clone(),
+                map_index,
+            ),
+            logs,
+        );
     }
 }
 
@@ -169,11 +177,16 @@ impl EnvironmentStateContainer {
         dag_id: &DagId,
         dag_run_id: &DagRunId,
         task_id: &TaskId,
+        map_index: i64,
     ) -> Vec<Log> {
         self.get_active_environment()
             .and_then(|env| {
-                env.task_logs
-                    .get(&(dag_id.clone(), dag_run_id.clone(), task_id.clone()))
+                env.task_logs.get(&(
+                    dag_id.clone(),
+                    dag_run_id.clone(),
+                    task_id.clone(),
+                    map_index,
+                ))
             })
             .cloned()
             .unwrap_or_default()
