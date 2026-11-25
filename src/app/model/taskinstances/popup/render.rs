@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Flex, Layout, Rect},
     style::Style,
     text::Line,
-    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget, Wrap},
 };
 use std::cmp::min;
 
@@ -19,26 +19,6 @@ use super::mark::{MarkState, MarkTaskInstancePopup};
 impl Widget for &mut ClearTaskInstancePopup {
     fn render(self, area: Rect, buffer: &mut Buffer) {
         let t = theme();
-        // Smaller popup: 40% width, auto height
-        let area = popup_area(area, 40, 30);
-
-        let popup_block = Block::default()
-            .border_type(BorderType::Rounded)
-            .borders(Borders::ALL)
-            .border_style(t.border_style)
-            .style(t.default_style);
-
-        // Use inner area for content layout to avoid overlapping the border
-        let inner = popup_block.inner(area);
-
-        let [_, header, options, _] = Layout::vertical([
-            Constraint::Length(1),
-            Constraint::Length(2),
-            Constraint::Length(3),
-            Constraint::Min(1),
-        ])
-        .flex(Flex::Center)
-        .areas(inner);
 
         let message = if self.task_ids.len() == 1 {
             "Clear this Task Instance?".to_string()
@@ -52,7 +32,42 @@ impl Widget for &mut ClearTaskInstancePopup {
                 Style::default().fg(t.state_failed),
             ));
         }
-        let text = Paragraph::new(lines).style(t.default_style).centered();
+        let text = Paragraph::new(lines)
+            .style(t.default_style)
+            .centered()
+            .wrap(Wrap { trim: true });
+
+        // Smaller popup: 40% width, 30% height, grown to fit a wrapped warning
+        let mut area_popup = popup_area(area, 40, 30);
+        let inner_width = area_popup.width.saturating_sub(2);
+        let header_height = u16::try_from(text.line_count(inner_width))
+            .unwrap_or(u16::MAX)
+            .max(2);
+        // Borders (2) + top padding (1) + header + buttons (3) + bottom padding (1)
+        let needed = header_height.saturating_add(7).min(area.height);
+        if needed > area_popup.height {
+            area_popup.y = area.y + (area.height - needed) / 2;
+            area_popup.height = needed;
+        }
+        let area = area_popup;
+
+        let popup_block = Block::default()
+            .border_type(BorderType::Rounded)
+            .borders(Borders::ALL)
+            .border_style(t.border_style)
+            .style(t.default_style);
+
+        // Use inner area for content layout to avoid overlapping the border
+        let inner = popup_block.inner(area);
+
+        let [_, header, options, _] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(header_height),
+            Constraint::Length(3),
+            Constraint::Min(1),
+        ])
+        .flex(Flex::Center)
+        .areas(inner);
 
         let [_, yes, _, no, _] = Layout::horizontal([
             Constraint::Fill(1),
@@ -294,5 +309,31 @@ impl Widget for &mut DagGraphPopup {
             }
             self.set_cell(buffer, inner, nx + nw - 1, ny + 2, "╯", border_style);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clear_popup_shows_full_wrapped_warning_at_80_columns() {
+        let ids = vec![("some_mapped_task".into(), 0)];
+        let mut popup = ClearTaskInstancePopup::new(&"r".into(), &"d".into(), ids, false);
+        let area = Rect::new(0, 0, 80, 24);
+        let mut buffer = Buffer::empty(area);
+        popup.render(area, &mut buffer);
+
+        let screen: String = (0..area.height)
+            .map(|y| {
+                (0..area.width)
+                    .map(|x| buffer[(x, y)].symbol())
+                    .collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(screen.contains("Clear this Task Instance?"), "{screen}");
+        assert!(screen.contains("some_mapped_task"), "{screen}");
+        assert!(screen.contains("Yes"), "{screen}");
     }
 }
