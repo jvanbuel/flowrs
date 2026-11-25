@@ -93,6 +93,7 @@ pub(crate) fn v1_task_instance_to_domain(
         try_number: value.try_number,
         max_tries: value.max_tries,
         map_index: value.map_index,
+        rendered_map_index: value.rendered_map_index,
         hostname: Some(value.hostname),
         unixname: Some(value.unixname),
         pool: value.pool,

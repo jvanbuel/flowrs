@@ -170,10 +170,17 @@ impl Model for LogModel {
                 if !self.ticks.is_multiple_of(self.poll_tick_multiplier) {
                     return (Some(FlowrsEvent::Tick), vec![]);
                 }
-                if let (Some(dag_id), Some(dag_run_id), Some(task_id), Some(task_try)) = (
+                if let (
+                    Some(dag_id),
+                    Some(dag_run_id),
+                    Some(task_id),
+                    Some(map_index),
+                    Some(task_try),
+                ) = (
                     ctx.dag_id(),
                     ctx.dag_run_id(),
                     ctx.task_id(),
+                    ctx.map_index(),
                     ctx.task_try(),
                 ) {
                     log::debug!("Updating task logs for dag_run_id: {dag_run_id}");
@@ -183,6 +190,7 @@ impl Model for LogModel {
                             dag_id: dag_id.clone(),
                             dag_run_id: dag_run_id.clone(),
                             task_id: task_id.clone(),
+                            map_index,
                             task_try,
                         }],
                     );
@@ -486,6 +494,7 @@ mod tests {
             dag_id: "dag".into(),
             dag_run_id: "run".into(),
             task_id: "task".into(),
+            map_index: -1,
             task_try: 1,
         };
 

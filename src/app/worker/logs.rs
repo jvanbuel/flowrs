@@ -12,19 +12,25 @@ use crate::app::state::App;
 ///
 /// `env_name` identifies which environment initiated this request, ensuring
 /// results are written to the correct environment even if the active one changes.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is one part of the task instance key; a struct would only wrap them"
+)]
 pub async fn handle_update_task_logs(
     app: &Arc<Mutex<App>>,
     client: &Arc<FlowrsClient>,
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,
+    map_index: i64,
     task_try: u32,
     env_name: &str,
 ) {
-    debug!("Getting logs for task: {task_id}, try number {task_try}");
-    let logs =
-        join_all((1..=task_try).map(|i| client.get_task_logs(dag_id, dag_run_id, task_id, i)))
-            .await;
+    debug!("Getting logs for task: {task_id}[{map_index}], try number {task_try}");
+    let logs = join_all(
+        (1..=task_try).map(|i| client.get_task_logs(dag_id, dag_run_id, task_id, map_index, i)),
+    )
+    .await;
 
     // Collect logs and errors outside the lock
     let mut collected_logs = Vec::new();
@@ -51,7 +57,7 @@ pub async fn handle_update_task_logs(
     // Store logs in the originating environment, not the active one
     if !collected_logs.is_empty() {
         if let Some(env) = app.environment_state.environments.get_mut(env_name) {
-            env.replace_task_logs(dag_id, dag_run_id, task_id, collected_logs);
+            env.replace_task_logs(dag_id, dag_run_id, task_id, map_index, collected_logs);
         }
     }
 

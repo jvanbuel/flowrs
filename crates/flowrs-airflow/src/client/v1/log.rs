@@ -5,7 +5,7 @@ use reqwest::Method;
 
 use super::model;
 use super::V1Client;
-use crate::client::read_json;
+use crate::client::{read_json, task_instance_path};
 use crate::error::Result;
 
 /// Compiled regex for parsing V1 log content (Python tuple format).
@@ -58,18 +58,19 @@ impl V1Client {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
         task_try: u32,
     ) -> Result<model::log::Log> {
-        let request = self
-            .base_api(
-                Method::GET,
-                &format!(
-                    "dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}/logs/{task_try}"
-                ),
-            )
+        // Logs take `map_index` as a query parameter, not a path segment.
+        let path = task_instance_path(dag_id, dag_run_id, task_id, -1);
+        let mut request = self
+            .base_api(Method::GET, &format!("{path}/logs/{task_try}"))
             .await?
-            .query(&[("full_content", "true")])
-            .header("Accept", "application/json");
+            .query(&[("full_content", "true")]);
+        if map_index >= 0 {
+            request = request.query(&[("map_index", map_index)]);
+        }
+        let request = request.header("Accept", "application/json");
         let response = self.execute(request).await?;
         read_json(response, "task logs response").await
     }

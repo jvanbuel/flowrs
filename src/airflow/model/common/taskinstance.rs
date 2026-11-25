@@ -82,6 +82,8 @@ pub struct TaskInstance {
     pub try_number: u32,
     pub max_tries: i64,
     pub map_index: i64,
+    /// Name of a mapped instance from the task's `map_index_template`, if set.
+    pub rendered_map_index: Option<String>,
     pub hostname: Option<String>,
     pub unixname: Option<String>,
     pub pool: String,

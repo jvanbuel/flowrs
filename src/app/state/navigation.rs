@@ -25,6 +25,8 @@ pub enum NavigationContext {
         dag_id: DagId,
         dag_run_id: DagRunId,
         task_id: TaskId,
+        /// `-1` for unmapped tasks, as in the Airflow API.
+        map_index: i64,
         task_try: u32,
     },
 }
@@ -62,6 +64,13 @@ impl NavigationContext {
     pub fn task_id(&self) -> Option<&TaskId> {
         match self {
             NavigationContext::Task { task_id, .. } => Some(task_id),
+            _ => Option::None,
+        }
+    }
+
+    pub fn map_index(&self) -> Option<i64> {
+        match self {
+            NavigationContext::Task { map_index, .. } => Some(*map_index),
             _ => Option::None,
         }
     }

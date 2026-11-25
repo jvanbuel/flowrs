@@ -11,18 +11,19 @@ impl FlowrsClient {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
         task_try: u32,
     ) -> Result<Log> {
         match self {
             Self::V1(client) => {
                 let response = client
-                    .fetch_task_logs(dag_id, dag_run_id, task_id, task_try)
+                    .fetch_task_logs(dag_id, dag_run_id, task_id, map_index, task_try)
                     .await?;
                 Ok(v1_log_to_log(response))
             }
             Self::V2(client) => {
                 let response = client
-                    .fetch_task_logs(dag_id, dag_run_id, task_id, task_try)
+                    .fetch_task_logs(dag_id, dag_run_id, task_id, map_index, task_try)
                     .await?;
                 Ok(v2_log_to_log(response))
             }

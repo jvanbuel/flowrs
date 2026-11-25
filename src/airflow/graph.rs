@@ -143,10 +143,14 @@ pub fn sort_task_instances(instances: &mut [TaskInstance], graph: &TaskGraph) {
         |a, b| match (graph.level(&a.task_id), graph.level(&b.task_id)) {
             (Some(level_a), Some(level_b)) => level_a
                 .cmp(&level_b)
-                .then_with(|| a.task_id.cmp(&b.task_id)),
+                .then_with(|| a.task_id.cmp(&b.task_id))
+                .then_with(|| a.map_index.cmp(&b.map_index)),
             (Some(_), None) => Ordering::Less,
             (None, Some(_)) => Ordering::Greater,
-            (None, None) => a.task_id.cmp(&b.task_id),
+            (None, None) => a
+                .task_id
+                .cmp(&b.task_id)
+                .then_with(|| a.map_index.cmp(&b.map_index)),
         },
     );
 }

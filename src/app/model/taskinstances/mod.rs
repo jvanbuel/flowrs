@@ -78,17 +78,26 @@ impl TaskInstanceModel {
     }
 
     /// Mark a task instance with a new status (optimistic update)
-    pub fn mark_task_instance(&mut self, task_id: &TaskId, status: TaskInstanceState) {
+    pub fn mark_task_instance(
+        &mut self,
+        task_id: &TaskId,
+        map_index: i64,
+        status: TaskInstanceState,
+    ) {
         self.table.update_all(|all| {
-            if let Some(task_instance) = all.iter_mut().find(|ti| ti.task_id == *task_id) {
+            if let Some(task_instance) = all
+                .iter_mut()
+                .find(|ti| ti.task_id == *task_id && ti.map_index == map_index)
+            {
                 task_instance.state = Some(status);
             }
         });
     }
 
-    /// Returns selected task IDs for passing to mark/clear popups
-    fn selected_task_ids(&self) -> Vec<TaskId> {
-        self.table.selected_ids(|item| item.task_id.clone())
+    /// Returns selected `(task_id, map_index)` pairs for passing to mark/clear popups
+    fn selected_task_ids(&self) -> Vec<(TaskId, i64)> {
+        self.table
+            .selected_ids(|item| (item.task_id.clone(), item.map_index))
     }
 }
 
@@ -158,6 +167,7 @@ impl TaskInstanceModel {
                         dag_id: task_instance.dag_id.clone(),
                         dag_run_id: task_instance.dag_run_id.clone(),
                         task_id: task_instance.task_id.clone(),
+                        map_index: task_instance.map_index,
                         task_try: task_instance.try_number,
                     }])
                 } else {

@@ -37,28 +37,27 @@ pub async fn handle_update_task_instances(
 
     // 2. Identify retried tasks and fetch their tries concurrently (no lock)
     let mut seen = HashSet::new();
-    let retried_task_ids: Vec<&TaskId> = task_instances
+    let retried: Vec<(&TaskId, i64)> = task_instances
         .iter()
-        .filter(|ti| ti.try_number > 1 && seen.insert(&ti.task_id))
-        .map(|ti| &ti.task_id)
+        .filter(|ti| ti.try_number > 1 && seen.insert((&ti.task_id, ti.map_index)))
+        .map(|ti| (&ti.task_id, ti.map_index))
         .collect();
 
-    let tries_results = join_all(
-        retried_task_ids
-            .iter()
-            .map(|task_id| client.list_task_instance_tries(dag_id, dag_run_id, task_id)),
-    )
+    // ponytail: one request per retried instance, all at once; batch or cap if wide maps get slow.
+    let tries_results = join_all(retried.iter().map(|(task_id, map_index)| {
+        client.list_task_instance_tries(dag_id, dag_run_id, task_id, *map_index)
+    }))
     .await;
 
     // 3. Build gantt from task instances, then overlay detailed tries (no lock)
     let mut gantt = GanttData::from_task_instances(&task_instances);
-    for (task_id, result) in retried_task_ids.iter().zip(tries_results) {
+    for ((task_id, map_index), result) in retried.iter().zip(tries_results) {
         match result {
             Ok(tries) => {
-                gantt.update_tries(task_id, tries);
+                gantt.update_tries(task_id, *map_index, tries);
             }
             Err(e) => {
-                log::warn!("Failed to fetch tries for task {task_id}: {e}");
+                log::warn!("Failed to fetch tries for task {task_id}[{map_index}]: {e}");
             }
         }
     }
@@ -81,10 +80,11 @@ pub async fn handle_clear_task_instance(
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,
+    map_index: i64,
 ) {
-    debug!("Clearing task_instance: {task_id}");
+    debug!("Clearing task_instance: {task_id}[{map_index}]");
     let task_instance = client
-        .clear_task_instance(dag_id, dag_run_id, task_id)
+        .clear_task_instance(dag_id, dag_run_id, task_id, map_index)
         .await;
     if let Err(e) = task_instance {
         debug!("Error clearing task_instance: {e}");
@@ -100,17 +100,18 @@ pub async fn handle_mark_task_instance(
     dag_id: &DagId,
     dag_run_id: &DagRunId,
     task_id: &TaskId,
+    map_index: i64,
     status: MarkState,
 ) {
-    debug!("Marking task_instance: {task_id}");
+    debug!("Marking task_instance: {task_id}[{map_index}]");
     {
         // Update the local state before sending the request; this way, the UI will update immediately
         let mut app = app.lock().unwrap();
         app.task_instances
-            .mark_task_instance(task_id, TaskInstanceState::from(&status));
+            .mark_task_instance(task_id, map_index, TaskInstanceState::from(&status));
     }
     let task_instance = client
-        .mark_task_instance(dag_id, dag_run_id, task_id, &status.to_string())
+        .mark_task_instance(dag_id, dag_run_id, task_id, map_index, &status.to_string())
         .await;
     if let Err(e) = task_instance {
         debug!("Error marking task_instance: {e}");

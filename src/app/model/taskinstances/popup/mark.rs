@@ -9,7 +9,8 @@ pub struct MarkTaskInstancePopup {
     pub dag_id: DagId,
     pub dag_run_id: DagRunId,
     pub status: MarkState,
-    pub marked: Vec<TaskId>,
+    /// `(task_id, map_index)` pairs to mark.
+    pub marked: Vec<(TaskId, i64)>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Display)]
@@ -33,7 +34,7 @@ impl From<&MarkState> for TaskInstanceState {
 }
 
 impl MarkTaskInstancePopup {
-    pub fn new(marked: Vec<TaskId>, dag_id: &DagId, dag_run_id: &DagRunId) -> Self {
+    pub fn new(marked: Vec<(TaskId, i64)>, dag_id: &DagId, dag_run_id: &DagRunId) -> Self {
         Self {
             dag_id: dag_id.clone(),
             status: MarkState::Success,
@@ -73,10 +74,11 @@ impl Model for MarkTaskInstancePopup {
                         Some(FlowrsEvent::Key(*key_event)),
                         self.marked
                             .iter()
-                            .map(|i| WorkerMessage::MarkTaskInstance {
+                            .map(|(task_id, map_index)| WorkerMessage::MarkTaskInstance {
                                 dag_run_id: self.dag_run_id.clone(),
                                 dag_id: self.dag_id.clone(),
-                                task_id: i.clone(),
+                                task_id: task_id.clone(),
+                                map_index: *map_index,
                                 status: self.status.clone(),
                             })
                             .collect(),

@@ -107,14 +107,15 @@ impl App {
                 }
             }
             Panel::Logs => {
-                if let (Some(dag_id), Some(dag_run_id), Some(task_id)) = (
+                if let (Some(dag_id), Some(dag_run_id), Some(task_id), Some(map_index)) = (
                     self.nav_context.dag_id(),
                     self.nav_context.dag_run_id(),
                     self.nav_context.task_id(),
+                    self.nav_context.map_index(),
                 ) {
                     self.logs.update_logs(
                         self.environment_state
-                            .get_active_task_logs(dag_id, dag_run_id, task_id),
+                            .get_active_task_logs(dag_id, dag_run_id, task_id, map_index),
                     );
                 } else {
                     // Go through update_logs so the selected try is clamped and

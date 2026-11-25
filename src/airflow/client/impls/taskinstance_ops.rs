@@ -32,11 +32,12 @@ impl FlowrsClient {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
     ) -> Result<Vec<TaskTryGantt>> {
         match self {
             Self::V1(client) => {
                 let response = client
-                    .fetch_task_instance_tries(dag_id, dag_run_id, task_id)
+                    .fetch_task_instance_tries(dag_id, dag_run_id, task_id, map_index)
                     .await?;
                 Ok(response
                     .task_instances
@@ -46,7 +47,7 @@ impl FlowrsClient {
             }
             Self::V2(client) => {
                 let response = client
-                    .fetch_task_instance_tries(dag_id, dag_run_id, task_id)
+                    .fetch_task_instance_tries(dag_id, dag_run_id, task_id, map_index)
                     .await?;
                 Ok(response
                     .task_instances
@@ -62,17 +63,18 @@ impl FlowrsClient {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
         status: &str,
     ) -> Result<()> {
         match self {
             Self::V1(client) => {
                 client
-                    .patch_task_instance(dag_id, dag_run_id, task_id, status)
+                    .patch_task_instance(dag_id, dag_run_id, task_id, map_index, status)
                     .await?;
             }
             Self::V2(client) => {
                 client
-                    .patch_task_instance(dag_id, dag_run_id, task_id, status)
+                    .patch_task_instance(dag_id, dag_run_id, task_id, map_index, status)
                     .await?;
             }
         }
@@ -84,8 +86,11 @@ impl FlowrsClient {
         dag_id: &str,
         dag_run_id: &str,
         task_id: &str,
+        map_index: i64,
     ) -> Result<()> {
         match self {
+            // The `/api/v1` clear body only takes plain task ids, so a mapped
+            // task is cleared for all of its map indices.
             Self::V1(client) => {
                 client
                     .post_clear_task_instance(dag_id, dag_run_id, task_id)
@@ -93,7 +98,7 @@ impl FlowrsClient {
             }
             Self::V2(client) => {
                 client
-                    .post_clear_task_instance(dag_id, dag_run_id, task_id)
+                    .post_clear_task_instance(dag_id, dag_run_id, task_id, map_index)
                     .await?;
             }
         }
