@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.13.0...flowrs-airflow-v0.14.0) - 2026-11-25
+
+### Fixed
+
+- *(taskinstances)* address review on mapped task instance clears
+- *(taskinstances)* [**breaking**] distinguish mapped task instances by map_index
+
 ## [0.13.0](https://github.com/jvanbuel/flowrs/compare/flowrs-airflow-v0.12.0...flowrs-airflow-v0.13.0) - 2026-10-08
 
 ### Fixed

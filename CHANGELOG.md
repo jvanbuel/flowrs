@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.7...flowrs-tui-v0.17.0) - 2026-11-25
+
+### Fixed
+
+- *(taskinstances)* wrap the clear popup warning and fit its height
+- *(taskinstances)* address review on mapped task instance clears
+- *(taskinstances)* [**breaking**] distinguish mapped task instances by map_index
+
+### Other
+
+- drop homepage, it duplicates repository
+
 ## [0.16.7](https://github.com/jvanbuel/flowrs/compare/flowrs-tui-v0.16.6...flowrs-tui-v0.16.7) - 2026-11-23
 
 ### Other
