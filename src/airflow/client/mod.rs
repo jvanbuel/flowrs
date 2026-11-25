@@ -31,6 +31,14 @@ impl FlowrsClient {
 }
 
 impl FlowrsClient {
+    /// Whether clearing a mapped task instance targets only its own map index.
+    ///
+    /// The `/api/v1` clear body only takes plain task ids, so Airflow 2 clears
+    /// every map index of the task.
+    pub const fn clears_single_map_index(&self) -> bool {
+        matches!(self, Self::V2(_))
+    }
+
     pub fn build_open_url(&self, item: &OpenItem) -> Result<String> {
         match self {
             Self::V1(client) => build_v1_open_url(client.endpoint(), item),

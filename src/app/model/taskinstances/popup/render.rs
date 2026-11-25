@@ -2,6 +2,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Flex, Layout, Rect},
     style::Style,
+    text::Line,
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Widget},
 };
 use std::cmp::min;
@@ -44,7 +45,14 @@ impl Widget for &mut ClearTaskInstancePopup {
         } else {
             format!("Clear {} Task Instances?", self.task_ids.len())
         };
-        let text = Paragraph::new(message).style(t.default_style).centered();
+        let mut lines = vec![Line::from(message)];
+        if let Some(warning) = &self.warning {
+            lines.push(Line::styled(
+                warning.clone(),
+                Style::default().fg(t.state_failed),
+            ));
+        }
+        let text = Paragraph::new(lines).style(t.default_style).centered();
 
         let [_, yes, _, no, _] = Layout::horizontal([
             Constraint::Fill(1),

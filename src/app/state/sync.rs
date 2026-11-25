@@ -75,6 +75,10 @@ impl App {
                     (self.nav_context.dag_id(), self.nav_context.dag_run_id())
                 {
                     self.task_instances.set_gantt_context(dag_id, dag_run_id);
+                    self.task_instances.clears_single_map_index = self
+                        .environment_state
+                        .get_active_environment()
+                        .is_some_and(|env| env.client.clears_single_map_index());
                     self.task_instances.table.set_items(
                         self.environment_state
                             .get_active_task_instances(dag_id, dag_run_id),

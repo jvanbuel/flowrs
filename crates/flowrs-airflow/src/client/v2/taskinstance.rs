@@ -111,6 +111,9 @@ impl V2Client {
     ) -> Result<()> {
         // `/api/v2` accepts `[task_id, map_index]` to target one mapped instance.
         // A bare `task_id` clears every map index of a mapped task.
+        // Airflow 3.0.0 to 3.0.6 and 3.1.0 re-add the bare `task_id` when
+        // `include_downstream` pulls in other tasks, so on those servers all map
+        // indices are cleared. Fixed server-side in 3.1.1.
         let task = if map_index >= 0 {
             serde_json::json!([task_id, map_index])
         } else {
