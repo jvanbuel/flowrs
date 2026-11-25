@@ -36,6 +36,8 @@ pub struct TaskInstanceModel {
     poll_tick_multiplier: u32,
     event_buffer: Vec<KeyCode>,
     pub task_graph: Option<TaskGraph>,
+    /// Whether the active API clears only the selected map index of a mapped task.
+    pub clears_single_map_index: bool,
 }
 
 impl Default for TaskInstanceModel {
@@ -49,6 +51,7 @@ impl Default for TaskInstanceModel {
             poll_tick_multiplier: 10,
             event_buffer: Vec::new(),
             task_graph: None,
+            clears_single_map_index: true,
         }
     }
 }
@@ -151,7 +154,12 @@ impl TaskInstanceModel {
                 if let (Some(dag_id), Some(dag_run_id)) = (ctx.dag_id(), ctx.dag_run_id()) {
                     if !task_ids.is_empty() {
                         self.popup.show_custom(TaskInstancePopUp::Clear(
-                            ClearTaskInstancePopup::new(dag_run_id, dag_id, task_ids),
+                            ClearTaskInstancePopup::new(
+                                dag_run_id,
+                                dag_id,
+                                task_ids,
+                                self.clears_single_map_index,
+                            ),
                         ));
                     }
                 }

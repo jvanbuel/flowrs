@@ -1,13 +1,17 @@
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
-use futures::future::join_all;
+use futures::stream::{self, StreamExt};
 use log::debug;
 
 use crate::airflow::client::FlowrsClient;
 use crate::airflow::model::common::{DagId, DagRunId, GanttData, TaskId, TaskInstanceState};
 use crate::app::model::taskinstances::popup::mark::MarkState;
 use crate::app::state::App;
+
+/// Cap on concurrent try-history requests, so a wide mapped task with many
+/// retries does not send hundreds of requests at once on every refresh.
+const MAX_CONCURRENT_TRIES_REQUESTS: usize = 8;
 
 /// Handle updating the list of task instances for a specific DAG run.
 ///
@@ -43,11 +47,19 @@ pub async fn handle_update_task_instances(
         .map(|ti| (&ti.task_id, ti.map_index))
         .collect();
 
-    // ponytail: one request per retried instance, all at once; batch or cap if wide maps get slow.
-    let tries_results = join_all(retried.iter().map(|(task_id, map_index)| {
-        client.list_task_instance_tries(dag_id, dag_run_id, task_id, *map_index)
-    }))
-    .await;
+    // `buffered` keeps results in input order, so they still zip with `retried`.
+    // Collected first: a lazy `map` closure held across the `.await` makes the
+    // worker future fail the `Send` check in `JoinSet::spawn`.
+    let requests: Vec<_> = retried
+        .iter()
+        .map(|(task_id, map_index)| {
+            client.list_task_instance_tries(dag_id, dag_run_id, task_id, *map_index)
+        })
+        .collect();
+    let tries_results: Vec<_> = stream::iter(requests)
+        .buffered(MAX_CONCURRENT_TRIES_REQUESTS)
+        .collect()
+        .await;
 
     // 3. Build gantt from task instances, then overlay detailed tries (no lock)
     let mut gantt = GanttData::from_task_instances(&task_instances);
